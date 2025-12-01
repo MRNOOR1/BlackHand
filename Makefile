@@ -132,7 +132,14 @@ SZ = $(PREFIX)size
 endif
 HEX = $(CP) -O ihex
 BIN = $(CP) -O binary -S
- 
+
+# ------------------------------------------------------------------
+# Flashing tool config (using STM32_Programmer_CLI)
+# ------------------------------------------------------------------
+PROG       = STM32_Programmer_CLI
+FLASH_ADDR = 0x08000000   # Start of flash for STM32F429
+# ------------------------------------------------------------------
+
 #######################################
 # CFLAGS
 #######################################
@@ -252,6 +259,21 @@ $(BUILD_DIR):
 	mkdir $@		
 
 #######################################
+# flashing helpers
+#######################################
+# Build + flash the .bin to internal flash
+flash: $(BUILD_DIR)/$(TARGET).bin
+	$(PROG) -c port=SWD -w $< $(FLASH_ADDR) -rst
+
+# Just connect (debug: see device info)
+connect:
+	$(PROG) -c port=SWD
+
+# Mass erase the chip (if it gets bricked)
+erase:
+	$(PROG) -c port=SWD -e all -rst
+
+#######################################
 # clean up
 #######################################
 clean:
@@ -261,5 +283,7 @@ clean:
 # dependencies
 #######################################
 -include $(wildcard $(BUILD_DIR)/*.d)
+
+.PHONY: all clean flash erase connect
 
 # *** EOF ***
