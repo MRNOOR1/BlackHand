@@ -1,0 +1,269 @@
+Right now you’ve basically built **the baby kernel of BlackHand OS**:
+
+* Board boots
+* HAL + clocks init
+* FreeRTOS starts
+* One task blinks an LED
+* One task writes to a UART “console” that you can see on your Mac
+
+Let me explain what each piece actually *means* and why we did it in this order.
+
+---
+
+## 1. What your firmware is doing now (big picture)
+
+On reset, the F429 runs this sequence:
+
+1. **Startup code**
+
+   * Sets up the stack
+   * Zeros `.bss`, copies `.data`
+   * Jumps to `main()`
+
+2. **`main()` high-level flow** (your project):
+
+   ```c
+   int main(void)
+   {
+       HAL_Init();
+       SystemClock_Config();
+
+       MX_GPIO_Init();
+       MX_USART1_UART_Init();   // UART driver init (console)
+       MX_FREERTOS_Init();      // RTOS objects + tasks
+
+       osKernelStart();         // start FreeRTOS scheduler
+
+       while (1) { }            // should never reach here
+   }
+   ```
+
+3. Once `osKernelStart()` runs, **FreeRTOS takes over**:
+
+   * Picks the highest-priority ready task
+   * Starts running your tasks in a time-sliced way.
+
+So you now have a **proper layered system**:
+
+* Hardware + HAL drivers (GPIO, UART)
+* RTOS kernel (FreeRTOS)
+* OS-level code (tasks: LED task, UART task)
+
+---
+
+## 2. What `MX_FREERTOS_Init()` actually is
+
+Think of `MX_FREERTOS_Init()` as **“spawn all OS entities before the kernel starts”**.
+
+Inside `MX_FREERTOS_Init()` you now do things like:
+
+```c
+void MX_FREERTOS_Init(void)
+{
+    // define and create LED task
+    osThreadDef(ledTask, StartLedTask, osPriorityNormal, 0, 128);
+    ledTaskHandle = osThreadCreate(osThread(ledTask), NULL);
+
+    // define and create UART task
+    osThreadDef(uartTask, StartUartTask, osPriorityLow, 0, 128);
+    uartTaskHandle = osThreadCreate(osThread(uartTask), NULL);
+
+    // later: queues, mutexes, timers, etc.
+}
+```
+
+### Why this function exists / why it’s important
+
+* It’s the **one place** where you:
+
+  * Create all your tasks
+  * Create queues, semaphores, mutexes, timers
+* It runs **before** `osKernelStart()`.
+  RTOS rule: you generally don’t want to create tasks *after* the scheduler starts unless you’re doing it deliberately. This keeps startup deterministic and easier to debug.
+
+Conceptually:
+
+> `MX_FREERTOS_Init()` = “boot-time OS configuration”
+
+Later for BlackHand OS, this is where you’d create:
+
+* `DisplayTask`
+* `InputTask` (keypad/buttons)
+* `AudioTask`
+* `GsmTask`
+* `StorageTask`
+* plus shared queues/mutexes between them.
+
+You’ve just populated your first **two** tasks: LED + UART.
+
+---
+
+## 3. What your tasks really are
+
+### 3.1 `StartLedTask`
+
+```c
+void StartLedTask(void const * argument)
+{
+    for (;;)
+    {
+        HAL_GPIO_TogglePin(GPIOx, GPIO_PIN_y);  // whatever LED
+        osDelay(500);
+    }
+}
+```
+
+This is:
+
+* An **independent thread of execution**.
+* Runs forever.
+* Every 500 ms:
+
+  * Toggles LED
+  * Calls `osDelay(500)` → yields the CPU to other tasks.
+
+Why `osDelay` matters:
+
+* Without it, this task would spin at full speed and starve others.
+* With it, FreeRTOS knows: “put this task to sleep for 500 ms and let others run.”
+
+This is the **mental model** you’ll use for:
+
+* Polling buttons
+* Updating the UI
+* Periodic housekeeping (battery, RTC, etc.)
+
+---
+
+### 3.2 `StartUartTask`
+
+```c
+extern UART_HandleTypeDef huart1;
+
+void StartUartTask(void const * argument)
+{
+    const char *msg = "Hello from FreeRTOS\r\n";
+
+    for (;;)
+    {
+        HAL_UART_Transmit(&huart1, (uint8_t*)msg, sizeof(msg)-1, HAL_MAX_DELAY);
+        osDelay(1000);
+    }
+}
+```
+
+What’s happening:
+
+* `huart1` is your **driver handle for USART1**:
+
+  * It knows which registers (`USART1`) to talk to
+  * It holds the config: baud rate, parity, etc.
+
+* `HAL_UART_Transmit(...)`:
+
+  * Blocks **this task only** until the string is sent.
+  * Other tasks (like the LED task) can still run because the scheduler can switch to them.
+
+* `osDelay(1000)`:
+
+  * Sleep the task for 1 second.
+  * So you get one line per second in your terminal.
+
+Why this is important:
+
+You’ve built a **“console logger” task**. In the final phone OS:
+
+* This will become your debug console.
+* The same pattern will be used for:
+
+  * GSM receive task (reading AT responses)
+  * Commands / shell interface if you add one.
+
+---
+
+## 4. What we actually did with UART (end-to-end)
+
+1. **Configured the peripheral (once at startup)**
+   In `MX_USART1_UART_Init()`:
+
+   * `huart1.Instance = USART1;`
+   * `huart1.Init.BaudRate = 115200;`
+   * `huart1.Init.WordLength = UART_WORDLENGTH_8B;`
+   * `huart1.Init.StopBits = UART_STOPBITS_1;`
+   * `huart1.Init.Parity = UART_PARITY_NONE;`
+   * `huart1.Init.Mode = UART_MODE_TX_RX;`
+   * `HAL_UART_Init(&huart1);`
+
+   This:
+
+   * Enables the USART1 clock
+   * Sets PA9/PA10 to Alternate Function UART
+   * Programs the baud rate registers
+   * Leaves the peripheral ready.
+
+2. **Wired it to the outside world**
+
+   * On your board, PA9/PA10 are internally connected to the **ST-LINK Virtual COM Port**.
+   * The Mac sees that as `/dev/tty.usbmodemXXXX`.
+   * Your UART bytes appear as text in `screen` or any serial terminal.
+
+3. **Used it from a FreeRTOS task**
+
+   * Instead of calling `HAL_UART_Transmit` from `main()` in a loop, you call it from a **task**.
+   * That task has its own stack & priority.
+   * FreeRTOS schedules it along with others.
+
+So you’ve proven that:
+
+> **Your RTOS-based OS can talk reliably to the outside world.**
+
+That’s huge. It’s the foundation for:
+
+* Debugging everything else
+* Controlling GSM / Bluetooth chips
+* Maybe even a tiny command-line shell over UART.
+
+---
+
+## 5. Why this process / order is correct
+
+You didn’t just randomly blink an LED then spam UART. You’ve now done things in *OS-building order*:
+
+1. **Bring up toolchain & flashing** → LED blink
+
+   * Proves compiler, linker, Make, ST-LINK are all correct.
+
+2. **Bring up a communication channel** → UART console
+
+   * Proves you can see what the firmware sees.
+   * Critical for debugging when things get complex.
+
+3. **Introduce FreeRTOS and move work into tasks**
+
+   * You now think in **tasks**, not in one giant `while(1)`.
+   * That matches how a phone OS will be structured:
+
+     * UI task
+     * Input task
+     * Audio task
+     * Modem task
+     * etc.
+
+4. **Combine them: LED + UART under RTOS**
+
+   * Confirms:
+
+     * Scheduler works
+     * SysTick is configured
+     * Context switching is stable
+   * You now have genuine multi-tasking running on the board.
+
+From here, you can safely start layering:
+
+* Add a **button task** that sends events.
+* Add a **display task** that updates the screen.
+* Later, add a **GSM task** that talks AT commands via UART.
+
+All with the same pattern you just used.
+
+---
