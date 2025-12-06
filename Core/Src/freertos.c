@@ -25,6 +25,16 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <string.h>
+#include "usart.h"
+
+
+
+osThreadId ledTaskHandle;
+osThreadId uartTaskHandle;
+
+void StartLedTask(void const * argument);
+void StartUartTask(void const * argument);
 
 /* USER CODE END Includes */
 
@@ -137,7 +147,13 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
+    // LED task: normal priority, 128 words stack
+  osThreadDef(ledTask, StartLedTask, osPriorityNormal, 0, 128);
+  ledTaskHandle = osThreadCreate(osThread(ledTask), NULL);
 
+  // UART task: low priority, 128 words stack
+  osThreadDef(uartTask, StartUartTask, osPriorityLow, 0, 128);
+  uartTaskHandle = osThreadCreate(osThread(uartTask), NULL);
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
@@ -157,6 +173,7 @@ void MX_FREERTOS_Init(void) {
 
 }
 
+
 /* USER CODE BEGIN Header_StartDefaultTask */
 /**
   * @brief  Function implementing the defaultTask thread.
@@ -172,8 +189,6 @@ void StartDefaultTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-    HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_13); // example LED pin
-    osDelay(2000); // 500 ms delay
 
     //osDelay(1);
   }
@@ -182,5 +197,29 @@ void StartDefaultTask(void const * argument)
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
+extern UART_HandleTypeDef huart1;
+
+void StartLedTask(void const * argument)
+{
+  (void)argument;
+
+  for (;;)
+  {
+    HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_13); // or whatever LED pin you used
+    osDelay(500); // 500 ms
+  }
+}
+
+void StartUartTask(void const * argument)
+{
+  (void)argument;
+  const char *msg = "Hello from FreeRTOS\r\n";
+
+  for (;;)
+  {
+    HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+    osDelay(1000); // 1 s
+  }
+}
 
 /* USER CODE END Application */
