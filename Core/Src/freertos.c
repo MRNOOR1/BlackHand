@@ -173,7 +173,7 @@ void StartDefaultTask(void const * argument)
   for(;;)
   {
     HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_13); // example LED pin
-    osDelay(50000); // 500 ms delay
+    osDelay(2000); // 500 ms delay
 
     //osDelay(1);
   }
