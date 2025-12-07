@@ -37,6 +37,9 @@
 
 
 
+osThreadId ledTaskHandle;
+osThreadId uartTaskHandle;
+osThreadId buttonTaskHandle;
 
 
 
@@ -145,7 +148,14 @@ void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackTy
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
+    // LED task: normal priority, 128 words stack
+  osThreadDef(ledTask, StartLedTask, osPriorityAboveNormal, 0, 128);
+  ledTaskHandle = osThreadCreate(osThread(ledTask), NULL);
 
+  // UART task: low priority, 128 words stack
+  osThreadDef(uartTask, StartUartTask, osPriorityAboveNormal, 0, 128);
+  uartTaskHandle = osThreadCreate(osThread(uartTask), NULL);
+  /* USER CODE BEGIN RTOS_TIMERS */
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -220,7 +230,7 @@ void StartUartTask(void const * argument)
   for (;;)
   {
     HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
-    osDelay(1000); // 1 s
+    osDelay(2000); // 1 s
   }
 }
 extern UART_HandleTypeDef huart1;
