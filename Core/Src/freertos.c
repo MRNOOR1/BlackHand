@@ -32,8 +32,9 @@
 #define BUTTON_PORT A0_GPIO_Port
 #define BUTTON_PIN  A0_Pin
 
-#define BUTTON_PRESSED      GPIO_PIN_RESET
-#define BUTTON_RELEASED     GPIO_PIN_SET
+#define BUTTON_PRESSED      GPIO_PIN_SET      // 1 when pressed
+#define BUTTON_RELEASED     GPIO_PIN_RESET    // 0 when not pressed
+
 
 
 
@@ -65,9 +66,6 @@ void StartButtonTask(void const * argument);
 
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
-osThreadId ledTaskHandle;
-osThreadId uartTaskHandle;
-osThreadId buttonTaskHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -157,18 +155,10 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
-    // LED task: normal priority, 128 words stack
-osThreadDef(ledTask, StartLedTask, osPriorityNormal, 0, 128);
-ledTaskHandle = osThreadCreate(osThread(ledTask), NULL);
 
-// UART task: low priority, 128 words stack
-osThreadDef(uartTask, StartUartTask, osPriorityLow, 0, 128);
-uartTaskHandle = osThreadCreate(osThread(uartTask), NULL);
-/* USER CODE BEGIN RTOS_TIMERS */
+  /* USER CODE BEGIN RTOS_TIMERS */
 osThreadDef(buttonTask, StartButtonTask, osPriorityAboveNormal, 0, 128);
 buttonTaskHandle = osThreadCreate(osThread(buttonTask), NULL);
-/* USER CODE END RTOS_TIMERS */
-
   /* USER CODE END RTOS_TIMERS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
@@ -185,7 +175,6 @@ buttonTaskHandle = osThreadCreate(osThread(buttonTask), NULL);
   /* USER CODE END RTOS_THREADS */
 
 }
-
 
 /* USER CODE BEGIN Header_StartDefaultTask */
 /**
@@ -250,8 +239,7 @@ void StartButtonTask(void const * argument)
     {
         GPIO_PinState nowState = HAL_GPIO_ReadPin(BUTTON_PORT, BUTTON_PIN);
 
-        // CORRECT: Detect transition from RELEASED (HIGH) to PRESSED (LOW)
-        if(lastState == BUTTON_RELEASED && nowState == BUTTON_PRESSED)
+        if (lastState == BUTTON_RELEASED && nowState == BUTTON_PRESSED)
         {
             const char *msg = "\r\nBUTTON PRESSED EVENT!\r\n";
             HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);

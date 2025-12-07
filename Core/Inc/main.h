@@ -62,7 +62,7 @@ void Error_Handler(void);
 #define PC15_OSC32_OUT_Pin GPIO_PIN_15
 #define PC15_OSC32_OUT_GPIO_Port GPIOC
 #define A0_Pin GPIO_PIN_0
-#define A0_GPIO_Port GPIOA
+#define A0_GPIO_Port GPIOF
 #define A1_Pin GPIO_PIN_1
 #define A1_GPIO_Port GPIOF
 #define A2_Pin GPIO_PIN_2
@@ -91,6 +91,8 @@ void Error_Handler(void);
 #define NCS_MEMS_SPI_GPIO_Port GPIOC
 #define CSX_Pin GPIO_PIN_2
 #define CSX_GPIO_Port GPIOC
+#define BlueButton_Pin GPIO_PIN_0
+#define BlueButton_GPIO_Port GPIOA
 #define MEMS_INT1_Pin GPIO_PIN_1
 #define MEMS_INT1_GPIO_Port GPIOA
 #define MEMS_INT2_Pin GPIO_PIN_2
