@@ -136,9 +136,6 @@ Discarded input sections
                 0x00000000       0x14 build/stm32f4xx_hal_timebase_tim.o
  .text.HAL_ResumeTick
                 0x00000000       0x14 build/stm32f4xx_hal_timebase_tim.o
- .text          0x00000000        0x0 build/usb_host.o
- .data          0x00000000        0x0 build/usb_host.o
- .bss           0x00000000        0x0 build/usb_host.o
  .text          0x00000000        0x0 build/usbh_conf.o
  .data          0x00000000        0x0 build/usbh_conf.o
  .bss           0x00000000        0x0 build/usbh_conf.o
@@ -153,6 +150,9 @@ Discarded input sections
  .text          0x00000000        0x0 build/usbh_platform.o
  .data          0x00000000        0x0 build/usbh_platform.o
  .bss           0x00000000        0x0 build/usbh_platform.o
+ .text          0x00000000        0x0 build/usb_host.o
+ .data          0x00000000        0x0 build/usb_host.o
+ .bss           0x00000000        0x0 build/usb_host.o
  .text          0x00000000        0x0 build/stm32f4xx_hal_tim.o
  .data          0x00000000        0x0 build/stm32f4xx_hal_tim.o
  .bss           0x00000000        0x0 build/stm32f4xx_hal_tim.o
@@ -2343,9 +2343,9 @@ LOAD build/usart.o
 LOAD build/stm32f4xx_it.o
 LOAD build/stm32f4xx_hal_msp.o
 LOAD build/stm32f4xx_hal_timebase_tim.o
-LOAD build/usb_host.o
 LOAD build/usbh_conf.o
 LOAD build/usbh_platform.o
+LOAD build/usb_host.o
 LOAD build/stm32f4xx_hal_tim.o
 LOAD build/stm32f4xx_hal_tim_ex.o
 LOAD build/stm32f4xx_hal_hcd.o
@@ -2570,77 +2570,77 @@ LOAD /Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin/../lib/gcc/arm-no
  .text.HAL_InitTick
                 0x08000e84       0xa4 build/stm32f4xx_hal_timebase_tim.o
                 0x08000e84                HAL_InitTick
- .text.USBH_UserProcess
-                0x08000f28       0x2c build/usb_host.o
- .text.MX_USB_HOST_Init
-                0x08000f54       0x40 build/usb_host.o
-                0x08000f54                MX_USB_HOST_Init
  .text.HAL_HCD_MspInit
-                0x08000f94       0x94 build/usbh_conf.o
-                0x08000f94                HAL_HCD_MspInit
+                0x08000f28       0x94 build/usbh_conf.o
+                0x08000f28                HAL_HCD_MspInit
  .text.HAL_HCD_SOF_Callback
-                0x08001028        0xc build/usbh_conf.o
-                0x08001028                HAL_HCD_SOF_Callback
+                0x08000fbc        0xc build/usbh_conf.o
+                0x08000fbc                HAL_HCD_SOF_Callback
  .text.HAL_HCD_Connect_Callback
-                0x08001034        0xc build/usbh_conf.o
-                0x08001034                HAL_HCD_Connect_Callback
+                0x08000fc8        0xc build/usbh_conf.o
+                0x08000fc8                HAL_HCD_Connect_Callback
  .text.HAL_HCD_Disconnect_Callback
-                0x08001040        0xc build/usbh_conf.o
-                0x08001040                HAL_HCD_Disconnect_Callback
+                0x08000fd4        0xc build/usbh_conf.o
+                0x08000fd4                HAL_HCD_Disconnect_Callback
  .text.HAL_HCD_HC_NotifyURBChange_Callback
-                0x0800104c        0xc build/usbh_conf.o
-                0x0800104c                HAL_HCD_HC_NotifyURBChange_Callback
+                0x08000fe0        0xc build/usbh_conf.o
+                0x08000fe0                HAL_HCD_HC_NotifyURBChange_Callback
  .text.HAL_HCD_PortEnabled_Callback
-                0x08001058        0xc build/usbh_conf.o
-                0x08001058                HAL_HCD_PortEnabled_Callback
+                0x08000fec        0xc build/usbh_conf.o
+                0x08000fec                HAL_HCD_PortEnabled_Callback
  .text.HAL_HCD_PortDisabled_Callback
-                0x08001064        0xc build/usbh_conf.o
-                0x08001064                HAL_HCD_PortDisabled_Callback
+                0x08000ff8        0xc build/usbh_conf.o
+                0x08000ff8                HAL_HCD_PortDisabled_Callback
  .text.USBH_LL_Init
-                0x08001070       0x5c build/usbh_conf.o
-                0x08001070                USBH_LL_Init
+                0x08001004       0x5c build/usbh_conf.o
+                0x08001004                USBH_LL_Init
  .text.USBH_LL_GetSpeed
-                0x080010cc       0x20 build/usbh_conf.o
-                0x080010cc                USBH_LL_GetSpeed
+                0x08001060       0x20 build/usbh_conf.o
+                0x08001060                USBH_LL_GetSpeed
  .text.USBH_LL_GetLastXferSize
-                0x080010ec        0xc build/usbh_conf.o
-                0x080010ec                USBH_LL_GetLastXferSize
+                0x08001080        0xc build/usbh_conf.o
+                0x08001080                USBH_LL_GetLastXferSize
  .text.USBH_LL_ClosePipe
-                0x080010f8        0x4 build/usbh_conf.o
-                0x080010f8                USBH_LL_ClosePipe
+                0x0800108c        0x4 build/usbh_conf.o
+                0x0800108c                USBH_LL_ClosePipe
  .text.USBH_LL_GetURBState
-                0x080010fc        0xc build/usbh_conf.o
-                0x080010fc                USBH_LL_GetURBState
+                0x08001090        0xc build/usbh_conf.o
+                0x08001090                USBH_LL_GetURBState
  .text.USBH_LL_DriverVBUS
-                0x08001108       0x1a build/usbh_conf.o
-                0x08001108                USBH_LL_DriverVBUS
+                0x0800109c       0x1a build/usbh_conf.o
+                0x0800109c                USBH_LL_DriverVBUS
  .text.USBH_LL_SetToggle
-                0x08001122       0x2e build/usbh_conf.o
-                0x08001122                USBH_LL_SetToggle
+                0x080010b6       0x2e build/usbh_conf.o
+                0x080010b6                USBH_LL_SetToggle
  .text.USBH_Delay
-                0x08001150        0x8 build/usbh_conf.o
-                0x08001150                USBH_Delay
+                0x080010e4        0x8 build/usbh_conf.o
+                0x080010e4                USBH_Delay
  .text.USBH_Get_USB_Status
-                0x08001158       0x14 build/usbh_conf.o
-                0x08001158                USBH_Get_USB_Status
+                0x080010ec       0x14 build/usbh_conf.o
+                0x080010ec                USBH_Get_USB_Status
  .text.USBH_LL_Start
-                0x0800116c       0x10 build/usbh_conf.o
-                0x0800116c                USBH_LL_Start
+                0x08001100       0x10 build/usbh_conf.o
+                0x08001100                USBH_LL_Start
  .text.USBH_LL_Stop
-                0x0800117c       0x10 build/usbh_conf.o
-                0x0800117c                USBH_LL_Stop
+                0x08001110       0x10 build/usbh_conf.o
+                0x08001110                USBH_LL_Stop
  .text.USBH_LL_ResetPort
-                0x0800118c       0x10 build/usbh_conf.o
-                0x0800118c                USBH_LL_ResetPort
+                0x08001120       0x10 build/usbh_conf.o
+                0x08001120                USBH_LL_ResetPort
  .text.USBH_LL_OpenPipe
-                0x0800119c       0x26 build/usbh_conf.o
-                0x0800119c                USBH_LL_OpenPipe
+                0x08001130       0x26 build/usbh_conf.o
+                0x08001130                USBH_LL_OpenPipe
  .text.USBH_LL_SubmitURB
-                0x080011c2       0x2a build/usbh_conf.o
-                0x080011c2                USBH_LL_SubmitURB
+                0x08001156       0x2a build/usbh_conf.o
+                0x08001156                USBH_LL_SubmitURB
  .text.MX_DriverVbusHS
-                0x080011ec       0x18 build/usbh_platform.o
-                0x080011ec                MX_DriverVbusHS
+                0x08001180       0x18 build/usbh_platform.o
+                0x08001180                MX_DriverVbusHS
+ .text.USBH_UserProcess
+                0x08001198       0x2c build/usb_host.o
+ .text.MX_USB_HOST_Init
+                0x080011c4       0x40 build/usb_host.o
+                0x080011c4                MX_USB_HOST_Init
  .text.TIM_TI1_ConfigInputStage
                 0x08001204       0x26 build/stm32f4xx_hal_tim.o
  .text.TIM_TI2_ConfigInputStage
@@ -3660,16 +3660,16 @@ LOAD /Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin/../lib/gcc/arm-no
                 0x2000051c                huart1
  .bss.htim6     0x20000564       0x48 build/stm32f4xx_hal_timebase_tim.o
                 0x20000564                htim6
- .bss.Appli_state
-                0x200005ac        0x1 build/usb_host.o
-                0x200005ac                Appli_state
- *fill*         0x200005ad        0x3 
- .bss.hUsbHostHS
-                0x200005b0      0x3e4 build/usb_host.o
-                0x200005b0                hUsbHostHS
  .bss.hhcd_USB_OTG_HS
-                0x20000994      0x3e0 build/usbh_conf.o
-                0x20000994                hhcd_USB_OTG_HS
+                0x200005ac      0x3e0 build/usbh_conf.o
+                0x200005ac                hhcd_USB_OTG_HS
+ .bss.Appli_state
+                0x2000098c        0x1 build/usb_host.o
+                0x2000098c                Appli_state
+ *fill*         0x2000098d        0x3 
+ .bss.hUsbHostHS
+                0x20000990      0x3e4 build/usb_host.o
+                0x20000990                hUsbHostHS
  .bss.uwTick    0x20000d74        0x4 build/stm32f4xx_hal.o
                 0x20000d74                uwTick
  .bss.uxSchedulerSuspended
@@ -3769,7 +3769,7 @@ LOAD /Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin/../lib/gcc/arm-no
  libc.a(*)
  libm.a(*)
  libgcc.a(*)
-OUTPUT(build/BlackHand.elf elf32-littlearm)
+OUTPUT(build/Black_Hand.elf elf32-littlearm)
 LOAD linker stubs
 LOAD /Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin/../lib/gcc/arm-none-eabi/14.3.1/../../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libc.a
 LOAD /Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin/../lib/gcc/arm-none-eabi/14.3.1/../../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a
@@ -3810,11 +3810,11 @@ LOAD /Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin/../lib/gcc/arm-no
  .ARM.attributes
                 0x000002fa       0x34 build/stm32f4xx_hal_timebase_tim.o
  .ARM.attributes
-                0x0000032e       0x34 build/usb_host.o
+                0x0000032e       0x34 build/usbh_conf.o
  .ARM.attributes
-                0x00000362       0x34 build/usbh_conf.o
+                0x00000362       0x34 build/usbh_platform.o
  .ARM.attributes
-                0x00000396       0x34 build/usbh_platform.o
+                0x00000396       0x34 build/usb_host.o
  .ARM.attributes
                 0x000003ca       0x34 build/stm32f4xx_hal_tim.o
  .ARM.attributes
@@ -3934,9 +3934,9 @@ LOAD /Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin/../lib/gcc/arm-no
  .comment       0x00000046       0x47 build/stm32f4xx_it.o
  .comment       0x00000046       0x47 build/stm32f4xx_hal_msp.o
  .comment       0x00000046       0x47 build/stm32f4xx_hal_timebase_tim.o
- .comment       0x00000046       0x47 build/usb_host.o
  .comment       0x00000046       0x47 build/usbh_conf.o
  .comment       0x00000046       0x47 build/usbh_platform.o
+ .comment       0x00000046       0x47 build/usb_host.o
  .comment       0x00000046       0x47 build/stm32f4xx_hal_tim.o
  .comment       0x00000046       0x47 build/stm32f4xx_hal_tim_ex.o
  .comment       0x00000046       0x47 build/stm32f4xx_hal_hcd.o
@@ -3985,9 +3985,9 @@ LOAD /Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin/../lib/gcc/arm-no
  .debug_info    0x00008203     0x1893 build/stm32f4xx_it.o
  .debug_info    0x00009a96      0x5b2 build/stm32f4xx_hal_msp.o
  .debug_info    0x0000a048      0xe3c build/stm32f4xx_hal_timebase_tim.o
- .debug_info    0x0000ae84      0xc46 build/usb_host.o
- .debug_info    0x0000baca     0x248a build/usbh_conf.o
- .debug_info    0x0000df54      0x225 build/usbh_platform.o
+ .debug_info    0x0000ae84     0x248a build/usbh_conf.o
+ .debug_info    0x0000d30e      0x225 build/usbh_platform.o
+ .debug_info    0x0000d533      0xc46 build/usb_host.o
  .debug_info    0x0000e179     0x5831 build/stm32f4xx_hal_tim.o
  .debug_info    0x000139aa     0x23af build/stm32f4xx_hal_tim_ex.o
  .debug_info    0x00015d59     0x1b8e build/stm32f4xx_hal_hcd.o
@@ -4037,9 +4037,9 @@ LOAD /Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin/../lib/gcc/arm-no
  .debug_abbrev  0x000016df      0x1b3 build/stm32f4xx_it.o
  .debug_abbrev  0x00001892      0x122 build/stm32f4xx_hal_msp.o
  .debug_abbrev  0x000019b4      0x22d build/stm32f4xx_hal_timebase_tim.o
- .debug_abbrev  0x00001be1      0x275 build/usb_host.o
- .debug_abbrev  0x00001e56      0x3b9 build/usbh_conf.o
- .debug_abbrev  0x0000220f      0x12e build/usbh_platform.o
+ .debug_abbrev  0x00001be1      0x3b9 build/usbh_conf.o
+ .debug_abbrev  0x00001f9a      0x12e build/usbh_platform.o
+ .debug_abbrev  0x000020c8      0x275 build/usb_host.o
  .debug_abbrev  0x0000233d      0x2bd build/stm32f4xx_hal_tim.o
  .debug_abbrev  0x000025fa      0x2b7 build/stm32f4xx_hal_tim_ex.o
  .debug_abbrev  0x000028b1      0x2eb build/stm32f4xx_hal_hcd.o
@@ -4089,9 +4089,9 @@ LOAD /Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin/../lib/gcc/arm-no
  .debug_loc     0x000009d6       0xa0 build/stm32f4xx_it.o
  .debug_loc     0x00000a76       0x38 build/stm32f4xx_hal_msp.o
  .debug_loc     0x00000aae      0x150 build/stm32f4xx_hal_timebase_tim.o
- .debug_loc     0x00000bfe       0x20 build/usb_host.o
- .debug_loc     0x00000c1e      0xd6e build/usbh_conf.o
- .debug_loc     0x0000198c       0x87 build/usbh_platform.o
+ .debug_loc     0x00000bfe      0xd6e build/usbh_conf.o
+ .debug_loc     0x0000196c       0x87 build/usbh_platform.o
+ .debug_loc     0x000019f3       0x20 build/usb_host.o
  .debug_loc     0x00001a13     0x4c8a build/stm32f4xx_hal_tim.o
  .debug_loc     0x0000669d     0x1b32 build/stm32f4xx_hal_tim_ex.o
  .debug_loc     0x000081cf     0x104b build/stm32f4xx_hal_hcd.o
@@ -4155,11 +4155,11 @@ LOAD /Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin/../lib/gcc/arm-no
  .debug_aranges
                 0x000002d8       0x30 build/stm32f4xx_hal_timebase_tim.o
  .debug_aranges
-                0x00000308       0x28 build/usb_host.o
+                0x00000308       0xe0 build/usbh_conf.o
  .debug_aranges
-                0x00000330       0xe0 build/usbh_conf.o
+                0x000003e8       0x20 build/usbh_platform.o
  .debug_aranges
-                0x00000410       0x20 build/usbh_platform.o
+                0x00000408       0x28 build/usb_host.o
  .debug_aranges
                 0x00000430      0x3d0 build/stm32f4xx_hal_tim.o
  .debug_aranges
@@ -4242,9 +4242,9 @@ LOAD /Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin/../lib/gcc/arm-no
  .debug_ranges  0x00000198       0x60 build/stm32f4xx_it.o
  .debug_ranges  0x000001f8       0x10 build/stm32f4xx_hal_msp.o
  .debug_ranges  0x00000208       0x20 build/stm32f4xx_hal_timebase_tim.o
- .debug_ranges  0x00000228       0x18 build/usb_host.o
- .debug_ranges  0x00000240       0xd0 build/usbh_conf.o
- .debug_ranges  0x00000310       0x10 build/usbh_platform.o
+ .debug_ranges  0x00000228       0xd0 build/usbh_conf.o
+ .debug_ranges  0x000002f8       0x10 build/usbh_platform.o
+ .debug_ranges  0x00000308       0x18 build/usb_host.o
  .debug_ranges  0x00000320      0x3c0 build/stm32f4xx_hal_tim.o
  .debug_ranges  0x000006e0      0x158 build/stm32f4xx_hal_tim_ex.o
  .debug_ranges  0x00000838       0xf8 build/stm32f4xx_hal_hcd.o
@@ -4294,9 +4294,9 @@ LOAD /Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin/../lib/gcc/arm-no
  .debug_line    0x00002562      0x323 build/stm32f4xx_it.o
  .debug_line    0x00002885      0x19c build/stm32f4xx_hal_msp.o
  .debug_line    0x00002a21      0x2f3 build/stm32f4xx_hal_timebase_tim.o
- .debug_line    0x00002d14      0x2b3 build/usb_host.o
- .debug_line    0x00002fc7      0x7a9 build/usbh_conf.o
- .debug_line    0x00003770      0x1a4 build/usbh_platform.o
+ .debug_line    0x00002d14      0x7a9 build/usbh_conf.o
+ .debug_line    0x000034bd      0x1a4 build/usbh_platform.o
+ .debug_line    0x00003661      0x2b3 build/usb_host.o
  .debug_line    0x00003914     0x62b8 build/stm32f4xx_hal_tim.o
  .debug_line    0x00009bcc     0x1ee8 build/stm32f4xx_hal_tim_ex.o
  .debug_line    0x0000bab4     0x14a0 build/stm32f4xx_hal_hcd.o
@@ -4347,9 +4347,9 @@ LOAD /Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin/../lib/gcc/arm-no
  .debug_str     0x0000b418     0x124f build/stm32f4xx_it.o
  .debug_str     0x0000b418      0x810 build/stm32f4xx_hal_msp.o
  .debug_str     0x0000b418      0xeb4 build/stm32f4xx_hal_timebase_tim.o
- .debug_str     0x0000b418      0xade build/usb_host.o
  .debug_str     0x0000b418     0x1aad build/usbh_conf.o
  .debug_str     0x0000b418      0x22f build/usbh_platform.o
+ .debug_str     0x0000b418      0xade build/usb_host.o
  .debug_str     0x0000b418     0x16f0 build/stm32f4xx_hal_tim.o
  .debug_str     0x0000b418      0xefc build/stm32f4xx_hal_tim_ex.o
  .debug_str     0x0000b418      0xc3c build/stm32f4xx_hal_hcd.o
@@ -4399,9 +4399,9 @@ LOAD /Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin/../lib/gcc/arm-no
  .debug_frame   0x000004c0       0xe8 build/stm32f4xx_it.o
  .debug_frame   0x000005a8       0x2c build/stm32f4xx_hal_msp.o
  .debug_frame   0x000005d4       0x54 build/stm32f4xx_hal_timebase_tim.o
- .debug_frame   0x00000628       0x38 build/usb_host.o
- .debug_frame   0x00000660      0x260 build/usbh_conf.o
- .debug_frame   0x000008c0       0x28 build/usbh_platform.o
+ .debug_frame   0x00000628      0x260 build/usbh_conf.o
+ .debug_frame   0x00000888       0x28 build/usbh_platform.o
+ .debug_frame   0x000008b0       0x38 build/usb_host.o
  .debug_frame   0x000008e8      0xbd8 build/stm32f4xx_hal_tim.o
  .debug_frame   0x000014c0      0x468 build/stm32f4xx_hal_tim_ex.o
  .debug_frame   0x00001928      0x2dc build/stm32f4xx_hal_hcd.o
@@ -4507,8 +4507,8 @@ EXTI3_IRQHandler                                  build/startup_stm32f429xx.o
 EXTI4_IRQHandler                                  build/startup_stm32f429xx.o
 EXTI9_5_IRQHandler                                build/startup_stm32f429xx.o
 Error_Handler                                     build/main.o
-                                                  build/usbh_conf.o
                                                   build/usb_host.o
+                                                  build/usbh_conf.o
                                                   build/usart.o
                                                   build/tim.o
                                                   build/spi.o
