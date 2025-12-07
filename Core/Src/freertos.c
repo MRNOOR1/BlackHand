@@ -27,14 +27,21 @@
 /* USER CODE BEGIN Includes */
 #include <string.h>
 #include "usart.h"
+#include <stdio.h>
+
+#define BUTTON_PORT A0_GPIO_Port
+#define BUTTON_PIN  A0_Pin
+
+#define BUTTON_PRESSED      GPIO_PIN_RESET
+#define BUTTON_RELEASED     GPIO_PIN_SET
 
 
 
-osThreadId ledTaskHandle;
-osThreadId uartTaskHandle;
+
 
 void StartLedTask(void const * argument);
 void StartUartTask(void const * argument);
+void StartButtonTask(void const * argument);
 
 /* USER CODE END Includes */
 
@@ -58,6 +65,9 @@ void StartUartTask(void const * argument);
 
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
+osThreadId ledTaskHandle;
+osThreadId uartTaskHandle;
+osThreadId buttonTaskHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -148,14 +158,17 @@ void MX_FREERTOS_Init(void) {
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
     // LED task: normal priority, 128 words stack
-  osThreadDef(ledTask, StartLedTask, osPriorityNormal, 0, 128);
-  ledTaskHandle = osThreadCreate(osThread(ledTask), NULL);
+osThreadDef(ledTask, StartLedTask, osPriorityNormal, 0, 128);
+ledTaskHandle = osThreadCreate(osThread(ledTask), NULL);
 
-  // UART task: low priority, 128 words stack
-  osThreadDef(uartTask, StartUartTask, osPriorityLow, 0, 128);
-  uartTaskHandle = osThreadCreate(osThread(uartTask), NULL);
-  /* USER CODE BEGIN RTOS_TIMERS */
-  /* start timers, add new ones, ... */
+// UART task: low priority, 128 words stack
+osThreadDef(uartTask, StartUartTask, osPriorityLow, 0, 128);
+uartTaskHandle = osThreadCreate(osThread(uartTask), NULL);
+/* USER CODE BEGIN RTOS_TIMERS */
+osThreadDef(buttonTask, StartButtonTask, osPriorityAboveNormal, 0, 128);
+buttonTaskHandle = osThreadCreate(osThread(buttonTask), NULL);
+/* USER CODE END RTOS_TIMERS */
+
   /* USER CODE END RTOS_TIMERS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
@@ -190,7 +203,7 @@ void StartDefaultTask(void const * argument)
   for(;;)
   {
 
-    //osDelay(1);
+
   }
   /* USER CODE END StartDefaultTask */
 }
@@ -206,7 +219,7 @@ void StartLedTask(void const * argument)
   for (;;)
   {
     HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_13); // or whatever LED pin you used
-    osDelay(500); // 500 ms
+    osDelay(1000); // 500 ms
   }
 }
 
@@ -221,5 +234,74 @@ void StartUartTask(void const * argument)
     osDelay(1000); // 1 s
   }
 }
+extern UART_HandleTypeDef huart1;
+ 
+void StartButtonTask(void const * argument)
+{
+    // Initialize with ACTUAL current state, not assumed state
+    GPIO_PinState lastState = HAL_GPIO_ReadPin(BUTTON_PORT, BUTTON_PIN);
+    
+    // Optional: Debug initial state
+    char initMsg[50];
+    sprintf(initMsg, "Initial button state: %d\r\n", lastState);
+    HAL_UART_Transmit(&huart1, (uint8_t*)initMsg, strlen(initMsg), HAL_MAX_DELAY);
+    
+    for(;;)
+    {
+        GPIO_PinState nowState = HAL_GPIO_ReadPin(BUTTON_PORT, BUTTON_PIN);
+
+        // CORRECT: Detect transition from RELEASED (HIGH) to PRESSED (LOW)
+        if(lastState == BUTTON_RELEASED && nowState == BUTTON_PRESSED)
+        {
+            const char *msg = "\r\nBUTTON PRESSED EVENT!\r\n";
+            HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+            
+            // Debug: Show raw pin value
+            char dbg[50];
+            sprintf(dbg, "RAW=%d\n", HAL_GPIO_ReadPin(BUTTON_PORT, BUTTON_PIN));
+            HAL_UART_Transmit(&huart1, (uint8_t*)dbg, strlen(dbg), HAL_MAX_DELAY);
+
+            if(ledTaskHandle != NULL)
+                osThreadSuspend(ledTaskHandle);
+            
+            if(uartTaskHandle != NULL)
+                osThreadSuspend(uartTaskHandle);
+        }
+        
+        // Optional: Add release detection to resume tasks
+        /*
+        else if(lastState == BUTTON_PRESSED && nowState == BUTTON_RELEASED)
+        {
+            const char *msg = "\r\nBUTTON RELEASED EVENT!\r\n";
+            HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+            
+            if(ledTaskHandle != NULL)
+                osThreadResume(ledTaskHandle);
+            
+            if(uartTaskHandle != NULL)
+                osThreadResume(uartTaskHandle);
+        }
+        */
+
+        lastState = nowState;
+        osDelay(30); // debounce delay
+    }
+}
+
+
+
+
+
+/*
+void Taskname(void const * argument){
+init stuff 
+for(;;)
+{
+do something 
+osdelay(N)
+}
+}
+
+*/
 
 /* USER CODE END Application */
