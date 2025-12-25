@@ -102,7 +102,10 @@ Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_ioreq.c \
 Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_pipes.c \
 Middlewares/ST/STM32_USB_Host_Library/Class/CDC/Src/usbh_cdc.c \
 Core/Src/sysmem.c \
-Core/Src/syscalls.c
+Core/Src/syscalls.c \
+Drivers/BSP/STM32F429I-Discovery/stm32f429i_discovery_lcd.c \
+Drivers/BSP/STM32F429I-Discovery/stm32f429i_discovery_sdram.c \
+Drivers/BSP/Components/ili9341/ili9341.c
 # --- LVGL SOURCES ---
 # --- LVGL SOURCES ---LVGL_DIR_NAME = Drivers/lvgl
 # This finds all .c files in the lvgl directory and its subdirectories
@@ -200,7 +203,9 @@ C_INCLUDES =  \
 -IMiddlewares/ST/STM32_USB_Host_Library/Class/CDC/Inc \
 -IDrivers/CMSIS/Device/ST/STM32F4xx/Include \
 -IDrivers/CMSIS/Include \
--IDrivers\BSP\STM32F429I-Discovery
+-Ilvgl \
+-IDrivers/BSP/STM32F429I-Discovery \
+-IDrivers/BSP/Components/ili9341
 
 
 # compile gcc flags
