@@ -1,0 +1,827 @@
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"lv_mem.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Drivers/lvgl/src/stdlib/lv_mem.c"
+  20              		.section	.text.lv_malloc,"ax",%progbits
+  21              		.align	1
+  22              		.global	lv_malloc
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	lv_malloc:
+  28              	.LVL0:
+  29              	.LFB193:
+   1:Drivers/lvgl/src/stdlib/lv_mem.c **** /**
+   2:Drivers/lvgl/src/stdlib/lv_mem.c ****  * @file lv_mem.c
+   3:Drivers/lvgl/src/stdlib/lv_mem.c ****  */
+   4:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+   5:Drivers/lvgl/src/stdlib/lv_mem.c **** /*********************
+   6:Drivers/lvgl/src/stdlib/lv_mem.c ****  *      INCLUDES
+   7:Drivers/lvgl/src/stdlib/lv_mem.c ****  *********************/
+   8:Drivers/lvgl/src/stdlib/lv_mem.c **** #include "lv_mem_private.h"
+   9:Drivers/lvgl/src/stdlib/lv_mem.c **** #include "lv_string.h"
+  10:Drivers/lvgl/src/stdlib/lv_mem.c **** #include "../misc/lv_assert.h"
+  11:Drivers/lvgl/src/stdlib/lv_mem.c **** #include "../misc/lv_log.h"
+  12:Drivers/lvgl/src/stdlib/lv_mem.c **** #include "../core/lv_global.h"
+  13:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+  14:Drivers/lvgl/src/stdlib/lv_mem.c **** #if LV_USE_OS == LV_OS_PTHREAD
+  15:Drivers/lvgl/src/stdlib/lv_mem.c ****     #include <pthread.h>
+  16:Drivers/lvgl/src/stdlib/lv_mem.c **** #endif
+  17:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+  18:Drivers/lvgl/src/stdlib/lv_mem.c **** /*********************
+  19:Drivers/lvgl/src/stdlib/lv_mem.c ****  *      DEFINES
+  20:Drivers/lvgl/src/stdlib/lv_mem.c ****  *********************/
+  21:Drivers/lvgl/src/stdlib/lv_mem.c **** /*memset the allocated memories to 0xaa and freed memories to 0xbb (just for testing purposes)*/
+  22:Drivers/lvgl/src/stdlib/lv_mem.c **** #ifndef LV_MEM_ADD_JUNK
+  23:Drivers/lvgl/src/stdlib/lv_mem.c ****     #define LV_MEM_ADD_JUNK  0
+  24:Drivers/lvgl/src/stdlib/lv_mem.c **** #endif
+  25:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+  26:Drivers/lvgl/src/stdlib/lv_mem.c **** #define zero_mem LV_GLOBAL_DEFAULT()->memory_zero
+  27:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+  28:Drivers/lvgl/src/stdlib/lv_mem.c **** /**********************
+  29:Drivers/lvgl/src/stdlib/lv_mem.c ****  *      TYPEDEFS
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s 			page 2
+
+
+  30:Drivers/lvgl/src/stdlib/lv_mem.c ****  **********************/
+  31:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+  32:Drivers/lvgl/src/stdlib/lv_mem.c **** /**********************
+  33:Drivers/lvgl/src/stdlib/lv_mem.c ****  *  STATIC PROTOTYPES
+  34:Drivers/lvgl/src/stdlib/lv_mem.c ****  **********************/
+  35:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+  36:Drivers/lvgl/src/stdlib/lv_mem.c **** /**********************
+  37:Drivers/lvgl/src/stdlib/lv_mem.c ****  *  GLOBAL PROTOTYPES
+  38:Drivers/lvgl/src/stdlib/lv_mem.c ****  **********************/
+  39:Drivers/lvgl/src/stdlib/lv_mem.c **** void * lv_malloc_core(size_t size);
+  40:Drivers/lvgl/src/stdlib/lv_mem.c **** void * lv_realloc_core(void * p, size_t new_size);
+  41:Drivers/lvgl/src/stdlib/lv_mem.c **** void lv_free_core(void * p);
+  42:Drivers/lvgl/src/stdlib/lv_mem.c **** void lv_mem_monitor_core(lv_mem_monitor_t * mon_p);
+  43:Drivers/lvgl/src/stdlib/lv_mem.c **** lv_result_t lv_mem_test_core(void);
+  44:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+  45:Drivers/lvgl/src/stdlib/lv_mem.c **** /**********************
+  46:Drivers/lvgl/src/stdlib/lv_mem.c ****  *  STATIC VARIABLES
+  47:Drivers/lvgl/src/stdlib/lv_mem.c ****  **********************/
+  48:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+  49:Drivers/lvgl/src/stdlib/lv_mem.c **** /**********************
+  50:Drivers/lvgl/src/stdlib/lv_mem.c ****  *      MACROS
+  51:Drivers/lvgl/src/stdlib/lv_mem.c ****  **********************/
+  52:Drivers/lvgl/src/stdlib/lv_mem.c **** #if LV_USE_LOG && LV_LOG_TRACE_MEM
+  53:Drivers/lvgl/src/stdlib/lv_mem.c ****     #define LV_TRACE_MEM(...) LV_LOG_TRACE(__VA_ARGS__)
+  54:Drivers/lvgl/src/stdlib/lv_mem.c **** #else
+  55:Drivers/lvgl/src/stdlib/lv_mem.c ****     #define LV_TRACE_MEM(...)
+  56:Drivers/lvgl/src/stdlib/lv_mem.c **** #endif
+  57:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+  58:Drivers/lvgl/src/stdlib/lv_mem.c **** /**********************
+  59:Drivers/lvgl/src/stdlib/lv_mem.c ****  *   GLOBAL FUNCTIONS
+  60:Drivers/lvgl/src/stdlib/lv_mem.c ****  **********************/
+  61:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+  62:Drivers/lvgl/src/stdlib/lv_mem.c **** void * lv_malloc(size_t size)
+  63:Drivers/lvgl/src/stdlib/lv_mem.c **** {
+  30              		.loc 1 63 1 view -0
+  31              		.cfi_startproc
+  32              		@ args = 0, pretend = 0, frame = 0
+  33              		@ frame_needed = 0, uses_anonymous_args = 0
+  64:Drivers/lvgl/src/stdlib/lv_mem.c ****     LV_TRACE_MEM("allocating %lu bytes", (unsigned long)size);
+  34              		.loc 1 64 62 view .LVU1
+  65:Drivers/lvgl/src/stdlib/lv_mem.c ****     if(size == 0) {
+  35              		.loc 1 65 5 view .LVU2
+  36              		.loc 1 65 7 is_stmt 0 view .LVU3
+  37 0000 08B9     		cbnz	r0, .L8
+  66:Drivers/lvgl/src/stdlib/lv_mem.c ****         LV_TRACE_MEM("using zero_mem");
+  67:Drivers/lvgl/src/stdlib/lv_mem.c ****         return &zero_mem;
+  38              		.loc 1 67 16 view .LVU4
+  39 0002 0348     		ldr	r0, .L9
+  40              	.LVL1:
+  68:Drivers/lvgl/src/stdlib/lv_mem.c ****     }
+  69:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+  70:Drivers/lvgl/src/stdlib/lv_mem.c ****     void * alloc = lv_malloc_core(size);
+  71:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+  72:Drivers/lvgl/src/stdlib/lv_mem.c ****     if(alloc == NULL) {
+  73:Drivers/lvgl/src/stdlib/lv_mem.c ****         LV_LOG_INFO("couldn't allocate memory (%lu bytes)", (unsigned long)size);
+  74:Drivers/lvgl/src/stdlib/lv_mem.c **** #if LV_LOG_LEVEL <= LV_LOG_LEVEL_INFO
+  75:Drivers/lvgl/src/stdlib/lv_mem.c ****         lv_mem_monitor_t mon;
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s 			page 3
+
+
+  76:Drivers/lvgl/src/stdlib/lv_mem.c ****         lv_mem_monitor(&mon);
+  77:Drivers/lvgl/src/stdlib/lv_mem.c ****         LV_LOG_INFO("used: %zu (%3d %%), frag: %3d %%, biggest free: %zu",
+  78:Drivers/lvgl/src/stdlib/lv_mem.c ****                     mon.total_size - mon.free_size, mon.used_pct, mon.frag_pct,
+  79:Drivers/lvgl/src/stdlib/lv_mem.c ****                     mon.free_biggest_size);
+  80:Drivers/lvgl/src/stdlib/lv_mem.c **** #endif
+  81:Drivers/lvgl/src/stdlib/lv_mem.c ****         return NULL;
+  82:Drivers/lvgl/src/stdlib/lv_mem.c ****     }
+  83:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+  84:Drivers/lvgl/src/stdlib/lv_mem.c **** #if LV_MEM_ADD_JUNK
+  85:Drivers/lvgl/src/stdlib/lv_mem.c ****     lv_memset(alloc, 0xaa, size);
+  86:Drivers/lvgl/src/stdlib/lv_mem.c **** #endif
+  87:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+  88:Drivers/lvgl/src/stdlib/lv_mem.c ****     LV_TRACE_MEM("allocated at %p", alloc);
+  89:Drivers/lvgl/src/stdlib/lv_mem.c ****     return alloc;
+  90:Drivers/lvgl/src/stdlib/lv_mem.c **** }
+  41              		.loc 1 90 1 view .LVU5
+  42 0004 7047     		bx	lr
+  43              	.LVL2:
+  44              	.L8:
+  63:Drivers/lvgl/src/stdlib/lv_mem.c ****     LV_TRACE_MEM("allocating %lu bytes", (unsigned long)size);
+  45              		.loc 1 63 1 view .LVU6
+  46 0006 08B5     		push	{r3, lr}
+  47              	.LCFI0:
+  48              		.cfi_def_cfa_offset 8
+  49              		.cfi_offset 3, -8
+  50              		.cfi_offset 14, -4
+  70:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+  51              		.loc 1 70 5 is_stmt 1 view .LVU7
+  70:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+  52              		.loc 1 70 20 is_stmt 0 view .LVU8
+  53 0008 FFF7FEFF 		bl	lv_malloc_core
+  54              	.LVL3:
+  72:Drivers/lvgl/src/stdlib/lv_mem.c ****         LV_LOG_INFO("couldn't allocate memory (%lu bytes)", (unsigned long)size);
+  55              		.loc 1 72 5 is_stmt 1 view .LVU9
+  56              		.loc 1 90 1 is_stmt 0 view .LVU10
+  57 000c 08BD     		pop	{r3, pc}
+  58              	.L10:
+  59 000e 00BF     		.align	2
+  60              	.L9:
+  61 0010 68000000 		.word	lv_global+104
+  62              		.cfi_endproc
+  63              	.LFE193:
+  65              		.section	.text.lv_malloc_zeroed,"ax",%progbits
+  66              		.align	1
+  67              		.global	lv_malloc_zeroed
+  68              		.syntax unified
+  69              		.thumb
+  70              		.thumb_func
+  72              	lv_malloc_zeroed:
+  73              	.LVL4:
+  74              	.LFB194:
+  91:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+  92:Drivers/lvgl/src/stdlib/lv_mem.c **** void * lv_malloc_zeroed(size_t size)
+  93:Drivers/lvgl/src/stdlib/lv_mem.c **** {
+  75              		.loc 1 93 1 is_stmt 1 view -0
+  76              		.cfi_startproc
+  77              		@ args = 0, pretend = 0, frame = 0
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s 			page 4
+
+
+  78              		@ frame_needed = 0, uses_anonymous_args = 0
+  79              		.loc 1 93 1 is_stmt 0 view .LVU12
+  80 0000 38B5     		push	{r3, r4, r5, lr}
+  81              	.LCFI1:
+  82              		.cfi_def_cfa_offset 16
+  83              		.cfi_offset 3, -16
+  84              		.cfi_offset 4, -12
+  85              		.cfi_offset 5, -8
+  86              		.cfi_offset 14, -4
+  94:Drivers/lvgl/src/stdlib/lv_mem.c ****     LV_TRACE_MEM("allocating %lu bytes", (unsigned long)size);
+  87              		.loc 1 94 62 is_stmt 1 view .LVU13
+  95:Drivers/lvgl/src/stdlib/lv_mem.c ****     if(size == 0) {
+  88              		.loc 1 95 5 view .LVU14
+  89              		.loc 1 95 7 is_stmt 0 view .LVU15
+  90 0002 10B9     		cbnz	r0, .L15
+  96:Drivers/lvgl/src/stdlib/lv_mem.c ****         LV_TRACE_MEM("using zero_mem");
+  97:Drivers/lvgl/src/stdlib/lv_mem.c ****         return &zero_mem;
+  91              		.loc 1 97 16 view .LVU16
+  92 0004 064C     		ldr	r4, .L16
+  93              	.LVL5:
+  94              	.L11:
+  98:Drivers/lvgl/src/stdlib/lv_mem.c ****     }
+  99:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+ 100:Drivers/lvgl/src/stdlib/lv_mem.c ****     void * alloc = lv_malloc_core(size);
+ 101:Drivers/lvgl/src/stdlib/lv_mem.c ****     if(alloc == NULL) {
+ 102:Drivers/lvgl/src/stdlib/lv_mem.c ****         LV_LOG_INFO("couldn't allocate memory (%lu bytes)", (unsigned long)size);
+ 103:Drivers/lvgl/src/stdlib/lv_mem.c **** #if LV_LOG_LEVEL <= LV_LOG_LEVEL_INFO
+ 104:Drivers/lvgl/src/stdlib/lv_mem.c ****         lv_mem_monitor_t mon;
+ 105:Drivers/lvgl/src/stdlib/lv_mem.c ****         lv_mem_monitor(&mon);
+ 106:Drivers/lvgl/src/stdlib/lv_mem.c ****         LV_LOG_INFO("used: %zu (%3d %%), frag: %3d %%, biggest free: %zu",
+ 107:Drivers/lvgl/src/stdlib/lv_mem.c ****                     mon.total_size - mon.free_size, mon.used_pct, mon.frag_pct,
+ 108:Drivers/lvgl/src/stdlib/lv_mem.c ****                     mon.free_biggest_size);
+ 109:Drivers/lvgl/src/stdlib/lv_mem.c **** #endif
+ 110:Drivers/lvgl/src/stdlib/lv_mem.c ****         return NULL;
+ 111:Drivers/lvgl/src/stdlib/lv_mem.c ****     }
+ 112:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+ 113:Drivers/lvgl/src/stdlib/lv_mem.c ****     lv_memzero(alloc, size);
+ 114:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+ 115:Drivers/lvgl/src/stdlib/lv_mem.c ****     LV_TRACE_MEM("allocated at %p", alloc);
+ 116:Drivers/lvgl/src/stdlib/lv_mem.c ****     return alloc;
+ 117:Drivers/lvgl/src/stdlib/lv_mem.c **** }
+  95              		.loc 1 117 1 view .LVU17
+  96 0006 2046     		mov	r0, r4
+  97 0008 38BD     		pop	{r3, r4, r5, pc}
+  98              	.LVL6:
+  99              	.L15:
+ 100              		.loc 1 117 1 view .LVU18
+ 101 000a 0546     		mov	r5, r0
+ 100:Drivers/lvgl/src/stdlib/lv_mem.c ****     if(alloc == NULL) {
+ 102              		.loc 1 100 5 is_stmt 1 view .LVU19
+ 100:Drivers/lvgl/src/stdlib/lv_mem.c ****     if(alloc == NULL) {
+ 103              		.loc 1 100 20 is_stmt 0 view .LVU20
+ 104 000c FFF7FEFF 		bl	lv_malloc_core
+ 105              	.LVL7:
+ 101:Drivers/lvgl/src/stdlib/lv_mem.c ****         LV_LOG_INFO("couldn't allocate memory (%lu bytes)", (unsigned long)size);
+ 106              		.loc 1 101 5 is_stmt 1 view .LVU21
+ 101:Drivers/lvgl/src/stdlib/lv_mem.c ****         LV_LOG_INFO("couldn't allocate memory (%lu bytes)", (unsigned long)size);
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s 			page 5
+
+
+ 107              		.loc 1 101 7 is_stmt 0 view .LVU22
+ 108 0010 0446     		mov	r4, r0
+ 109 0012 0028     		cmp	r0, #0
+ 110 0014 F7D0     		beq	.L11
+ 113:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+ 111              		.loc 1 113 5 is_stmt 1 view .LVU23
+ 112              	.LVL8:
+ 113              	.LBB6:
+ 114              	.LBI6:
+ 115              		.file 2 "Drivers/lvgl/src/stdlib/lv_string.h"
+   1:Drivers/lvgl/src/stdlib/lv_string.h **** /**
+   2:Drivers/lvgl/src/stdlib/lv_string.h ****  * @file lv_string.h
+   3:Drivers/lvgl/src/stdlib/lv_string.h ****  *
+   4:Drivers/lvgl/src/stdlib/lv_string.h ****  */
+   5:Drivers/lvgl/src/stdlib/lv_string.h **** 
+   6:Drivers/lvgl/src/stdlib/lv_string.h **** #ifndef LV_STRING_H
+   7:Drivers/lvgl/src/stdlib/lv_string.h **** #define LV_STRING_H
+   8:Drivers/lvgl/src/stdlib/lv_string.h **** 
+   9:Drivers/lvgl/src/stdlib/lv_string.h **** #ifdef __cplusplus
+  10:Drivers/lvgl/src/stdlib/lv_string.h **** extern "C" {
+  11:Drivers/lvgl/src/stdlib/lv_string.h **** #endif
+  12:Drivers/lvgl/src/stdlib/lv_string.h **** 
+  13:Drivers/lvgl/src/stdlib/lv_string.h **** /*********************
+  14:Drivers/lvgl/src/stdlib/lv_string.h ****  *      INCLUDES
+  15:Drivers/lvgl/src/stdlib/lv_string.h ****  *********************/
+  16:Drivers/lvgl/src/stdlib/lv_string.h **** #include "../lv_conf_internal.h"
+  17:Drivers/lvgl/src/stdlib/lv_string.h **** #include "../misc/lv_types.h"
+  18:Drivers/lvgl/src/stdlib/lv_string.h **** 
+  19:Drivers/lvgl/src/stdlib/lv_string.h **** /*********************
+  20:Drivers/lvgl/src/stdlib/lv_string.h ****  *      DEFINES
+  21:Drivers/lvgl/src/stdlib/lv_string.h ****  *********************/
+  22:Drivers/lvgl/src/stdlib/lv_string.h **** 
+  23:Drivers/lvgl/src/stdlib/lv_string.h **** /**********************
+  24:Drivers/lvgl/src/stdlib/lv_string.h ****  *      TYPEDEFS
+  25:Drivers/lvgl/src/stdlib/lv_string.h ****  **********************/
+  26:Drivers/lvgl/src/stdlib/lv_string.h **** 
+  27:Drivers/lvgl/src/stdlib/lv_string.h **** /**********************
+  28:Drivers/lvgl/src/stdlib/lv_string.h ****  * GLOBAL PROTOTYPES
+  29:Drivers/lvgl/src/stdlib/lv_string.h ****  **********************/
+  30:Drivers/lvgl/src/stdlib/lv_string.h **** 
+  31:Drivers/lvgl/src/stdlib/lv_string.h **** /**
+  32:Drivers/lvgl/src/stdlib/lv_string.h ****  * @brief Copies a block of memory from a source address to a destination address.
+  33:Drivers/lvgl/src/stdlib/lv_string.h ****  * @param dst Pointer to the destination array where the content is to be copied.
+  34:Drivers/lvgl/src/stdlib/lv_string.h ****  * @param src Pointer to the source of data to be copied.
+  35:Drivers/lvgl/src/stdlib/lv_string.h ****  * @param len Number of bytes to copy.
+  36:Drivers/lvgl/src/stdlib/lv_string.h ****  * @return Pointer to the destination array.
+  37:Drivers/lvgl/src/stdlib/lv_string.h ****  * @note The function does not check for any overlapping of the source and destination memory block
+  38:Drivers/lvgl/src/stdlib/lv_string.h ****  */
+  39:Drivers/lvgl/src/stdlib/lv_string.h **** void * lv_memcpy(void * dst, const void * src, size_t len);
+  40:Drivers/lvgl/src/stdlib/lv_string.h **** 
+  41:Drivers/lvgl/src/stdlib/lv_string.h **** /**
+  42:Drivers/lvgl/src/stdlib/lv_string.h ****  * @brief Fills a block of memory with a specified value.
+  43:Drivers/lvgl/src/stdlib/lv_string.h ****  * @param dst Pointer to the destination array to fill with the specified value.
+  44:Drivers/lvgl/src/stdlib/lv_string.h ****  * @param v Value to be set. The value is passed as an int, but the function fills
+  45:Drivers/lvgl/src/stdlib/lv_string.h ****  *          the block of memory using the unsigned char conversion of this value.
+  46:Drivers/lvgl/src/stdlib/lv_string.h ****  * @param len Number of bytes to be set to the value.
+  47:Drivers/lvgl/src/stdlib/lv_string.h ****  */
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s 			page 6
+
+
+  48:Drivers/lvgl/src/stdlib/lv_string.h **** void lv_memset(void * dst, uint8_t v, size_t len);
+  49:Drivers/lvgl/src/stdlib/lv_string.h **** 
+  50:Drivers/lvgl/src/stdlib/lv_string.h **** /**
+  51:Drivers/lvgl/src/stdlib/lv_string.h ****  * @brief Move a block of memory from source to destination
+  52:Drivers/lvgl/src/stdlib/lv_string.h ****  * @param dst Pointer to the destination array where the content is to be copied.
+  53:Drivers/lvgl/src/stdlib/lv_string.h ****  * @param src Pointer to the source of data to be copied.
+  54:Drivers/lvgl/src/stdlib/lv_string.h ****  * @param len Number of bytes to copy
+  55:Drivers/lvgl/src/stdlib/lv_string.h ****  * @return Pointer to the destination array.
+  56:Drivers/lvgl/src/stdlib/lv_string.h ****  */
+  57:Drivers/lvgl/src/stdlib/lv_string.h **** void * lv_memmove(void * dst, const void * src, size_t len);
+  58:Drivers/lvgl/src/stdlib/lv_string.h **** 
+  59:Drivers/lvgl/src/stdlib/lv_string.h **** /**
+  60:Drivers/lvgl/src/stdlib/lv_string.h ****  * @brief This function will compare two memory blocks
+  61:Drivers/lvgl/src/stdlib/lv_string.h ****  * @param p1 Pointer to the first memory block
+  62:Drivers/lvgl/src/stdlib/lv_string.h ****  * @param p2 Pointer to the second memory block
+  63:Drivers/lvgl/src/stdlib/lv_string.h ****  * @param len Number of bytes to compare
+  64:Drivers/lvgl/src/stdlib/lv_string.h ****  * @return The difference between the value of the first unmatching byte.
+  65:Drivers/lvgl/src/stdlib/lv_string.h ****  */
+  66:Drivers/lvgl/src/stdlib/lv_string.h **** int lv_memcmp(const void * p1, const void * p2, size_t len);
+  67:Drivers/lvgl/src/stdlib/lv_string.h **** 
+  68:Drivers/lvgl/src/stdlib/lv_string.h **** /**
+  69:Drivers/lvgl/src/stdlib/lv_string.h ****  * Same as `memset(dst, 0x00, len)`.
+  70:Drivers/lvgl/src/stdlib/lv_string.h ****  * @param dst pointer to the destination buffer
+  71:Drivers/lvgl/src/stdlib/lv_string.h ****  * @param len number of byte to set
+  72:Drivers/lvgl/src/stdlib/lv_string.h ****  */
+  73:Drivers/lvgl/src/stdlib/lv_string.h **** static inline void lv_memzero(void * dst, size_t len)
+ 116              		.loc 2 73 20 view .LVU24
+ 117              	.LBB7:
+  74:Drivers/lvgl/src/stdlib/lv_string.h **** {
+  75:Drivers/lvgl/src/stdlib/lv_string.h ****     lv_memset(dst, 0x00, len);
+ 118              		.loc 2 75 5 view .LVU25
+ 119 0016 2A46     		mov	r2, r5
+ 120 0018 0021     		movs	r1, #0
+ 121 001a FFF7FEFF 		bl	lv_memset
+ 122              	.LVL9:
+ 123              		.loc 2 75 5 is_stmt 0 view .LVU26
+ 124              	.LBE7:
+ 125              	.LBE6:
+ 115:Drivers/lvgl/src/stdlib/lv_mem.c ****     return alloc;
+ 126              		.loc 1 115 43 is_stmt 1 view .LVU27
+ 116:Drivers/lvgl/src/stdlib/lv_mem.c **** }
+ 127              		.loc 1 116 5 view .LVU28
+ 116:Drivers/lvgl/src/stdlib/lv_mem.c **** }
+ 128              		.loc 1 116 12 is_stmt 0 view .LVU29
+ 129 001e F2E7     		b	.L11
+ 130              	.L17:
+ 131              		.align	2
+ 132              	.L16:
+ 133 0020 68000000 		.word	lv_global+104
+ 134              		.cfi_endproc
+ 135              	.LFE194:
+ 137              		.section	.text.lv_calloc,"ax",%progbits
+ 138              		.align	1
+ 139              		.global	lv_calloc
+ 140              		.syntax unified
+ 141              		.thumb
+ 142              		.thumb_func
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s 			page 7
+
+
+ 144              	lv_calloc:
+ 145              	.LVL10:
+ 146              	.LFB195:
+ 118:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+ 119:Drivers/lvgl/src/stdlib/lv_mem.c **** void * lv_calloc(size_t num, size_t size)
+ 120:Drivers/lvgl/src/stdlib/lv_mem.c **** {
+ 147              		.loc 1 120 1 is_stmt 1 view -0
+ 148              		.cfi_startproc
+ 149              		@ args = 0, pretend = 0, frame = 0
+ 150              		@ frame_needed = 0, uses_anonymous_args = 0
+ 151              		.loc 1 120 1 is_stmt 0 view .LVU31
+ 152 0000 08B5     		push	{r3, lr}
+ 153              	.LCFI2:
+ 154              		.cfi_def_cfa_offset 8
+ 155              		.cfi_offset 3, -8
+ 156              		.cfi_offset 14, -4
+ 121:Drivers/lvgl/src/stdlib/lv_mem.c ****     LV_TRACE_MEM("allocating number of %zu each %zu bytes", num, size);
+ 157              		.loc 1 121 71 is_stmt 1 view .LVU32
+ 122:Drivers/lvgl/src/stdlib/lv_mem.c ****     return lv_malloc_zeroed(num * size);
+ 158              		.loc 1 122 5 view .LVU33
+ 159              		.loc 1 122 12 is_stmt 0 view .LVU34
+ 160 0002 01FB00F0 		mul	r0, r1, r0
+ 161              	.LVL11:
+ 162              		.loc 1 122 12 view .LVU35
+ 163 0006 FFF7FEFF 		bl	lv_malloc_zeroed
+ 164              	.LVL12:
+ 123:Drivers/lvgl/src/stdlib/lv_mem.c **** }
+ 165              		.loc 1 123 1 view .LVU36
+ 166 000a 08BD     		pop	{r3, pc}
+ 167              		.cfi_endproc
+ 168              	.LFE195:
+ 170              		.section	.text.lv_zalloc,"ax",%progbits
+ 171              		.align	1
+ 172              		.global	lv_zalloc
+ 173              		.syntax unified
+ 174              		.thumb
+ 175              		.thumb_func
+ 177              	lv_zalloc:
+ 178              	.LVL13:
+ 179              	.LFB196:
+ 124:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+ 125:Drivers/lvgl/src/stdlib/lv_mem.c **** void * lv_zalloc(size_t size)
+ 126:Drivers/lvgl/src/stdlib/lv_mem.c **** {
+ 180              		.loc 1 126 1 is_stmt 1 view -0
+ 181              		.cfi_startproc
+ 182              		@ args = 0, pretend = 0, frame = 0
+ 183              		@ frame_needed = 0, uses_anonymous_args = 0
+ 184              		.loc 1 126 1 is_stmt 0 view .LVU38
+ 185 0000 08B5     		push	{r3, lr}
+ 186              	.LCFI3:
+ 187              		.cfi_def_cfa_offset 8
+ 188              		.cfi_offset 3, -8
+ 189              		.cfi_offset 14, -4
+ 127:Drivers/lvgl/src/stdlib/lv_mem.c ****     return lv_malloc_zeroed(size);
+ 190              		.loc 1 127 5 is_stmt 1 view .LVU39
+ 191              		.loc 1 127 12 is_stmt 0 view .LVU40
+ 192 0002 FFF7FEFF 		bl	lv_malloc_zeroed
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s 			page 8
+
+
+ 193              	.LVL14:
+ 128:Drivers/lvgl/src/stdlib/lv_mem.c **** }
+ 194              		.loc 1 128 1 view .LVU41
+ 195 0006 08BD     		pop	{r3, pc}
+ 196              		.cfi_endproc
+ 197              	.LFE196:
+ 199              		.section	.text.lv_free,"ax",%progbits
+ 200              		.align	1
+ 201              		.global	lv_free
+ 202              		.syntax unified
+ 203              		.thumb
+ 204              		.thumb_func
+ 206              	lv_free:
+ 207              	.LVL15:
+ 208              	.LFB197:
+ 129:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+ 130:Drivers/lvgl/src/stdlib/lv_mem.c **** void lv_free(void * data)
+ 131:Drivers/lvgl/src/stdlib/lv_mem.c **** {
+ 209              		.loc 1 131 1 is_stmt 1 view -0
+ 210              		.cfi_startproc
+ 211              		@ args = 0, pretend = 0, frame = 0
+ 212              		@ frame_needed = 0, uses_anonymous_args = 0
+ 213              		.loc 1 131 1 is_stmt 0 view .LVU43
+ 214 0000 08B5     		push	{r3, lr}
+ 215              	.LCFI4:
+ 216              		.cfi_def_cfa_offset 8
+ 217              		.cfi_offset 3, -8
+ 218              		.cfi_offset 14, -4
+ 132:Drivers/lvgl/src/stdlib/lv_mem.c ****     LV_TRACE_MEM("freeing %p", data);
+ 219              		.loc 1 132 37 is_stmt 1 view .LVU44
+ 133:Drivers/lvgl/src/stdlib/lv_mem.c ****     if(data == &zero_mem) return;
+ 220              		.loc 1 133 5 view .LVU45
+ 221              		.loc 1 133 7 is_stmt 0 view .LVU46
+ 222 0002 034B     		ldr	r3, .L25
+ 223 0004 9842     		cmp	r0, r3
+ 224 0006 02D0     		beq	.L22
+ 134:Drivers/lvgl/src/stdlib/lv_mem.c ****     if(data == NULL) return;
+ 225              		.loc 1 134 5 is_stmt 1 view .LVU47
+ 226              		.loc 1 134 7 is_stmt 0 view .LVU48
+ 227 0008 08B1     		cbz	r0, .L22
+ 135:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+ 136:Drivers/lvgl/src/stdlib/lv_mem.c ****     lv_free_core(data);
+ 228              		.loc 1 136 5 is_stmt 1 view .LVU49
+ 229 000a FFF7FEFF 		bl	lv_free_core
+ 230              	.LVL16:
+ 231              	.L22:
+ 137:Drivers/lvgl/src/stdlib/lv_mem.c **** }
+ 232              		.loc 1 137 1 is_stmt 0 view .LVU50
+ 233 000e 08BD     		pop	{r3, pc}
+ 234              	.L26:
+ 235              		.align	2
+ 236              	.L25:
+ 237 0010 68000000 		.word	lv_global+104
+ 238              		.cfi_endproc
+ 239              	.LFE197:
+ 241              		.section	.text.lv_realloc,"ax",%progbits
+ 242              		.align	1
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s 			page 9
+
+
+ 243              		.global	lv_realloc
+ 244              		.syntax unified
+ 245              		.thumb
+ 246              		.thumb_func
+ 248              	lv_realloc:
+ 249              	.LVL17:
+ 250              	.LFB199:
+ 138:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+ 139:Drivers/lvgl/src/stdlib/lv_mem.c **** void * lv_reallocf(void * data_p, size_t new_size)
+ 140:Drivers/lvgl/src/stdlib/lv_mem.c **** {
+ 141:Drivers/lvgl/src/stdlib/lv_mem.c ****     void * new = lv_realloc(data_p, new_size);
+ 142:Drivers/lvgl/src/stdlib/lv_mem.c ****     if(!new) {
+ 143:Drivers/lvgl/src/stdlib/lv_mem.c ****         lv_free(data_p);
+ 144:Drivers/lvgl/src/stdlib/lv_mem.c ****     }
+ 145:Drivers/lvgl/src/stdlib/lv_mem.c ****     return new;
+ 146:Drivers/lvgl/src/stdlib/lv_mem.c **** }
+ 147:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+ 148:Drivers/lvgl/src/stdlib/lv_mem.c **** void * lv_realloc(void * data_p, size_t new_size)
+ 149:Drivers/lvgl/src/stdlib/lv_mem.c **** {
+ 251              		.loc 1 149 1 is_stmt 1 view -0
+ 252              		.cfi_startproc
+ 253              		@ args = 0, pretend = 0, frame = 0
+ 254              		@ frame_needed = 0, uses_anonymous_args = 0
+ 255              		.loc 1 149 1 is_stmt 0 view .LVU52
+ 256 0000 08B5     		push	{r3, lr}
+ 257              	.LCFI5:
+ 258              		.cfi_def_cfa_offset 8
+ 259              		.cfi_offset 3, -8
+ 260              		.cfi_offset 14, -4
+ 150:Drivers/lvgl/src/stdlib/lv_mem.c ****     LV_TRACE_MEM("reallocating %p with %lu size", data_p, (unsigned long)new_size);
+ 261              		.loc 1 150 83 is_stmt 1 view .LVU53
+ 151:Drivers/lvgl/src/stdlib/lv_mem.c ****     if(new_size == 0) {
+ 262              		.loc 1 151 5 view .LVU54
+ 263              		.loc 1 151 7 is_stmt 0 view .LVU55
+ 264 0002 29B1     		cbz	r1, .L32
+ 152:Drivers/lvgl/src/stdlib/lv_mem.c ****         LV_TRACE_MEM("using zero_mem");
+ 153:Drivers/lvgl/src/stdlib/lv_mem.c ****         lv_free(data_p);
+ 154:Drivers/lvgl/src/stdlib/lv_mem.c ****         return &zero_mem;
+ 155:Drivers/lvgl/src/stdlib/lv_mem.c ****     }
+ 156:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+ 157:Drivers/lvgl/src/stdlib/lv_mem.c ****     if(data_p == &zero_mem) return lv_malloc(new_size);
+ 265              		.loc 1 157 5 is_stmt 1 view .LVU56
+ 266              		.loc 1 157 7 is_stmt 0 view .LVU57
+ 267 0004 064A     		ldr	r2, .L34
+ 268 0006 9042     		cmp	r0, r2
+ 269 0008 06D0     		beq	.L33
+ 158:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+ 159:Drivers/lvgl/src/stdlib/lv_mem.c ****     void * new_p = lv_realloc_core(data_p, new_size);
+ 270              		.loc 1 159 5 is_stmt 1 view .LVU58
+ 271              		.loc 1 159 20 is_stmt 0 view .LVU59
+ 272 000a FFF7FEFF 		bl	lv_realloc_core
+ 273              	.LVL18:
+ 160:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+ 161:Drivers/lvgl/src/stdlib/lv_mem.c ****     if(new_p == NULL) {
+ 274              		.loc 1 161 5 is_stmt 1 view .LVU60
+ 275              	.L27:
+ 162:Drivers/lvgl/src/stdlib/lv_mem.c ****         LV_LOG_ERROR("couldn't reallocate memory");
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s 			page 10
+
+
+ 163:Drivers/lvgl/src/stdlib/lv_mem.c ****         return NULL;
+ 164:Drivers/lvgl/src/stdlib/lv_mem.c ****     }
+ 165:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+ 166:Drivers/lvgl/src/stdlib/lv_mem.c ****     LV_TRACE_MEM("reallocated at %p", new_p);
+ 167:Drivers/lvgl/src/stdlib/lv_mem.c ****     return new_p;
+ 168:Drivers/lvgl/src/stdlib/lv_mem.c **** }
+ 276              		.loc 1 168 1 is_stmt 0 view .LVU61
+ 277 000e 08BD     		pop	{r3, pc}
+ 278              	.LVL19:
+ 279              	.L32:
+ 152:Drivers/lvgl/src/stdlib/lv_mem.c ****         lv_free(data_p);
+ 280              		.loc 1 152 39 is_stmt 1 view .LVU62
+ 153:Drivers/lvgl/src/stdlib/lv_mem.c ****         return &zero_mem;
+ 281              		.loc 1 153 9 view .LVU63
+ 282 0010 FFF7FEFF 		bl	lv_free
+ 283              	.LVL20:
+ 154:Drivers/lvgl/src/stdlib/lv_mem.c ****     }
+ 284              		.loc 1 154 9 view .LVU64
+ 154:Drivers/lvgl/src/stdlib/lv_mem.c ****     }
+ 285              		.loc 1 154 16 is_stmt 0 view .LVU65
+ 286 0014 0248     		ldr	r0, .L34
+ 287 0016 FAE7     		b	.L27
+ 288              	.LVL21:
+ 289              	.L33:
+ 157:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+ 290              		.loc 1 157 29 is_stmt 1 discriminator 1 view .LVU66
+ 157:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+ 291              		.loc 1 157 36 is_stmt 0 discriminator 1 view .LVU67
+ 292 0018 0846     		mov	r0, r1
+ 293              	.LVL22:
+ 157:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+ 294              		.loc 1 157 36 discriminator 1 view .LVU68
+ 295 001a FFF7FEFF 		bl	lv_malloc
+ 296              	.LVL23:
+ 157:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+ 297              		.loc 1 157 36 view .LVU69
+ 298 001e F6E7     		b	.L27
+ 299              	.L35:
+ 300              		.align	2
+ 301              	.L34:
+ 302 0020 68000000 		.word	lv_global+104
+ 303              		.cfi_endproc
+ 304              	.LFE199:
+ 306              		.section	.text.lv_reallocf,"ax",%progbits
+ 307              		.align	1
+ 308              		.global	lv_reallocf
+ 309              		.syntax unified
+ 310              		.thumb
+ 311              		.thumb_func
+ 313              	lv_reallocf:
+ 314              	.LVL24:
+ 315              	.LFB198:
+ 140:Drivers/lvgl/src/stdlib/lv_mem.c ****     void * new = lv_realloc(data_p, new_size);
+ 316              		.loc 1 140 1 is_stmt 1 view -0
+ 317              		.cfi_startproc
+ 318              		@ args = 0, pretend = 0, frame = 0
+ 319              		@ frame_needed = 0, uses_anonymous_args = 0
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s 			page 11
+
+
+ 140:Drivers/lvgl/src/stdlib/lv_mem.c ****     void * new = lv_realloc(data_p, new_size);
+ 320              		.loc 1 140 1 is_stmt 0 view .LVU71
+ 321 0000 38B5     		push	{r3, r4, r5, lr}
+ 322              	.LCFI6:
+ 323              		.cfi_def_cfa_offset 16
+ 324              		.cfi_offset 3, -16
+ 325              		.cfi_offset 4, -12
+ 326              		.cfi_offset 5, -8
+ 327              		.cfi_offset 14, -4
+ 328 0002 0446     		mov	r4, r0
+ 141:Drivers/lvgl/src/stdlib/lv_mem.c ****     if(!new) {
+ 329              		.loc 1 141 5 is_stmt 1 view .LVU72
+ 141:Drivers/lvgl/src/stdlib/lv_mem.c ****     if(!new) {
+ 330              		.loc 1 141 18 is_stmt 0 view .LVU73
+ 331 0004 FFF7FEFF 		bl	lv_realloc
+ 332              	.LVL25:
+ 142:Drivers/lvgl/src/stdlib/lv_mem.c ****         lv_free(data_p);
+ 333              		.loc 1 142 5 is_stmt 1 view .LVU74
+ 142:Drivers/lvgl/src/stdlib/lv_mem.c ****         lv_free(data_p);
+ 334              		.loc 1 142 7 is_stmt 0 view .LVU75
+ 335 0008 0546     		mov	r5, r0
+ 336 000a 08B1     		cbz	r0, .L39
+ 337              	.LVL26:
+ 338              	.L36:
+ 146:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+ 339              		.loc 1 146 1 view .LVU76
+ 340 000c 2846     		mov	r0, r5
+ 341 000e 38BD     		pop	{r3, r4, r5, pc}
+ 342              	.LVL27:
+ 343              	.L39:
+ 143:Drivers/lvgl/src/stdlib/lv_mem.c ****     }
+ 344              		.loc 1 143 9 is_stmt 1 view .LVU77
+ 345 0010 2046     		mov	r0, r4
+ 346              	.LVL28:
+ 143:Drivers/lvgl/src/stdlib/lv_mem.c ****     }
+ 347              		.loc 1 143 9 is_stmt 0 view .LVU78
+ 348 0012 FFF7FEFF 		bl	lv_free
+ 349              	.LVL29:
+ 145:Drivers/lvgl/src/stdlib/lv_mem.c **** }
+ 350              		.loc 1 145 5 is_stmt 1 view .LVU79
+ 145:Drivers/lvgl/src/stdlib/lv_mem.c **** }
+ 351              		.loc 1 145 12 is_stmt 0 view .LVU80
+ 352 0016 F9E7     		b	.L36
+ 353              		.cfi_endproc
+ 354              	.LFE198:
+ 356              		.section	.text.lv_mem_test,"ax",%progbits
+ 357              		.align	1
+ 358              		.global	lv_mem_test
+ 359              		.syntax unified
+ 360              		.thumb
+ 361              		.thumb_func
+ 363              	lv_mem_test:
+ 364              	.LFB200:
+ 169:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+ 170:Drivers/lvgl/src/stdlib/lv_mem.c **** lv_result_t lv_mem_test(void)
+ 171:Drivers/lvgl/src/stdlib/lv_mem.c **** {
+ 365              		.loc 1 171 1 is_stmt 1 view -0
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s 			page 12
+
+
+ 366              		.cfi_startproc
+ 367              		@ args = 0, pretend = 0, frame = 0
+ 368              		@ frame_needed = 0, uses_anonymous_args = 0
+ 369 0000 08B5     		push	{r3, lr}
+ 370              	.LCFI7:
+ 371              		.cfi_def_cfa_offset 8
+ 372              		.cfi_offset 3, -8
+ 373              		.cfi_offset 14, -4
+ 172:Drivers/lvgl/src/stdlib/lv_mem.c ****     if(zero_mem != ZERO_MEM_SENTINEL) {
+ 374              		.loc 1 172 5 view .LVU82
+ 375              		.loc 1 172 8 is_stmt 0 view .LVU83
+ 376 0002 054B     		ldr	r3, .L45
+ 377 0004 9A6E     		ldr	r2, [r3, #104]
+ 378              		.loc 1 172 7 view .LVU84
+ 379 0006 054B     		ldr	r3, .L45+4
+ 380 0008 9A42     		cmp	r2, r3
+ 381 000a 01D0     		beq	.L44
+ 173:Drivers/lvgl/src/stdlib/lv_mem.c ****         LV_LOG_WARN("zero_mem is written");
+ 174:Drivers/lvgl/src/stdlib/lv_mem.c ****         return LV_RESULT_INVALID;
+ 382              		.loc 1 174 16 view .LVU85
+ 383 000c 0020     		movs	r0, #0
+ 384              	.L41:
+ 175:Drivers/lvgl/src/stdlib/lv_mem.c ****     }
+ 176:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+ 177:Drivers/lvgl/src/stdlib/lv_mem.c ****     return lv_mem_test_core();
+ 178:Drivers/lvgl/src/stdlib/lv_mem.c **** }
+ 385              		.loc 1 178 1 view .LVU86
+ 386 000e 08BD     		pop	{r3, pc}
+ 387              	.L44:
+ 177:Drivers/lvgl/src/stdlib/lv_mem.c **** }
+ 388              		.loc 1 177 5 is_stmt 1 view .LVU87
+ 177:Drivers/lvgl/src/stdlib/lv_mem.c **** }
+ 389              		.loc 1 177 12 is_stmt 0 view .LVU88
+ 390 0010 FFF7FEFF 		bl	lv_mem_test_core
+ 391              	.LVL30:
+ 392 0014 FBE7     		b	.L41
+ 393              	.L46:
+ 394 0016 00BF     		.align	2
+ 395              	.L45:
+ 396 0018 00000000 		.word	lv_global
+ 397 001c D4C3B2A1 		.word	-1582119980
+ 398              		.cfi_endproc
+ 399              	.LFE200:
+ 401              		.section	.text.lv_mem_monitor,"ax",%progbits
+ 402              		.align	1
+ 403              		.global	lv_mem_monitor
+ 404              		.syntax unified
+ 405              		.thumb
+ 406              		.thumb_func
+ 408              	lv_mem_monitor:
+ 409              	.LVL31:
+ 410              	.LFB201:
+ 179:Drivers/lvgl/src/stdlib/lv_mem.c **** 
+ 180:Drivers/lvgl/src/stdlib/lv_mem.c **** void lv_mem_monitor(lv_mem_monitor_t * mon_p)
+ 181:Drivers/lvgl/src/stdlib/lv_mem.c **** {
+ 411              		.loc 1 181 1 is_stmt 1 view -0
+ 412              		.cfi_startproc
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s 			page 13
+
+
+ 413              		@ args = 0, pretend = 0, frame = 0
+ 414              		@ frame_needed = 0, uses_anonymous_args = 0
+ 415              		.loc 1 181 1 is_stmt 0 view .LVU90
+ 416 0000 10B5     		push	{r4, lr}
+ 417              	.LCFI8:
+ 418              		.cfi_def_cfa_offset 8
+ 419              		.cfi_offset 4, -8
+ 420              		.cfi_offset 14, -4
+ 421 0002 0446     		mov	r4, r0
+ 182:Drivers/lvgl/src/stdlib/lv_mem.c ****     lv_memzero(mon_p, sizeof(lv_mem_monitor_t));
+ 422              		.loc 1 182 5 is_stmt 1 view .LVU91
+ 423              	.LVL32:
+ 424              	.LBB8:
+ 425              	.LBI8:
+  73:Drivers/lvgl/src/stdlib/lv_string.h **** {
+ 426              		.loc 2 73 20 view .LVU92
+ 427              	.LBB9:
+ 428              		.loc 2 75 5 view .LVU93
+ 429 0004 1C22     		movs	r2, #28
+ 430 0006 0021     		movs	r1, #0
+ 431 0008 FFF7FEFF 		bl	lv_memset
+ 432              	.LVL33:
+ 433              		.loc 2 75 5 is_stmt 0 view .LVU94
+ 434              	.LBE9:
+ 435              	.LBE8:
+ 183:Drivers/lvgl/src/stdlib/lv_mem.c ****     lv_mem_monitor_core(mon_p);
+ 436              		.loc 1 183 5 is_stmt 1 view .LVU95
+ 437 000c 2046     		mov	r0, r4
+ 438 000e FFF7FEFF 		bl	lv_mem_monitor_core
+ 439              	.LVL34:
+ 184:Drivers/lvgl/src/stdlib/lv_mem.c **** }
+ 440              		.loc 1 184 1 is_stmt 0 view .LVU96
+ 441 0012 10BD     		pop	{r4, pc}
+ 442              		.loc 1 184 1 view .LVU97
+ 443              		.cfi_endproc
+ 444              	.LFE201:
+ 446              		.text
+ 447              	.Letext0:
+ 448              		.file 3 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/arm-none-eabi/include/machine/_defa
+ 449              		.file 4 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/arm-none-eabi/include/sys/_stdint.h
+ 450              		.file 5 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/lib/gcc/arm-none-eabi/14.3.1/includ
+ 451              		.file 6 "Drivers/lvgl/src/stdlib/../misc/lv_types.h"
+ 452              		.file 7 "Drivers/lvgl/src/stdlib/../core/../draw/lv_draw.h"
+ 453              		.file 8 "Drivers/lvgl/src/stdlib/../core/../draw/lv_draw_private.h"
+ 454              		.file 9 "Drivers/lvgl/src/stdlib/../core/../misc/lv_timer_private.h"
+ 455              		.file 10 "Drivers/lvgl/src/stdlib/../core/../draw/../misc/cache/class/../lv_cache_private.h"
+ 456              		.file 11 "Drivers/lvgl/src/stdlib/../core/../draw/lv_draw_buf_private.h"
+ 457              		.file 12 "Drivers/lvgl/src/stdlib/../core/../draw/../misc/../font/../draw/lv_draw_buf.h"
+ 458              		.file 13 "Drivers/lvgl/src/stdlib/lv_mem.h"
+ 459              		.file 14 "Drivers/lvgl/src/stdlib/../core/../draw/../misc/../font/../draw/../misc/lv_area.h"
+ 460              		.file 15 "Drivers/lvgl/src/stdlib/../core/../draw/../misc/../font/../draw/../misc/lv_color.h"
+ 461              		.file 16 "Drivers/lvgl/src/stdlib/../core/../draw/../misc/../font/../draw/lv_image_dsc.h"
+ 462              		.file 17 "Drivers/lvgl/src/stdlib/../core/../draw/../misc/../tick/lv_tick.h"
+ 463              		.file 18 "Drivers/lvgl/src/stdlib/../core/../draw/../misc/lv_ll.h"
+ 464              		.file 19 "Drivers/lvgl/src/stdlib/../core/../draw/../misc/lv_timer.h"
+ 465              		.file 20 "Drivers/lvgl/src/stdlib/../core/../draw/../misc/../layouts/lv_layout.h"
+ 466              		.file 21 "Drivers/lvgl/src/stdlib/../core/../osal/lv_os_none.h"
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s 			page 14
+
+
+ 467              		.file 22 "Drivers/lvgl/src/stdlib/../core/../stdlib/builtin/lv_tlsf.h"
+ 468              		.file 23 "Drivers/lvgl/src/stdlib/../core/../misc/lv_anim_private.h"
+ 469              		.file 24 "Drivers/lvgl/src/stdlib/../core/../tick/lv_tick_private.h"
+ 470              		.file 25 "Drivers/lvgl/src/stdlib/../core/../draw/sw/lv_draw_sw_mask_private.h"
+ 471              		.file 26 "Drivers/lvgl/src/stdlib/../core/../stdlib/builtin/lv_tlsf_private.h"
+ 472              		.file 27 "Drivers/lvgl/src/stdlib/../core/../layouts/lv_layout_private.h"
+ 473              		.file 28 "Drivers/lvgl/src/stdlib/../core/lv_global.h"
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s 			page 15
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 lv_mem.c
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:21     .text.lv_malloc:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:27     .text.lv_malloc:00000000 lv_malloc
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:61     .text.lv_malloc:00000010 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:66     .text.lv_malloc_zeroed:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:72     .text.lv_malloc_zeroed:00000000 lv_malloc_zeroed
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:133    .text.lv_malloc_zeroed:00000020 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:138    .text.lv_calloc:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:144    .text.lv_calloc:00000000 lv_calloc
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:171    .text.lv_zalloc:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:177    .text.lv_zalloc:00000000 lv_zalloc
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:200    .text.lv_free:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:206    .text.lv_free:00000000 lv_free
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:237    .text.lv_free:00000010 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:242    .text.lv_realloc:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:248    .text.lv_realloc:00000000 lv_realloc
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:302    .text.lv_realloc:00000020 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:307    .text.lv_reallocf:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:313    .text.lv_reallocf:00000000 lv_reallocf
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:357    .text.lv_mem_test:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:363    .text.lv_mem_test:00000000 lv_mem_test
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:396    .text.lv_mem_test:00000018 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:402    .text.lv_mem_monitor:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccOBrVuG.s:408    .text.lv_mem_monitor:00000000 lv_mem_monitor
+
+UNDEFINED SYMBOLS
+lv_malloc_core
+lv_global
+lv_memset
+lv_free_core
+lv_realloc_core
+lv_mem_test_core
+lv_mem_monitor_core

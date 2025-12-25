@@ -1,0 +1,691 @@
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"lv_list.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Drivers/lvgl/src/widgets/list/lv_list.c"
+  20              		.section	.text.lv_list_create,"ax",%progbits
+  21              		.align	1
+  22              		.global	lv_list_create
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	lv_list_create:
+  28              	.LVL0:
+  29              	.LFB181:
+   1:Drivers/lvgl/src/widgets/list/lv_list.c **** /**
+   2:Drivers/lvgl/src/widgets/list/lv_list.c ****  * @file lv_list.c
+   3:Drivers/lvgl/src/widgets/list/lv_list.c ****  *
+   4:Drivers/lvgl/src/widgets/list/lv_list.c ****  */
+   5:Drivers/lvgl/src/widgets/list/lv_list.c **** 
+   6:Drivers/lvgl/src/widgets/list/lv_list.c **** /*********************
+   7:Drivers/lvgl/src/widgets/list/lv_list.c ****  *      INCLUDES
+   8:Drivers/lvgl/src/widgets/list/lv_list.c ****  *********************/
+   9:Drivers/lvgl/src/widgets/list/lv_list.c **** #include "../../core/lv_obj_class_private.h"
+  10:Drivers/lvgl/src/widgets/list/lv_list.c **** #include "lv_list.h"
+  11:Drivers/lvgl/src/widgets/list/lv_list.c **** #include "../../layouts/flex/lv_flex.h"
+  12:Drivers/lvgl/src/widgets/list/lv_list.c **** #include "../../display/lv_display.h"
+  13:Drivers/lvgl/src/widgets/list/lv_list.c **** #include "../label/lv_label.h"
+  14:Drivers/lvgl/src/widgets/list/lv_list.c **** #include "../image/lv_image.h"
+  15:Drivers/lvgl/src/widgets/list/lv_list.c **** #include "../button/lv_button.h"
+  16:Drivers/lvgl/src/widgets/list/lv_list.c **** 
+  17:Drivers/lvgl/src/widgets/list/lv_list.c **** #if LV_USE_LIST
+  18:Drivers/lvgl/src/widgets/list/lv_list.c **** 
+  19:Drivers/lvgl/src/widgets/list/lv_list.c **** /*********************
+  20:Drivers/lvgl/src/widgets/list/lv_list.c ****  *      DEFINES
+  21:Drivers/lvgl/src/widgets/list/lv_list.c ****  *********************/
+  22:Drivers/lvgl/src/widgets/list/lv_list.c **** #define MY_CLASS        (&lv_list_class)
+  23:Drivers/lvgl/src/widgets/list/lv_list.c **** #define MY_CLASS_BUTTON (&lv_list_button_class)
+  24:Drivers/lvgl/src/widgets/list/lv_list.c **** #define MY_CLASS_TEXT   (&lv_list_text_class)
+  25:Drivers/lvgl/src/widgets/list/lv_list.c **** 
+  26:Drivers/lvgl/src/widgets/list/lv_list.c **** /**********************
+  27:Drivers/lvgl/src/widgets/list/lv_list.c ****  *      TYPEDEFS
+  28:Drivers/lvgl/src/widgets/list/lv_list.c ****  **********************/
+  29:Drivers/lvgl/src/widgets/list/lv_list.c **** 
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s 			page 2
+
+
+  30:Drivers/lvgl/src/widgets/list/lv_list.c **** /**********************
+  31:Drivers/lvgl/src/widgets/list/lv_list.c ****  *  STATIC PROTOTYPES
+  32:Drivers/lvgl/src/widgets/list/lv_list.c ****  **********************/
+  33:Drivers/lvgl/src/widgets/list/lv_list.c **** const lv_obj_class_t lv_list_class = {
+  34:Drivers/lvgl/src/widgets/list/lv_list.c ****     .base_class = &lv_obj_class,
+  35:Drivers/lvgl/src/widgets/list/lv_list.c ****     .width_def = (LV_DPI_DEF * 3) / 2,
+  36:Drivers/lvgl/src/widgets/list/lv_list.c ****     .height_def = LV_DPI_DEF * 2,
+  37:Drivers/lvgl/src/widgets/list/lv_list.c ****     .name = "lv_list",
+  38:Drivers/lvgl/src/widgets/list/lv_list.c **** };
+  39:Drivers/lvgl/src/widgets/list/lv_list.c **** 
+  40:Drivers/lvgl/src/widgets/list/lv_list.c **** const lv_obj_class_t lv_list_button_class = {
+  41:Drivers/lvgl/src/widgets/list/lv_list.c ****     .base_class = &lv_button_class,
+  42:Drivers/lvgl/src/widgets/list/lv_list.c ****     .width_def = LV_PCT(100),
+  43:Drivers/lvgl/src/widgets/list/lv_list.c ****     .height_def = LV_SIZE_CONTENT,
+  44:Drivers/lvgl/src/widgets/list/lv_list.c ****     .name = "lv_list_button",
+  45:Drivers/lvgl/src/widgets/list/lv_list.c **** };
+  46:Drivers/lvgl/src/widgets/list/lv_list.c **** 
+  47:Drivers/lvgl/src/widgets/list/lv_list.c **** const lv_obj_class_t lv_list_text_class = {
+  48:Drivers/lvgl/src/widgets/list/lv_list.c ****     .base_class = &lv_label_class,
+  49:Drivers/lvgl/src/widgets/list/lv_list.c ****     .width_def = LV_PCT(100),
+  50:Drivers/lvgl/src/widgets/list/lv_list.c ****     .height_def = LV_SIZE_CONTENT,
+  51:Drivers/lvgl/src/widgets/list/lv_list.c ****     .name = "lv_list_text",
+  52:Drivers/lvgl/src/widgets/list/lv_list.c **** };
+  53:Drivers/lvgl/src/widgets/list/lv_list.c **** 
+  54:Drivers/lvgl/src/widgets/list/lv_list.c **** /**********************
+  55:Drivers/lvgl/src/widgets/list/lv_list.c ****  *  STATIC VARIABLES
+  56:Drivers/lvgl/src/widgets/list/lv_list.c ****  **********************/
+  57:Drivers/lvgl/src/widgets/list/lv_list.c **** 
+  58:Drivers/lvgl/src/widgets/list/lv_list.c **** /**********************
+  59:Drivers/lvgl/src/widgets/list/lv_list.c ****  *      MACROS
+  60:Drivers/lvgl/src/widgets/list/lv_list.c ****  **********************/
+  61:Drivers/lvgl/src/widgets/list/lv_list.c **** 
+  62:Drivers/lvgl/src/widgets/list/lv_list.c **** /**********************
+  63:Drivers/lvgl/src/widgets/list/lv_list.c ****  *   GLOBAL FUNCTIONS
+  64:Drivers/lvgl/src/widgets/list/lv_list.c ****  **********************/
+  65:Drivers/lvgl/src/widgets/list/lv_list.c **** 
+  66:Drivers/lvgl/src/widgets/list/lv_list.c **** lv_obj_t * lv_list_create(lv_obj_t * parent)
+  67:Drivers/lvgl/src/widgets/list/lv_list.c **** {
+  30              		.loc 1 67 1 view -0
+  31              		.cfi_startproc
+  32              		@ args = 0, pretend = 0, frame = 0
+  33              		@ frame_needed = 0, uses_anonymous_args = 0
+  34              		.loc 1 67 1 is_stmt 0 view .LVU1
+  35 0000 10B5     		push	{r4, lr}
+  36              	.LCFI0:
+  37              		.cfi_def_cfa_offset 8
+  38              		.cfi_offset 4, -8
+  39              		.cfi_offset 14, -4
+  40 0002 0146     		mov	r1, r0
+  68:Drivers/lvgl/src/widgets/list/lv_list.c ****     LV_LOG_INFO("begin");
+  41              		.loc 1 68 5 is_stmt 1 view .LVU2
+  42              		.loc 1 68 5 view .LVU3
+  43              		.loc 1 68 5 view .LVU4
+  69:Drivers/lvgl/src/widgets/list/lv_list.c ****     lv_obj_t * obj = lv_obj_class_create_obj(MY_CLASS, parent);
+  44              		.loc 1 69 5 view .LVU5
+  45              		.loc 1 69 22 is_stmt 0 view .LVU6
+  46 0004 0548     		ldr	r0, .L3
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s 			page 3
+
+
+  47              	.LVL1:
+  48              		.loc 1 69 22 view .LVU7
+  49 0006 FFF7FEFF 		bl	lv_obj_class_create_obj
+  50              	.LVL2:
+  51              		.loc 1 69 22 view .LVU8
+  52 000a 0446     		mov	r4, r0
+  53              	.LVL3:
+  70:Drivers/lvgl/src/widgets/list/lv_list.c ****     lv_obj_class_init_obj(obj);
+  54              		.loc 1 70 5 is_stmt 1 view .LVU9
+  55 000c FFF7FEFF 		bl	lv_obj_class_init_obj
+  56              	.LVL4:
+  71:Drivers/lvgl/src/widgets/list/lv_list.c ****     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_COLUMN);
+  57              		.loc 1 71 5 view .LVU10
+  58 0010 0121     		movs	r1, #1
+  59 0012 2046     		mov	r0, r4
+  60 0014 FFF7FEFF 		bl	lv_obj_set_flex_flow
+  61              	.LVL5:
+  72:Drivers/lvgl/src/widgets/list/lv_list.c ****     return obj;
+  62              		.loc 1 72 5 view .LVU11
+  73:Drivers/lvgl/src/widgets/list/lv_list.c **** }
+  63              		.loc 1 73 1 is_stmt 0 view .LVU12
+  64 0018 2046     		mov	r0, r4
+  65 001a 10BD     		pop	{r4, pc}
+  66              	.LVL6:
+  67              	.L4:
+  68              		.loc 1 73 1 view .LVU13
+  69              		.align	2
+  70              	.L3:
+  71 001c 00000000 		.word	lv_list_class
+  72              		.cfi_endproc
+  73              	.LFE181:
+  75              		.section	.text.lv_list_add_text,"ax",%progbits
+  76              		.align	1
+  77              		.global	lv_list_add_text
+  78              		.syntax unified
+  79              		.thumb
+  80              		.thumb_func
+  82              	lv_list_add_text:
+  83              	.LVL7:
+  84              	.LFB182:
+  74:Drivers/lvgl/src/widgets/list/lv_list.c **** 
+  75:Drivers/lvgl/src/widgets/list/lv_list.c **** lv_obj_t * lv_list_add_text(lv_obj_t * list, const char * txt)
+  76:Drivers/lvgl/src/widgets/list/lv_list.c **** {
+  85              		.loc 1 76 1 is_stmt 1 view -0
+  86              		.cfi_startproc
+  87              		@ args = 0, pretend = 0, frame = 0
+  88              		@ frame_needed = 0, uses_anonymous_args = 0
+  89              		.loc 1 76 1 is_stmt 0 view .LVU15
+  90 0000 38B5     		push	{r3, r4, r5, lr}
+  91              	.LCFI1:
+  92              		.cfi_def_cfa_offset 16
+  93              		.cfi_offset 3, -16
+  94              		.cfi_offset 4, -12
+  95              		.cfi_offset 5, -8
+  96              		.cfi_offset 14, -4
+  97 0002 0D46     		mov	r5, r1
+  77:Drivers/lvgl/src/widgets/list/lv_list.c ****     LV_LOG_INFO("begin");
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s 			page 4
+
+
+  98              		.loc 1 77 5 is_stmt 1 view .LVU16
+  99              		.loc 1 77 5 view .LVU17
+ 100              		.loc 1 77 5 view .LVU18
+  78:Drivers/lvgl/src/widgets/list/lv_list.c **** 
+  79:Drivers/lvgl/src/widgets/list/lv_list.c ****     lv_obj_t * obj = lv_obj_class_create_obj(MY_CLASS_TEXT, list);
+ 101              		.loc 1 79 5 view .LVU19
+ 102              		.loc 1 79 22 is_stmt 0 view .LVU20
+ 103 0004 0146     		mov	r1, r0
+ 104              	.LVL8:
+ 105              		.loc 1 79 22 view .LVU21
+ 106 0006 0648     		ldr	r0, .L7
+ 107              	.LVL9:
+ 108              		.loc 1 79 22 view .LVU22
+ 109 0008 FFF7FEFF 		bl	lv_obj_class_create_obj
+ 110              	.LVL10:
+ 111              		.loc 1 79 22 view .LVU23
+ 112 000c 0446     		mov	r4, r0
+ 113              	.LVL11:
+  80:Drivers/lvgl/src/widgets/list/lv_list.c ****     lv_obj_class_init_obj(obj);
+ 114              		.loc 1 80 5 is_stmt 1 view .LVU24
+ 115 000e FFF7FEFF 		bl	lv_obj_class_init_obj
+ 116              	.LVL12:
+  81:Drivers/lvgl/src/widgets/list/lv_list.c ****     lv_label_set_text(obj, txt);
+ 117              		.loc 1 81 5 view .LVU25
+ 118 0012 2946     		mov	r1, r5
+ 119 0014 2046     		mov	r0, r4
+ 120 0016 FFF7FEFF 		bl	lv_label_set_text
+ 121              	.LVL13:
+  82:Drivers/lvgl/src/widgets/list/lv_list.c ****     return obj;
+ 122              		.loc 1 82 5 view .LVU26
+  83:Drivers/lvgl/src/widgets/list/lv_list.c **** }
+ 123              		.loc 1 83 1 is_stmt 0 view .LVU27
+ 124 001a 2046     		mov	r0, r4
+ 125 001c 38BD     		pop	{r3, r4, r5, pc}
+ 126              	.LVL14:
+ 127              	.L8:
+ 128              		.loc 1 83 1 view .LVU28
+ 129 001e 00BF     		.align	2
+ 130              	.L7:
+ 131 0020 00000000 		.word	lv_list_text_class
+ 132              		.cfi_endproc
+ 133              	.LFE182:
+ 135              		.section	.text.lv_list_add_button,"ax",%progbits
+ 136              		.align	1
+ 137              		.global	lv_list_add_button
+ 138              		.syntax unified
+ 139              		.thumb
+ 140              		.thumb_func
+ 142              	lv_list_add_button:
+ 143              	.LVL15:
+ 144              	.LFB183:
+  84:Drivers/lvgl/src/widgets/list/lv_list.c **** 
+  85:Drivers/lvgl/src/widgets/list/lv_list.c **** lv_obj_t * lv_list_add_button(lv_obj_t * list, const void * icon, const char * txt)
+  86:Drivers/lvgl/src/widgets/list/lv_list.c **** {
+ 145              		.loc 1 86 1 is_stmt 1 view -0
+ 146              		.cfi_startproc
+ 147              		@ args = 0, pretend = 0, frame = 0
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s 			page 5
+
+
+ 148              		@ frame_needed = 0, uses_anonymous_args = 0
+ 149              		.loc 1 86 1 is_stmt 0 view .LVU30
+ 150 0000 70B5     		push	{r4, r5, r6, lr}
+ 151              	.LCFI2:
+ 152              		.cfi_def_cfa_offset 16
+ 153              		.cfi_offset 4, -16
+ 154              		.cfi_offset 5, -12
+ 155              		.cfi_offset 6, -8
+ 156              		.cfi_offset 14, -4
+ 157 0002 0E46     		mov	r6, r1
+ 158 0004 1546     		mov	r5, r2
+  87:Drivers/lvgl/src/widgets/list/lv_list.c ****     LV_LOG_INFO("begin");
+ 159              		.loc 1 87 5 is_stmt 1 view .LVU31
+ 160              		.loc 1 87 5 view .LVU32
+ 161              		.loc 1 87 5 view .LVU33
+  88:Drivers/lvgl/src/widgets/list/lv_list.c ****     lv_obj_t * obj = lv_obj_class_create_obj(MY_CLASS_BUTTON, list);
+ 162              		.loc 1 88 5 view .LVU34
+ 163              		.loc 1 88 22 is_stmt 0 view .LVU35
+ 164 0006 0146     		mov	r1, r0
+ 165              	.LVL16:
+ 166              		.loc 1 88 22 view .LVU36
+ 167 0008 1148     		ldr	r0, .L13
+ 168              	.LVL17:
+ 169              		.loc 1 88 22 view .LVU37
+ 170 000a FFF7FEFF 		bl	lv_obj_class_create_obj
+ 171              	.LVL18:
+ 172              		.loc 1 88 22 view .LVU38
+ 173 000e 0446     		mov	r4, r0
+ 174              	.LVL19:
+  89:Drivers/lvgl/src/widgets/list/lv_list.c ****     lv_obj_class_init_obj(obj);
+ 175              		.loc 1 89 5 is_stmt 1 view .LVU39
+ 176 0010 FFF7FEFF 		bl	lv_obj_class_init_obj
+ 177              	.LVL20:
+  90:Drivers/lvgl/src/widgets/list/lv_list.c ****     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
+ 178              		.loc 1 90 5 view .LVU40
+ 179 0014 0021     		movs	r1, #0
+ 180 0016 2046     		mov	r0, r4
+ 181 0018 FFF7FEFF 		bl	lv_obj_set_flex_flow
+ 182              	.LVL21:
+  91:Drivers/lvgl/src/widgets/list/lv_list.c **** 
+  92:Drivers/lvgl/src/widgets/list/lv_list.c **** #if LV_USE_IMAGE == 1
+  93:Drivers/lvgl/src/widgets/list/lv_list.c ****     if(icon) {
+ 183              		.loc 1 93 5 view .LVU41
+ 184              		.loc 1 93 7 is_stmt 0 view .LVU42
+ 185 001c 2EB1     		cbz	r6, .L10
+ 186              	.LBB2:
+  94:Drivers/lvgl/src/widgets/list/lv_list.c ****         lv_obj_t * img = lv_image_create(obj);
+ 187              		.loc 1 94 9 is_stmt 1 view .LVU43
+ 188              		.loc 1 94 26 is_stmt 0 view .LVU44
+ 189 001e 2046     		mov	r0, r4
+ 190 0020 FFF7FEFF 		bl	lv_image_create
+ 191              	.LVL22:
+  95:Drivers/lvgl/src/widgets/list/lv_list.c ****         lv_image_set_src(img, icon);
+ 192              		.loc 1 95 9 is_stmt 1 view .LVU45
+ 193 0024 3146     		mov	r1, r6
+ 194 0026 FFF7FEFF 		bl	lv_image_set_src
+ 195              	.LVL23:
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s 			page 6
+
+
+ 196              	.L10:
+ 197              		.loc 1 95 9 is_stmt 0 view .LVU46
+ 198              	.LBE2:
+  96:Drivers/lvgl/src/widgets/list/lv_list.c ****     }
+  97:Drivers/lvgl/src/widgets/list/lv_list.c **** #endif
+  98:Drivers/lvgl/src/widgets/list/lv_list.c **** 
+  99:Drivers/lvgl/src/widgets/list/lv_list.c ****     if(txt) {
+ 199              		.loc 1 99 5 is_stmt 1 view .LVU47
+ 200              		.loc 1 99 7 is_stmt 0 view .LVU48
+ 201 002a 75B1     		cbz	r5, .L9
+ 202              	.LBB3:
+ 100:Drivers/lvgl/src/widgets/list/lv_list.c ****         lv_obj_t * label = lv_label_create(obj);
+ 203              		.loc 1 100 9 is_stmt 1 view .LVU49
+ 204              		.loc 1 100 28 is_stmt 0 view .LVU50
+ 205 002c 2046     		mov	r0, r4
+ 206 002e FFF7FEFF 		bl	lv_label_create
+ 207              	.LVL24:
+ 208 0032 0646     		mov	r6, r0
+ 209              	.LVL25:
+ 101:Drivers/lvgl/src/widgets/list/lv_list.c ****         lv_label_set_text(label, txt);
+ 210              		.loc 1 101 9 is_stmt 1 view .LVU51
+ 211 0034 2946     		mov	r1, r5
+ 212 0036 FFF7FEFF 		bl	lv_label_set_text
+ 213              	.LVL26:
+ 102:Drivers/lvgl/src/widgets/list/lv_list.c ****         lv_label_set_long_mode(label, LV_LABEL_LONG_MODE_SCROLL_CIRCULAR);
+ 214              		.loc 1 102 9 view .LVU52
+ 215 003a 0321     		movs	r1, #3
+ 216 003c 3046     		mov	r0, r6
+ 217 003e FFF7FEFF 		bl	lv_label_set_long_mode
+ 218              	.LVL27:
+ 103:Drivers/lvgl/src/widgets/list/lv_list.c ****         lv_obj_set_flex_grow(label, 1);
+ 219              		.loc 1 103 9 view .LVU53
+ 220 0042 0121     		movs	r1, #1
+ 221 0044 3046     		mov	r0, r6
+ 222 0046 FFF7FEFF 		bl	lv_obj_set_flex_grow
+ 223              	.LVL28:
+ 224              	.LBE3:
+ 104:Drivers/lvgl/src/widgets/list/lv_list.c ****     }
+ 105:Drivers/lvgl/src/widgets/list/lv_list.c **** 
+ 106:Drivers/lvgl/src/widgets/list/lv_list.c ****     return obj;
+ 225              		.loc 1 106 5 view .LVU54
+ 226              	.L9:
+ 107:Drivers/lvgl/src/widgets/list/lv_list.c **** }
+ 227              		.loc 1 107 1 is_stmt 0 view .LVU55
+ 228 004a 2046     		mov	r0, r4
+ 229 004c 70BD     		pop	{r4, r5, r6, pc}
+ 230              	.LVL29:
+ 231              	.L14:
+ 232              		.loc 1 107 1 view .LVU56
+ 233 004e 00BF     		.align	2
+ 234              	.L13:
+ 235 0050 00000000 		.word	lv_list_button_class
+ 236              		.cfi_endproc
+ 237              	.LFE183:
+ 239              		.section	.rodata.lv_list_get_button_text.str1.4,"aMS",%progbits,1
+ 240              		.align	2
+ 241              	.LC0:
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s 			page 7
+
+
+ 242 0000 00       		.ascii	"\000"
+ 243              		.section	.text.lv_list_get_button_text,"ax",%progbits
+ 244              		.align	1
+ 245              		.global	lv_list_get_button_text
+ 246              		.syntax unified
+ 247              		.thumb
+ 248              		.thumb_func
+ 250              	lv_list_get_button_text:
+ 251              	.LVL30:
+ 252              	.LFB184:
+ 108:Drivers/lvgl/src/widgets/list/lv_list.c **** 
+ 109:Drivers/lvgl/src/widgets/list/lv_list.c **** const char * lv_list_get_button_text(lv_obj_t * list, lv_obj_t * btn)
+ 110:Drivers/lvgl/src/widgets/list/lv_list.c **** {
+ 253              		.loc 1 110 1 is_stmt 1 view -0
+ 254              		.cfi_startproc
+ 255              		@ args = 0, pretend = 0, frame = 0
+ 256              		@ frame_needed = 0, uses_anonymous_args = 0
+ 257              		.loc 1 110 1 is_stmt 0 view .LVU58
+ 258 0000 70B5     		push	{r4, r5, r6, lr}
+ 259              	.LCFI3:
+ 260              		.cfi_def_cfa_offset 16
+ 261              		.cfi_offset 4, -16
+ 262              		.cfi_offset 5, -12
+ 263              		.cfi_offset 6, -8
+ 264              		.cfi_offset 14, -4
+ 265 0002 0E46     		mov	r6, r1
+ 111:Drivers/lvgl/src/widgets/list/lv_list.c ****     LV_UNUSED(list);
+ 266              		.loc 1 111 5 is_stmt 1 view .LVU59
+ 112:Drivers/lvgl/src/widgets/list/lv_list.c ****     uint32_t i;
+ 267              		.loc 1 112 5 view .LVU60
+ 113:Drivers/lvgl/src/widgets/list/lv_list.c ****     for(i = 0; i < lv_obj_get_child_count(btn); i++) {
+ 268              		.loc 1 113 5 view .LVU61
+ 269              	.LVL31:
+ 270              		.loc 1 113 11 is_stmt 0 view .LVU62
+ 271 0004 0024     		movs	r4, #0
+ 272              		.loc 1 113 5 view .LVU63
+ 273 0006 00E0     		b	.L16
+ 274              	.LVL32:
+ 275              	.L17:
+ 276              		.loc 1 113 50 is_stmt 1 discriminator 2 view .LVU64
+ 277 0008 0134     		adds	r4, r4, #1
+ 278              	.LVL33:
+ 279              	.L16:
+ 280              		.loc 1 113 18 discriminator 1 view .LVU65
+ 281              		.loc 1 113 20 is_stmt 0 discriminator 1 view .LVU66
+ 282 000a 3046     		mov	r0, r6
+ 283 000c FFF7FEFF 		bl	lv_obj_get_child_count
+ 284              	.LVL34:
+ 285              		.loc 1 113 18 discriminator 1 view .LVU67
+ 286 0010 A042     		cmp	r0, r4
+ 287 0012 0DD9     		bls	.L21
+ 288              	.LBB4:
+ 114:Drivers/lvgl/src/widgets/list/lv_list.c ****         lv_obj_t * child = lv_obj_get_child(btn, i);
+ 289              		.loc 1 114 9 is_stmt 1 view .LVU68
+ 290              		.loc 1 114 28 is_stmt 0 view .LVU69
+ 291 0014 2146     		mov	r1, r4
+ 292 0016 3046     		mov	r0, r6
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s 			page 8
+
+
+ 293 0018 FFF7FEFF 		bl	lv_obj_get_child
+ 294              	.LVL35:
+ 295 001c 0546     		mov	r5, r0
+ 296              	.LVL36:
+ 115:Drivers/lvgl/src/widgets/list/lv_list.c ****         if(lv_obj_check_type(child, &lv_label_class)) {
+ 297              		.loc 1 115 9 is_stmt 1 view .LVU70
+ 298              		.loc 1 115 12 is_stmt 0 view .LVU71
+ 299 001e 0549     		ldr	r1, .L22
+ 300 0020 FFF7FEFF 		bl	lv_obj_check_type
+ 301              	.LVL37:
+ 302              		.loc 1 115 11 discriminator 1 view .LVU72
+ 303 0024 0028     		cmp	r0, #0
+ 304 0026 EFD0     		beq	.L17
+ 116:Drivers/lvgl/src/widgets/list/lv_list.c ****             return lv_label_get_text(child);
+ 305              		.loc 1 116 13 is_stmt 1 view .LVU73
+ 306              		.loc 1 116 20 is_stmt 0 view .LVU74
+ 307 0028 2846     		mov	r0, r5
+ 308 002a FFF7FEFF 		bl	lv_label_get_text
+ 309              	.LVL38:
+ 310 002e 00E0     		b	.L15
+ 311              	.LVL39:
+ 312              	.L21:
+ 313              		.loc 1 116 20 view .LVU75
+ 314              	.LBE4:
+ 117:Drivers/lvgl/src/widgets/list/lv_list.c ****         }
+ 118:Drivers/lvgl/src/widgets/list/lv_list.c **** 
+ 119:Drivers/lvgl/src/widgets/list/lv_list.c ****     }
+ 120:Drivers/lvgl/src/widgets/list/lv_list.c **** 
+ 121:Drivers/lvgl/src/widgets/list/lv_list.c ****     return "";
+ 315              		.loc 1 121 12 view .LVU76
+ 316 0030 0148     		ldr	r0, .L22+4
+ 317              	.L15:
+ 122:Drivers/lvgl/src/widgets/list/lv_list.c **** }
+ 318              		.loc 1 122 1 view .LVU77
+ 319 0032 70BD     		pop	{r4, r5, r6, pc}
+ 320              	.LVL40:
+ 321              	.L23:
+ 322              		.loc 1 122 1 view .LVU78
+ 323              		.align	2
+ 324              	.L22:
+ 325 0034 00000000 		.word	lv_label_class
+ 326 0038 00000000 		.word	.LC0
+ 327              		.cfi_endproc
+ 328              	.LFE184:
+ 330              		.section	.text.lv_list_set_button_text,"ax",%progbits
+ 331              		.align	1
+ 332              		.global	lv_list_set_button_text
+ 333              		.syntax unified
+ 334              		.thumb
+ 335              		.thumb_func
+ 337              	lv_list_set_button_text:
+ 338              	.LVL41:
+ 339              	.LFB185:
+ 123:Drivers/lvgl/src/widgets/list/lv_list.c **** 
+ 124:Drivers/lvgl/src/widgets/list/lv_list.c **** void lv_list_set_button_text(lv_obj_t * list, lv_obj_t * btn, const char * txt)
+ 125:Drivers/lvgl/src/widgets/list/lv_list.c **** {
+ 340              		.loc 1 125 1 is_stmt 1 view -0
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s 			page 9
+
+
+ 341              		.cfi_startproc
+ 342              		@ args = 0, pretend = 0, frame = 0
+ 343              		@ frame_needed = 0, uses_anonymous_args = 0
+ 344              		.loc 1 125 1 is_stmt 0 view .LVU80
+ 345 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 346              	.LCFI4:
+ 347              		.cfi_def_cfa_offset 24
+ 348              		.cfi_offset 3, -24
+ 349              		.cfi_offset 4, -20
+ 350              		.cfi_offset 5, -16
+ 351              		.cfi_offset 6, -12
+ 352              		.cfi_offset 7, -8
+ 353              		.cfi_offset 14, -4
+ 354 0002 0E46     		mov	r6, r1
+ 355 0004 1746     		mov	r7, r2
+ 126:Drivers/lvgl/src/widgets/list/lv_list.c ****     LV_UNUSED(list);
+ 356              		.loc 1 126 5 is_stmt 1 view .LVU81
+ 127:Drivers/lvgl/src/widgets/list/lv_list.c ****     uint32_t i;
+ 357              		.loc 1 127 5 view .LVU82
+ 128:Drivers/lvgl/src/widgets/list/lv_list.c ****     for(i = 0; i < lv_obj_get_child_count(btn); i++) {
+ 358              		.loc 1 128 5 view .LVU83
+ 359              	.LVL42:
+ 360              		.loc 1 128 11 is_stmt 0 view .LVU84
+ 361 0006 0024     		movs	r4, #0
+ 362              		.loc 1 128 5 view .LVU85
+ 363 0008 00E0     		b	.L25
+ 364              	.LVL43:
+ 365              	.L26:
+ 366              		.loc 1 128 50 is_stmt 1 discriminator 2 view .LVU86
+ 367 000a 0134     		adds	r4, r4, #1
+ 368              	.LVL44:
+ 369              	.L25:
+ 370              		.loc 1 128 18 discriminator 1 view .LVU87
+ 371              		.loc 1 128 20 is_stmt 0 discriminator 1 view .LVU88
+ 372 000c 3046     		mov	r0, r6
+ 373 000e FFF7FEFF 		bl	lv_obj_get_child_count
+ 374              	.LVL45:
+ 375              		.loc 1 128 18 discriminator 1 view .LVU89
+ 376 0012 A042     		cmp	r0, r4
+ 377 0014 0DD9     		bls	.L24
+ 378              	.LBB5:
+ 129:Drivers/lvgl/src/widgets/list/lv_list.c ****         lv_obj_t * child = lv_obj_get_child(btn, i);
+ 379              		.loc 1 129 9 is_stmt 1 view .LVU90
+ 380              		.loc 1 129 28 is_stmt 0 view .LVU91
+ 381 0016 2146     		mov	r1, r4
+ 382 0018 3046     		mov	r0, r6
+ 383 001a FFF7FEFF 		bl	lv_obj_get_child
+ 384              	.LVL46:
+ 385 001e 0546     		mov	r5, r0
+ 386              	.LVL47:
+ 130:Drivers/lvgl/src/widgets/list/lv_list.c ****         if(lv_obj_check_type(child, &lv_label_class)) {
+ 387              		.loc 1 130 9 is_stmt 1 view .LVU92
+ 388              		.loc 1 130 12 is_stmt 0 view .LVU93
+ 389 0020 0449     		ldr	r1, .L30
+ 390 0022 FFF7FEFF 		bl	lv_obj_check_type
+ 391              	.LVL48:
+ 392              		.loc 1 130 11 discriminator 1 view .LVU94
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s 			page 10
+
+
+ 393 0026 0028     		cmp	r0, #0
+ 394 0028 EFD0     		beq	.L26
+ 131:Drivers/lvgl/src/widgets/list/lv_list.c ****             lv_label_set_text(child, txt);
+ 395              		.loc 1 131 13 is_stmt 1 view .LVU95
+ 396 002a 3946     		mov	r1, r7
+ 397 002c 2846     		mov	r0, r5
+ 398 002e FFF7FEFF 		bl	lv_label_set_text
+ 399              	.LVL49:
+ 132:Drivers/lvgl/src/widgets/list/lv_list.c ****             return;
+ 400              		.loc 1 132 13 view .LVU96
+ 401              	.L24:
+ 402              		.loc 1 132 13 is_stmt 0 view .LVU97
+ 403              	.LBE5:
+ 133:Drivers/lvgl/src/widgets/list/lv_list.c ****         }
+ 134:Drivers/lvgl/src/widgets/list/lv_list.c ****     }
+ 135:Drivers/lvgl/src/widgets/list/lv_list.c **** }
+ 404              		.loc 1 135 1 view .LVU98
+ 405 0032 F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 406              	.LVL50:
+ 407              	.L31:
+ 408              		.loc 1 135 1 view .LVU99
+ 409              		.align	2
+ 410              	.L30:
+ 411 0034 00000000 		.word	lv_label_class
+ 412              		.cfi_endproc
+ 413              	.LFE185:
+ 415              		.global	lv_list_text_class
+ 416              		.section	.rodata.str1.4,"aMS",%progbits,1
+ 417              		.align	2
+ 418              	.LC1:
+ 419 0000 6C765F6C 		.ascii	"lv_list_text\000"
+ 419      6973745F 
+ 419      74657874 
+ 419      00
+ 420              		.section	.rodata.lv_list_text_class,"a"
+ 421              		.align	2
+ 424              	lv_list_text_class:
+ 425 0000 00000000 		.word	lv_label_class
+ 426 0004 00000000 		.space	16
+ 426      00000000 
+ 426      00000000 
+ 426      00000000 
+ 427 0014 00000000 		.word	.LC1
+ 428 0018 64000020 		.word	536871012
+ 429 001c FFFFFF3F 		.word	1073741823
+ 430 0020 00000000 		.space	4
+ 431              		.global	lv_list_button_class
+ 432              		.section	.rodata.str1.4
+ 433 000d 000000   		.align	2
+ 434              	.LC2:
+ 435 0010 6C765F6C 		.ascii	"lv_list_button\000"
+ 435      6973745F 
+ 435      62757474 
+ 435      6F6E00
+ 436              		.section	.rodata.lv_list_button_class,"a"
+ 437              		.align	2
+ 440              	lv_list_button_class:
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s 			page 11
+
+
+ 441 0000 00000000 		.word	lv_button_class
+ 442 0004 00000000 		.space	16
+ 442      00000000 
+ 442      00000000 
+ 442      00000000 
+ 443 0014 10000000 		.word	.LC2
+ 444 0018 64000020 		.word	536871012
+ 445 001c FFFFFF3F 		.word	1073741823
+ 446 0020 00000000 		.space	4
+ 447              		.global	lv_list_class
+ 448              		.section	.rodata.str1.4
+ 449 001f 00       		.align	2
+ 450              	.LC3:
+ 451 0020 6C765F6C 		.ascii	"lv_list\000"
+ 451      69737400 
+ 452              		.section	.rodata.lv_list_class,"a"
+ 453              		.align	2
+ 456              	lv_list_class:
+ 457 0000 00000000 		.word	lv_obj_class
+ 458 0004 00000000 		.space	16
+ 458      00000000 
+ 458      00000000 
+ 458      00000000 
+ 459 0014 20000000 		.word	.LC3
+ 460 0018 C3000000 		.word	195
+ 461 001c 04010000 		.word	260
+ 462 0020 00000000 		.space	4
+ 463              		.text
+ 464              	.Letext0:
+ 465              		.file 2 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/arm-none-eabi/include/machine/_defa
+ 466              		.file 3 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/arm-none-eabi/include/sys/_stdint.h
+ 467              		.file 4 "Drivers/lvgl/src/widgets/list/../../core/../misc/lv_types.h"
+ 468              		.file 5 "Drivers/lvgl/src/widgets/list/../../core/lv_obj_class_private.h"
+ 469              		.file 6 "Drivers/lvgl/src/widgets/list/../../core/../misc/../layouts/flex/lv_flex.h"
+ 470              		.file 7 "Drivers/lvgl/src/widgets/list/../../core/../indev/lv_indev.h"
+ 471              		.file 8 "Drivers/lvgl/src/widgets/list/../../core/lv_obj.h"
+ 472              		.file 9 "Drivers/lvgl/src/widgets/list/lv_list.h"
+ 473              		.file 10 "Drivers/lvgl/src/widgets/list/../label/lv_label.h"
+ 474              		.file 11 "Drivers/lvgl/src/widgets/list/../button/lv_button.h"
+ 475              		.file 12 "Drivers/lvgl/src/widgets/list/../../core/lv_obj_tree.h"
+ 476              		.file 13 "Drivers/lvgl/src/widgets/list/../image/lv_image.h"
+ 477              		.file 14 "Drivers/lvgl/src/widgets/list/../../core/lv_obj_class.h"
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s 			page 12
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 lv_list.c
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:21     .text.lv_list_create:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:27     .text.lv_list_create:00000000 lv_list_create
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:71     .text.lv_list_create:0000001c $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:456    .rodata.lv_list_class:00000000 lv_list_class
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:76     .text.lv_list_add_text:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:82     .text.lv_list_add_text:00000000 lv_list_add_text
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:131    .text.lv_list_add_text:00000020 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:424    .rodata.lv_list_text_class:00000000 lv_list_text_class
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:136    .text.lv_list_add_button:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:142    .text.lv_list_add_button:00000000 lv_list_add_button
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:235    .text.lv_list_add_button:00000050 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:440    .rodata.lv_list_button_class:00000000 lv_list_button_class
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:240    .rodata.lv_list_get_button_text.str1.4:00000000 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:244    .text.lv_list_get_button_text:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:250    .text.lv_list_get_button_text:00000000 lv_list_get_button_text
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:325    .text.lv_list_get_button_text:00000034 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:331    .text.lv_list_set_button_text:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:337    .text.lv_list_set_button_text:00000000 lv_list_set_button_text
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:411    .text.lv_list_set_button_text:00000034 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:417    .rodata.str1.4:00000000 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:421    .rodata.lv_list_text_class:00000000 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:437    .rodata.lv_list_button_class:00000000 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc7cQlHY.s:453    .rodata.lv_list_class:00000000 $d
+
+UNDEFINED SYMBOLS
+lv_obj_class_create_obj
+lv_obj_class_init_obj
+lv_obj_set_flex_flow
+lv_label_set_text
+lv_image_create
+lv_image_set_src
+lv_label_create
+lv_label_set_long_mode
+lv_obj_set_flex_grow
+lv_obj_get_child_count
+lv_obj_get_child
+lv_obj_check_type
+lv_label_get_text
+lv_label_class
+lv_button_class
+lv_obj_class

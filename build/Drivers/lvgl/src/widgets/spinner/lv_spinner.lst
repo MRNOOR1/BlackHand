@@ -1,0 +1,880 @@
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"lv_spinner.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Drivers/lvgl/src/widgets/spinner/lv_spinner.c"
+  20              		.section	.text.arc_anim_start_angle,"ax",%progbits
+  21              		.align	1
+  22              		.syntax unified
+  23              		.thumb
+  24              		.thumb_func
+  26              	arc_anim_start_angle:
+  27              	.LVL0:
+  28              	.LFB188:
+   1:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** /**
+   2:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****  * @file lv_spinner.c
+   3:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****  *
+   4:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****  */
+   5:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+   6:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** /*********************
+   7:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****  *      INCLUDES
+   8:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****  *********************/
+   9:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+  10:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** #include "lv_spinner_private.h"
+  11:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** #if LV_USE_SPINNER
+  12:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+  13:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** #include "../../misc/lv_anim_private.h"
+  14:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** #include "../../core/lv_obj_class_private.h"
+  15:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** #include "../../core/lv_obj_property.h"
+  16:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+  17:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** /*********************
+  18:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****  *      DEFINES
+  19:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****  *********************/
+  20:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** #define DEF_ARC_ANGLE   200
+  21:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** #define DEF_TIME        1000
+  22:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** #define MY_CLASS        (&lv_spinner_class)
+  23:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+  24:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** /**********************
+  25:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****  *      TYPEDEFS
+  26:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****  **********************/
+  27:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+  28:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** /**********************
+  29:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****  *  STATIC PROTOTYPES
+  30:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****  **********************/
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s 			page 2
+
+
+  31:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** static void lv_spinner_constructor(const lv_obj_class_t * class_p, lv_obj_t * obj);
+  32:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** static void arc_anim_start_angle(void * obj, int32_t v);
+  33:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** static void arc_anim_end_angle(void * obj, int32_t v);
+  34:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+  35:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** /**********************
+  36:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****  *  STATIC VARIABLES
+  37:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****  **********************/
+  38:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+  39:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** #if LV_USE_OBJ_PROPERTY
+  40:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** static const lv_property_ops_t lv_spinner_properties[] = {
+  41:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     {
+  42:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****         .id = LV_PROPERTY_SPINNER_ANIM_DURATION,
+  43:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****         .setter = lv_spinner_set_anim_duration,
+  44:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****         .getter = lv_spinner_get_anim_duration,
+  45:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     },
+  46:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     {
+  47:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****         .id = LV_PROPERTY_SPINNER_ARC_SWEEP,
+  48:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****         .setter = lv_spinner_set_arc_sweep,
+  49:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****         .getter = lv_spinner_get_arc_sweep,
+  50:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     },
+  51:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** };
+  52:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** #endif
+  53:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+  54:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** const lv_obj_class_t lv_spinner_class = {
+  55:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     .base_class = &lv_arc_class,
+  56:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     .constructor_cb = lv_spinner_constructor,
+  57:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     .name = "lv_spinner",
+  58:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     .instance_size = sizeof(lv_spinner_t),
+  59:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     LV_PROPERTY_CLASS_FIELDS(spinner, SPINNER)
+  60:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** };
+  61:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+  62:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** /**********************
+  63:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****  *      MACROS
+  64:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****  **********************/
+  65:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+  66:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** /**********************
+  67:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****  *   GLOBAL FUNCTIONS
+  68:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****  **********************/
+  69:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+  70:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** lv_obj_t * lv_spinner_create(lv_obj_t * parent)
+  71:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** {
+  72:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_obj_t * obj = lv_obj_class_create_obj(&lv_spinner_class, parent);
+  73:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_obj_class_init_obj(obj);
+  74:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     return obj;
+  75:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** }
+  76:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+  77:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** void lv_spinner_set_anim_params(lv_obj_t * obj, uint32_t t, uint32_t angle)
+  78:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** {
+  79:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     LV_ASSERT_OBJ(obj, MY_CLASS);
+  80:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+  81:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+  82:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     spinner->duration = t;
+  83:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     spinner->angle = angle;
+  84:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+  85:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     /*Delete the current animation*/
+  86:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_delete(obj, NULL);
+  87:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s 			page 3
+
+
+  88:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_t a;
+  89:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_init(&a);
+  90:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_set_var(&a, obj);
+  91:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_set_exec_cb(&a, arc_anim_end_angle);
+  92:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
+  93:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_set_duration(&a, t);
+  94:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_set_values(&a, angle, 360 + angle);
+  95:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_start(&a);
+  96:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+  97:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_set_path_cb(&a, lv_anim_path_custom_bezier3);
+  98:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_set_bezier3_param(&a, LV_BEZIER_VAL_FLOAT(0.42), LV_BEZIER_VAL_FLOAT(0.58),
+  99:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****                               LV_BEZIER_VAL_FLOAT(0), LV_BEZIER_VAL_FLOAT(1));
+ 100:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_set_values(&a, 0, 360);
+ 101:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_set_exec_cb(&a, arc_anim_start_angle);
+ 102:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_start(&a);
+ 103:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 104:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_arc_set_bg_angles(obj, 0, 360);
+ 105:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_arc_set_rotation(obj, 270);
+ 106:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** }
+ 107:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 108:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** void lv_spinner_set_anim_duration(lv_obj_t * obj, uint32_t t)
+ 109:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** {
+ 110:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     LV_ASSERT_OBJ(obj, MY_CLASS);
+ 111:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 112:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 113:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_set_anim_params(obj, t, spinner->angle);
+ 114:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** }
+ 115:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 116:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** void lv_spinner_set_arc_sweep(lv_obj_t * obj, uint32_t angle)
+ 117:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** {
+ 118:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     LV_ASSERT_OBJ(obj, MY_CLASS);
+ 119:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 120:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 121:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_set_anim_params(obj, spinner->duration, angle);
+ 122:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** }
+ 123:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 124:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** uint32_t lv_spinner_get_anim_duration(lv_obj_t * obj)
+ 125:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** {
+ 126:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     LV_ASSERT_OBJ(obj, MY_CLASS);
+ 127:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 128:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     return spinner->duration;
+ 129:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** }
+ 130:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 131:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** uint32_t lv_spinner_get_arc_sweep(lv_obj_t * obj)
+ 132:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** {
+ 133:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     LV_ASSERT_OBJ(obj, MY_CLASS);
+ 134:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 135:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     return spinner->angle;
+ 136:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** }
+ 137:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 138:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** /**********************
+ 139:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****  *   STATIC FUNCTIONS
+ 140:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****  **********************/
+ 141:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 142:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** static void lv_spinner_constructor(const lv_obj_class_t * class_p, lv_obj_t * obj)
+ 143:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** {
+ 144:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     LV_TRACE_OBJ_CREATE("begin");
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s 			page 4
+
+
+ 145:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 146:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     LV_UNUSED(class_p);
+ 147:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 148:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_obj_remove_flag(obj, LV_OBJ_FLAG_CLICKABLE);
+ 149:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 150:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_set_anim_params(obj, DEF_TIME, DEF_ARC_ANGLE);
+ 151:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** }
+ 152:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 153:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** static void arc_anim_start_angle(void * obj, int32_t v)
+ 154:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** {
+  29              		.loc 1 154 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		.loc 1 154 1 is_stmt 0 view .LVU1
+  34 0000 08B5     		push	{r3, lr}
+  35              	.LCFI0:
+  36              		.cfi_def_cfa_offset 8
+  37              		.cfi_offset 3, -8
+  38              		.cfi_offset 14, -4
+ 155:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_arc_set_start_angle(obj, (uint32_t) v);
+  39              		.loc 1 155 5 is_stmt 1 view .LVU2
+  40 0002 FFF7FEFF 		bl	lv_arc_set_start_angle
+  41              	.LVL1:
+ 156:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** }
+  42              		.loc 1 156 1 is_stmt 0 view .LVU3
+  43 0006 08BD     		pop	{r3, pc}
+  44              		.cfi_endproc
+  45              	.LFE188:
+  47              		.section	.text.arc_anim_end_angle,"ax",%progbits
+  48              		.align	1
+  49              		.syntax unified
+  50              		.thumb
+  51              		.thumb_func
+  53              	arc_anim_end_angle:
+  54              	.LVL2:
+  55              	.LFB189:
+ 157:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 158:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** static void arc_anim_end_angle(void * obj, int32_t v)
+ 159:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** {
+  56              		.loc 1 159 1 is_stmt 1 view -0
+  57              		.cfi_startproc
+  58              		@ args = 0, pretend = 0, frame = 0
+  59              		@ frame_needed = 0, uses_anonymous_args = 0
+  60              		.loc 1 159 1 is_stmt 0 view .LVU5
+  61 0000 08B5     		push	{r3, lr}
+  62              	.LCFI1:
+  63              		.cfi_def_cfa_offset 8
+  64              		.cfi_offset 3, -8
+  65              		.cfi_offset 14, -4
+ 160:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_arc_set_end_angle(obj, (uint32_t) v);
+  66              		.loc 1 160 5 is_stmt 1 view .LVU6
+  67 0002 FFF7FEFF 		bl	lv_arc_set_end_angle
+  68              	.LVL3:
+ 161:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** }
+  69              		.loc 1 161 1 is_stmt 0 view .LVU7
+  70 0006 08BD     		pop	{r3, pc}
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s 			page 5
+
+
+  71              		.cfi_endproc
+  72              	.LFE189:
+  74              		.section	.text.lv_spinner_create,"ax",%progbits
+  75              		.align	1
+  76              		.global	lv_spinner_create
+  77              		.syntax unified
+  78              		.thumb
+  79              		.thumb_func
+  81              	lv_spinner_create:
+  82              	.LVL4:
+  83              	.LFB181:
+  71:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_obj_t * obj = lv_obj_class_create_obj(&lv_spinner_class, parent);
+  84              		.loc 1 71 1 is_stmt 1 view -0
+  85              		.cfi_startproc
+  86              		@ args = 0, pretend = 0, frame = 0
+  87              		@ frame_needed = 0, uses_anonymous_args = 0
+  71:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_obj_t * obj = lv_obj_class_create_obj(&lv_spinner_class, parent);
+  88              		.loc 1 71 1 is_stmt 0 view .LVU9
+  89 0000 10B5     		push	{r4, lr}
+  90              	.LCFI2:
+  91              		.cfi_def_cfa_offset 8
+  92              		.cfi_offset 4, -8
+  93              		.cfi_offset 14, -4
+  94 0002 0146     		mov	r1, r0
+  72:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_obj_class_init_obj(obj);
+  95              		.loc 1 72 5 is_stmt 1 view .LVU10
+  72:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_obj_class_init_obj(obj);
+  96              		.loc 1 72 22 is_stmt 0 view .LVU11
+  97 0004 0348     		ldr	r0, .L7
+  98              	.LVL5:
+  72:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_obj_class_init_obj(obj);
+  99              		.loc 1 72 22 view .LVU12
+ 100 0006 FFF7FEFF 		bl	lv_obj_class_create_obj
+ 101              	.LVL6:
+  72:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_obj_class_init_obj(obj);
+ 102              		.loc 1 72 22 view .LVU13
+ 103 000a 0446     		mov	r4, r0
+ 104              	.LVL7:
+  73:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     return obj;
+ 105              		.loc 1 73 5 is_stmt 1 view .LVU14
+ 106 000c FFF7FEFF 		bl	lv_obj_class_init_obj
+ 107              	.LVL8:
+  74:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** }
+ 108              		.loc 1 74 5 view .LVU15
+  75:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 109              		.loc 1 75 1 is_stmt 0 view .LVU16
+ 110 0010 2046     		mov	r0, r4
+ 111 0012 10BD     		pop	{r4, pc}
+ 112              	.LVL9:
+ 113              	.L8:
+  75:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 114              		.loc 1 75 1 view .LVU17
+ 115              		.align	2
+ 116              	.L7:
+ 117 0014 00000000 		.word	lv_spinner_class
+ 118              		.cfi_endproc
+ 119              	.LFE181:
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s 			page 6
+
+
+ 121              		.section	.text.lv_spinner_set_anim_params,"ax",%progbits
+ 122              		.align	1
+ 123              		.global	lv_spinner_set_anim_params
+ 124              		.syntax unified
+ 125              		.thumb
+ 126              		.thumb_func
+ 128              	lv_spinner_set_anim_params:
+ 129              	.LVL10:
+ 130              	.LFB182:
+  78:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     LV_ASSERT_OBJ(obj, MY_CLASS);
+ 131              		.loc 1 78 1 is_stmt 1 view -0
+ 132              		.cfi_startproc
+ 133              		@ args = 0, pretend = 0, frame = 96
+ 134              		@ frame_needed = 0, uses_anonymous_args = 0
+  79:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 135              		.loc 1 79 5 view .LVU19
+  79:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 136              		.loc 1 79 5 view .LVU20
+ 137 0000 0028     		cmp	r0, #0
+ 138 0002 50D0     		beq	.L11
+  78:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     LV_ASSERT_OBJ(obj, MY_CLASS);
+ 139              		.loc 1 78 1 is_stmt 0 view .LVU21
+ 140 0004 F0B5     		push	{r4, r5, r6, r7, lr}
+ 141              	.LCFI3:
+ 142              		.cfi_def_cfa_offset 20
+ 143              		.cfi_offset 4, -20
+ 144              		.cfi_offset 5, -16
+ 145              		.cfi_offset 6, -12
+ 146              		.cfi_offset 7, -8
+ 147              		.cfi_offset 14, -4
+ 148 0006 9BB0     		sub	sp, sp, #108
+ 149              	.LCFI4:
+ 150              		.cfi_def_cfa_offset 128
+ 151 0008 0F46     		mov	r7, r1
+ 152 000a 1546     		mov	r5, r2
+ 153 000c 0646     		mov	r6, r0
+  79:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 154              		.loc 1 79 5 is_stmt 1 view .LVU22
+  79:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 155              		.loc 1 79 33 view .LVU23
+  80:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 156              		.loc 1 80 5 view .LVU24
+ 157              	.LVL11:
+  82:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     spinner->angle = angle;
+ 158              		.loc 1 82 5 view .LVU25
+  82:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     spinner->angle = angle;
+ 159              		.loc 1 82 23 is_stmt 0 view .LVU26
+ 160 000e 0166     		str	r1, [r0, #96]
+  83:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 161              		.loc 1 83 5 is_stmt 1 view .LVU27
+  83:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 162              		.loc 1 83 20 is_stmt 0 view .LVU28
+ 163 0010 4266     		str	r2, [r0, #100]
+  86:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 164              		.loc 1 86 5 is_stmt 1 view .LVU29
+ 165 0012 0021     		movs	r1, #0
+ 166              	.LVL12:
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s 			page 7
+
+
+  86:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 167              		.loc 1 86 5 is_stmt 0 view .LVU30
+ 168 0014 FFF7FEFF 		bl	lv_anim_delete
+ 169              	.LVL13:
+  88:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_init(&a);
+ 170              		.loc 1 88 5 is_stmt 1 view .LVU31
+  89:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_set_var(&a, obj);
+ 171              		.loc 1 89 5 view .LVU32
+ 172 0018 02AC     		add	r4, sp, #8
+ 173 001a 2046     		mov	r0, r4
+ 174 001c FFF7FEFF 		bl	lv_anim_init
+ 175              	.LVL14:
+  90:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_set_exec_cb(&a, arc_anim_end_angle);
+ 176              		.loc 1 90 5 view .LVU33
+ 177 0020 3146     		mov	r1, r6
+ 178 0022 2046     		mov	r0, r4
+ 179 0024 FFF7FEFF 		bl	lv_anim_set_var
+ 180              	.LVL15:
+  91:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
+ 181              		.loc 1 91 5 view .LVU34
+ 182 0028 1F49     		ldr	r1, .L14
+ 183 002a 2046     		mov	r0, r4
+ 184 002c FFF7FEFF 		bl	lv_anim_set_exec_cb
+ 185              	.LVL16:
+  92:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_set_duration(&a, t);
+ 186              		.loc 1 92 5 view .LVU35
+ 187 0030 4FF0FF31 		mov	r1, #-1
+ 188 0034 2046     		mov	r0, r4
+ 189 0036 FFF7FEFF 		bl	lv_anim_set_repeat_count
+ 190              	.LVL17:
+  93:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_set_values(&a, angle, 360 + angle);
+ 191              		.loc 1 93 5 view .LVU36
+ 192 003a 3946     		mov	r1, r7
+ 193 003c 2046     		mov	r0, r4
+ 194 003e FFF7FEFF 		bl	lv_anim_set_duration
+ 195              	.LVL18:
+  94:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_start(&a);
+ 196              		.loc 1 94 5 view .LVU37
+ 197 0042 05F5B472 		add	r2, r5, #360
+ 198 0046 2946     		mov	r1, r5
+ 199 0048 2046     		mov	r0, r4
+ 200 004a FFF7FEFF 		bl	lv_anim_set_values
+ 201              	.LVL19:
+  95:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 202              		.loc 1 95 5 view .LVU38
+ 203 004e 2046     		mov	r0, r4
+ 204 0050 FFF7FEFF 		bl	lv_anim_start
+ 205              	.LVL20:
+  97:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_set_bezier3_param(&a, LV_BEZIER_VAL_FLOAT(0.42), LV_BEZIER_VAL_FLOAT(0.58),
+ 206              		.loc 1 97 5 view .LVU39
+ 207 0054 1549     		ldr	r1, .L14+4
+ 208 0056 2046     		mov	r0, r4
+ 209 0058 FFF7FEFF 		bl	lv_anim_set_path_cb
+ 210              	.LVL21:
+  98:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****                               LV_BEZIER_VAL_FLOAT(0), LV_BEZIER_VAL_FLOAT(1));
+ 211              		.loc 1 98 5 view .LVU40
+ 212 005c 4FF48063 		mov	r3, #1024
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s 			page 8
+
+
+ 213 0060 0093     		str	r3, [sp]
+ 214 0062 0023     		movs	r3, #0
+ 215 0064 40F25122 		movw	r2, #593
+ 216 0068 4FF4D771 		mov	r1, #430
+ 217 006c 2046     		mov	r0, r4
+ 218 006e FFF7FEFF 		bl	lv_anim_set_bezier3_param
+ 219              	.LVL22:
+ 100:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_set_exec_cb(&a, arc_anim_start_angle);
+ 220              		.loc 1 100 5 view .LVU41
+ 221 0072 4FF4B472 		mov	r2, #360
+ 222 0076 0021     		movs	r1, #0
+ 223 0078 2046     		mov	r0, r4
+ 224 007a FFF7FEFF 		bl	lv_anim_set_values
+ 225              	.LVL23:
+ 101:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_anim_start(&a);
+ 226              		.loc 1 101 5 view .LVU42
+ 227 007e 0C49     		ldr	r1, .L14+8
+ 228 0080 2046     		mov	r0, r4
+ 229 0082 FFF7FEFF 		bl	lv_anim_set_exec_cb
+ 230              	.LVL24:
+ 102:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 231              		.loc 1 102 5 view .LVU43
+ 232 0086 2046     		mov	r0, r4
+ 233 0088 FFF7FEFF 		bl	lv_anim_start
+ 234              	.LVL25:
+ 104:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_arc_set_rotation(obj, 270);
+ 235              		.loc 1 104 5 view .LVU44
+ 236 008c 4FF4B472 		mov	r2, #360
+ 237 0090 0021     		movs	r1, #0
+ 238 0092 3046     		mov	r0, r6
+ 239 0094 FFF7FEFF 		bl	lv_arc_set_bg_angles
+ 240              	.LVL26:
+ 105:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** }
+ 241              		.loc 1 105 5 view .LVU45
+ 242 0098 4FF48771 		mov	r1, #270
+ 243 009c 3046     		mov	r0, r6
+ 244 009e FFF7FEFF 		bl	lv_arc_set_rotation
+ 245              	.LVL27:
+ 106:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 246              		.loc 1 106 1 is_stmt 0 view .LVU46
+ 247 00a2 1BB0     		add	sp, sp, #108
+ 248              	.LCFI5:
+ 249              		.cfi_def_cfa_offset 20
+ 250              		@ sp needed
+ 251 00a4 F0BD     		pop	{r4, r5, r6, r7, pc}
+ 252              	.LVL28:
+ 253              	.L11:
+ 254              	.LCFI6:
+ 255              		.cfi_def_cfa_offset 0
+ 256              		.cfi_restore 4
+ 257              		.cfi_restore 5
+ 258              		.cfi_restore 6
+ 259              		.cfi_restore 7
+ 260              		.cfi_restore 14
+  79:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 261              		.loc 1 79 5 is_stmt 1 view .LVU47
+  79:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s 			page 9
+
+
+ 262              		.loc 1 79 5 view .LVU48
+  79:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 263              		.loc 1 79 5 view .LVU49
+  79:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 264              		.loc 1 79 5 view .LVU50
+  79:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 265              		.loc 1 79 5 view .LVU51
+ 266 00a6 FEE7     		b	.L11
+ 267              	.L15:
+ 268              		.align	2
+ 269              	.L14:
+ 270 00a8 00000000 		.word	arc_anim_end_angle
+ 271 00ac 00000000 		.word	lv_anim_path_custom_bezier3
+ 272 00b0 00000000 		.word	arc_anim_start_angle
+ 273              		.cfi_endproc
+ 274              	.LFE182:
+ 276              		.section	.text.lv_spinner_constructor,"ax",%progbits
+ 277              		.align	1
+ 278              		.syntax unified
+ 279              		.thumb
+ 280              		.thumb_func
+ 282              	lv_spinner_constructor:
+ 283              	.LVL29:
+ 284              	.LFB187:
+ 143:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     LV_TRACE_OBJ_CREATE("begin");
+ 285              		.loc 1 143 1 view -0
+ 286              		.cfi_startproc
+ 287              		@ args = 0, pretend = 0, frame = 0
+ 288              		@ frame_needed = 0, uses_anonymous_args = 0
+ 143:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     LV_TRACE_OBJ_CREATE("begin");
+ 289              		.loc 1 143 1 is_stmt 0 view .LVU53
+ 290 0000 10B5     		push	{r4, lr}
+ 291              	.LCFI7:
+ 292              		.cfi_def_cfa_offset 8
+ 293              		.cfi_offset 4, -8
+ 294              		.cfi_offset 14, -4
+ 295 0002 0C46     		mov	r4, r1
+ 144:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 296              		.loc 1 144 33 is_stmt 1 view .LVU54
+ 146:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 297              		.loc 1 146 5 view .LVU55
+ 148:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 298              		.loc 1 148 5 view .LVU56
+ 299 0004 0221     		movs	r1, #2
+ 300              	.LVL30:
+ 148:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 301              		.loc 1 148 5 is_stmt 0 view .LVU57
+ 302 0006 2046     		mov	r0, r4
+ 303              	.LVL31:
+ 148:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 304              		.loc 1 148 5 view .LVU58
+ 305 0008 FFF7FEFF 		bl	lv_obj_remove_flag
+ 306              	.LVL32:
+ 150:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** }
+ 307              		.loc 1 150 5 is_stmt 1 view .LVU59
+ 308 000c C822     		movs	r2, #200
+ 309 000e 4FF47A71 		mov	r1, #1000
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s 			page 10
+
+
+ 310 0012 2046     		mov	r0, r4
+ 311 0014 FFF7FEFF 		bl	lv_spinner_set_anim_params
+ 312              	.LVL33:
+ 151:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 313              		.loc 1 151 1 is_stmt 0 view .LVU60
+ 314 0018 10BD     		pop	{r4, pc}
+ 151:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 315              		.loc 1 151 1 view .LVU61
+ 316              		.cfi_endproc
+ 317              	.LFE187:
+ 319              		.section	.text.lv_spinner_set_anim_duration,"ax",%progbits
+ 320              		.align	1
+ 321              		.global	lv_spinner_set_anim_duration
+ 322              		.syntax unified
+ 323              		.thumb
+ 324              		.thumb_func
+ 326              	lv_spinner_set_anim_duration:
+ 327              	.LVL34:
+ 328              	.LFB183:
+ 109:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     LV_ASSERT_OBJ(obj, MY_CLASS);
+ 329              		.loc 1 109 1 is_stmt 1 view -0
+ 330              		.cfi_startproc
+ 331              		@ args = 0, pretend = 0, frame = 0
+ 332              		@ frame_needed = 0, uses_anonymous_args = 0
+ 110:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 333              		.loc 1 110 5 view .LVU63
+ 110:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 334              		.loc 1 110 5 view .LVU64
+ 335 0000 20B1     		cbz	r0, .L20
+ 109:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     LV_ASSERT_OBJ(obj, MY_CLASS);
+ 336              		.loc 1 109 1 is_stmt 0 view .LVU65
+ 337 0002 08B5     		push	{r3, lr}
+ 338              	.LCFI8:
+ 339              		.cfi_def_cfa_offset 8
+ 340              		.cfi_offset 3, -8
+ 341              		.cfi_offset 14, -4
+ 110:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 342              		.loc 1 110 5 is_stmt 1 view .LVU66
+ 110:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 343              		.loc 1 110 33 view .LVU67
+ 111:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 344              		.loc 1 111 5 view .LVU68
+ 345              	.LVL35:
+ 113:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** }
+ 346              		.loc 1 113 5 view .LVU69
+ 347 0004 426E     		ldr	r2, [r0, #100]
+ 348 0006 FFF7FEFF 		bl	lv_spinner_set_anim_params
+ 349              	.LVL36:
+ 114:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 350              		.loc 1 114 1 is_stmt 0 view .LVU70
+ 351 000a 08BD     		pop	{r3, pc}
+ 352              	.LVL37:
+ 353              	.L20:
+ 354              	.LCFI9:
+ 355              		.cfi_def_cfa_offset 0
+ 356              		.cfi_restore 3
+ 357              		.cfi_restore 14
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s 			page 11
+
+
+ 110:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 358              		.loc 1 110 5 is_stmt 1 view .LVU71
+ 110:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 359              		.loc 1 110 5 view .LVU72
+ 110:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 360              		.loc 1 110 5 view .LVU73
+ 110:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 361              		.loc 1 110 5 view .LVU74
+ 110:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 362              		.loc 1 110 5 view .LVU75
+ 363 000c FEE7     		b	.L20
+ 364              		.cfi_endproc
+ 365              	.LFE183:
+ 367              		.section	.text.lv_spinner_set_arc_sweep,"ax",%progbits
+ 368              		.align	1
+ 369              		.global	lv_spinner_set_arc_sweep
+ 370              		.syntax unified
+ 371              		.thumb
+ 372              		.thumb_func
+ 374              	lv_spinner_set_arc_sweep:
+ 375              	.LVL38:
+ 376              	.LFB184:
+ 117:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     LV_ASSERT_OBJ(obj, MY_CLASS);
+ 377              		.loc 1 117 1 view -0
+ 378              		.cfi_startproc
+ 379              		@ args = 0, pretend = 0, frame = 0
+ 380              		@ frame_needed = 0, uses_anonymous_args = 0
+ 118:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 381              		.loc 1 118 5 view .LVU77
+ 118:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 382              		.loc 1 118 5 view .LVU78
+ 383 0000 28B1     		cbz	r0, .L25
+ 117:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     LV_ASSERT_OBJ(obj, MY_CLASS);
+ 384              		.loc 1 117 1 is_stmt 0 view .LVU79
+ 385 0002 08B5     		push	{r3, lr}
+ 386              	.LCFI10:
+ 387              		.cfi_def_cfa_offset 8
+ 388              		.cfi_offset 3, -8
+ 389              		.cfi_offset 14, -4
+ 390 0004 0A46     		mov	r2, r1
+ 118:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 391              		.loc 1 118 5 is_stmt 1 view .LVU80
+ 118:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 392              		.loc 1 118 33 view .LVU81
+ 119:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 393              		.loc 1 119 5 view .LVU82
+ 394              	.LVL39:
+ 121:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** }
+ 395              		.loc 1 121 5 view .LVU83
+ 396 0006 016E     		ldr	r1, [r0, #96]
+ 397              	.LVL40:
+ 121:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** }
+ 398              		.loc 1 121 5 is_stmt 0 view .LVU84
+ 399 0008 FFF7FEFF 		bl	lv_spinner_set_anim_params
+ 400              	.LVL41:
+ 122:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 401              		.loc 1 122 1 view .LVU85
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s 			page 12
+
+
+ 402 000c 08BD     		pop	{r3, pc}
+ 403              	.LVL42:
+ 404              	.L25:
+ 405              	.LCFI11:
+ 406              		.cfi_def_cfa_offset 0
+ 407              		.cfi_restore 3
+ 408              		.cfi_restore 14
+ 118:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 409              		.loc 1 118 5 is_stmt 1 view .LVU86
+ 118:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 410              		.loc 1 118 5 view .LVU87
+ 118:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 411              		.loc 1 118 5 view .LVU88
+ 118:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 412              		.loc 1 118 5 view .LVU89
+ 118:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 413              		.loc 1 118 5 view .LVU90
+ 414 000e FEE7     		b	.L25
+ 415              		.cfi_endproc
+ 416              	.LFE184:
+ 418              		.section	.text.lv_spinner_get_anim_duration,"ax",%progbits
+ 419              		.align	1
+ 420              		.global	lv_spinner_get_anim_duration
+ 421              		.syntax unified
+ 422              		.thumb
+ 423              		.thumb_func
+ 425              	lv_spinner_get_anim_duration:
+ 426              	.LVL43:
+ 427              	.LFB185:
+ 125:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     LV_ASSERT_OBJ(obj, MY_CLASS);
+ 428              		.loc 1 125 1 view -0
+ 429              		.cfi_startproc
+ 430              		@ args = 0, pretend = 0, frame = 0
+ 431              		@ frame_needed = 0, uses_anonymous_args = 0
+ 432              		@ link register save eliminated.
+ 126:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 433              		.loc 1 126 5 view .LVU92
+ 126:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 434              		.loc 1 126 5 view .LVU93
+ 435 0000 08B1     		cbz	r0, .L30
+ 126:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 436              		.loc 1 126 5 view .LVU94
+ 126:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 437              		.loc 1 126 33 view .LVU95
+ 127:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     return spinner->duration;
+ 438              		.loc 1 127 5 view .LVU96
+ 439              	.LVL44:
+ 128:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** }
+ 440              		.loc 1 128 5 view .LVU97
+ 129:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 441              		.loc 1 129 1 is_stmt 0 view .LVU98
+ 442 0002 006E     		ldr	r0, [r0, #96]
+ 443              	.LVL45:
+ 129:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 444              		.loc 1 129 1 view .LVU99
+ 445 0004 7047     		bx	lr
+ 446              	.LVL46:
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s 			page 13
+
+
+ 447              	.L30:
+ 126:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 448              		.loc 1 126 5 is_stmt 1 view .LVU100
+ 126:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 449              		.loc 1 126 5 view .LVU101
+ 126:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 450              		.loc 1 126 5 view .LVU102
+ 126:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 451              		.loc 1 126 5 view .LVU103
+ 126:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 452              		.loc 1 126 5 view .LVU104
+ 453 0006 FEE7     		b	.L30
+ 454              		.cfi_endproc
+ 455              	.LFE185:
+ 457              		.section	.text.lv_spinner_get_arc_sweep,"ax",%progbits
+ 458              		.align	1
+ 459              		.global	lv_spinner_get_arc_sweep
+ 460              		.syntax unified
+ 461              		.thumb
+ 462              		.thumb_func
+ 464              	lv_spinner_get_arc_sweep:
+ 465              	.LVL47:
+ 466              	.LFB186:
+ 132:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     LV_ASSERT_OBJ(obj, MY_CLASS);
+ 467              		.loc 1 132 1 view -0
+ 468              		.cfi_startproc
+ 469              		@ args = 0, pretend = 0, frame = 0
+ 470              		@ frame_needed = 0, uses_anonymous_args = 0
+ 471              		@ link register save eliminated.
+ 133:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 472              		.loc 1 133 5 view .LVU106
+ 133:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 473              		.loc 1 133 5 view .LVU107
+ 474 0000 08B1     		cbz	r0, .L33
+ 133:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 475              		.loc 1 133 5 view .LVU108
+ 133:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 476              		.loc 1 133 33 view .LVU109
+ 134:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     return spinner->angle;
+ 477              		.loc 1 134 5 view .LVU110
+ 478              	.LVL48:
+ 135:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** }
+ 479              		.loc 1 135 5 view .LVU111
+ 136:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 480              		.loc 1 136 1 is_stmt 0 view .LVU112
+ 481 0002 406E     		ldr	r0, [r0, #100]
+ 482              	.LVL49:
+ 136:Drivers/lvgl/src/widgets/spinner/lv_spinner.c **** 
+ 483              		.loc 1 136 1 view .LVU113
+ 484 0004 7047     		bx	lr
+ 485              	.LVL50:
+ 486              	.L33:
+ 133:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 487              		.loc 1 133 5 is_stmt 1 view .LVU114
+ 133:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 488              		.loc 1 133 5 view .LVU115
+ 133:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s 			page 14
+
+
+ 489              		.loc 1 133 5 view .LVU116
+ 133:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 490              		.loc 1 133 5 view .LVU117
+ 133:Drivers/lvgl/src/widgets/spinner/lv_spinner.c ****     lv_spinner_t * spinner = (lv_spinner_t *)obj;
+ 491              		.loc 1 133 5 view .LVU118
+ 492 0006 FEE7     		b	.L33
+ 493              		.cfi_endproc
+ 494              	.LFE186:
+ 496              		.global	lv_spinner_class
+ 497              		.section	.rodata.str1.4,"aMS",%progbits,1
+ 498              		.align	2
+ 499              	.LC0:
+ 500 0000 6C765F73 		.ascii	"lv_spinner\000"
+ 500      70696E6E 
+ 500      657200
+ 501              		.section	.rodata.lv_spinner_class,"a"
+ 502              		.align	2
+ 505              	lv_spinner_class:
+ 506 0000 00000000 		.word	lv_arc_class
+ 507 0004 00000000 		.word	lv_spinner_constructor
+ 508 0008 00000000 		.space	12
+ 508      00000000 
+ 508      00000000 
+ 509 0014 00000000 		.word	.LC0
+ 510 0018 00000000 		.space	8
+ 510      00000000 
+ 511 0020 80       		.byte	128
+ 512 0021 06       		.byte	6
+ 513 0022 00       		.byte	0
+ 514 0023 00       		.space	1
+ 515              		.text
+ 516              	.Letext0:
+ 517              		.file 2 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/arm-none-eabi/include/machine/_defa
+ 518              		.file 3 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/arm-none-eabi/include/sys/_stdint.h
+ 519              		.file 4 "Drivers/lvgl/src/widgets/spinner/../../misc/lv_types.h"
+ 520              		.file 5 "Drivers/lvgl/src/widgets/spinner/../arc/../../core/lv_obj_private.h"
+ 521              		.file 6 "Drivers/lvgl/src/widgets/spinner/../../core/lv_obj_class_private.h"
+ 522              		.file 7 "Drivers/lvgl/src/widgets/spinner/../../core/../misc/lv_anim.h"
+ 523              		.file 8 "Drivers/lvgl/src/widgets/spinner/../arc/lv_arc_private.h"
+ 524              		.file 9 "Drivers/lvgl/src/widgets/spinner/lv_spinner_private.h"
+ 525              		.file 10 "Drivers/lvgl/src/widgets/spinner/../arc/../../core/../display/../misc/lv_array.h"
+ 526              		.file 11 "Drivers/lvgl/src/widgets/spinner/../../core/../misc/../font/../draw/../misc/lv_area.h"
+ 527              		.file 12 "Drivers/lvgl/src/widgets/spinner/../arc/../../core/../display/../misc/lv_event.h"
+ 528              		.file 13 "Drivers/lvgl/src/widgets/spinner/../arc/../../core/../indev/lv_indev.h"
+ 529              		.file 14 "Drivers/lvgl/src/widgets/spinner/../arc/../../core/lv_obj.h"
+ 530              		.file 15 "Drivers/lvgl/src/widgets/spinner/lv_spinner.h"
+ 531              		.file 16 "Drivers/lvgl/src/widgets/spinner/../arc/lv_arc.h"
+ 532              		.file 17 "Drivers/lvgl/src/widgets/spinner/../arc/../../core/lv_obj_class.h"
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s 			page 15
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 lv_spinner.c
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:21     .text.arc_anim_start_angle:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:26     .text.arc_anim_start_angle:00000000 arc_anim_start_angle
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:48     .text.arc_anim_end_angle:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:53     .text.arc_anim_end_angle:00000000 arc_anim_end_angle
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:75     .text.lv_spinner_create:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:81     .text.lv_spinner_create:00000000 lv_spinner_create
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:117    .text.lv_spinner_create:00000014 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:505    .rodata.lv_spinner_class:00000000 lv_spinner_class
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:122    .text.lv_spinner_set_anim_params:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:128    .text.lv_spinner_set_anim_params:00000000 lv_spinner_set_anim_params
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:270    .text.lv_spinner_set_anim_params:000000a8 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:277    .text.lv_spinner_constructor:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:282    .text.lv_spinner_constructor:00000000 lv_spinner_constructor
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:320    .text.lv_spinner_set_anim_duration:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:326    .text.lv_spinner_set_anim_duration:00000000 lv_spinner_set_anim_duration
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:368    .text.lv_spinner_set_arc_sweep:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:374    .text.lv_spinner_set_arc_sweep:00000000 lv_spinner_set_arc_sweep
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:419    .text.lv_spinner_get_anim_duration:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:425    .text.lv_spinner_get_anim_duration:00000000 lv_spinner_get_anim_duration
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:458    .text.lv_spinner_get_arc_sweep:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:464    .text.lv_spinner_get_arc_sweep:00000000 lv_spinner_get_arc_sweep
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:498    .rodata.str1.4:00000000 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc3a3thU.s:502    .rodata.lv_spinner_class:00000000 $d
+
+UNDEFINED SYMBOLS
+lv_arc_set_start_angle
+lv_arc_set_end_angle
+lv_obj_class_create_obj
+lv_obj_class_init_obj
+lv_anim_delete
+lv_anim_init
+lv_anim_set_var
+lv_anim_set_exec_cb
+lv_anim_set_repeat_count
+lv_anim_set_duration
+lv_anim_set_values
+lv_anim_start
+lv_anim_set_path_cb
+lv_anim_set_bezier3_param
+lv_arc_set_bg_angles
+lv_arc_set_rotation
+lv_anim_path_custom_bezier3
+lv_obj_remove_flag
+lv_arc_class

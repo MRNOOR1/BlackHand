@@ -1,0 +1,757 @@
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"lv_grad.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Drivers/lvgl/src/misc/lv_grad.c"
+  20              		.section	.text.lv_grad_init_stops,"ax",%progbits
+  21              		.align	1
+  22              		.global	lv_grad_init_stops
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	lv_grad_init_stops:
+  28              	.LVL0:
+  29              	.LFB7:
+   1:Drivers/lvgl/src/misc/lv_grad.c **** /**
+   2:Drivers/lvgl/src/misc/lv_grad.c ****  * @file lv_grad.c
+   3:Drivers/lvgl/src/misc/lv_grad.c ****  *
+   4:Drivers/lvgl/src/misc/lv_grad.c ****  */
+   5:Drivers/lvgl/src/misc/lv_grad.c **** 
+   6:Drivers/lvgl/src/misc/lv_grad.c **** /*********************
+   7:Drivers/lvgl/src/misc/lv_grad.c ****  *      INCLUDES
+   8:Drivers/lvgl/src/misc/lv_grad.c ****  *********************/
+   9:Drivers/lvgl/src/misc/lv_grad.c **** #include "lv_grad.h"
+  10:Drivers/lvgl/src/misc/lv_grad.c **** 
+  11:Drivers/lvgl/src/misc/lv_grad.c **** /*********************
+  12:Drivers/lvgl/src/misc/lv_grad.c ****  *      DEFINES
+  13:Drivers/lvgl/src/misc/lv_grad.c ****  *********************/
+  14:Drivers/lvgl/src/misc/lv_grad.c **** 
+  15:Drivers/lvgl/src/misc/lv_grad.c **** /**********************
+  16:Drivers/lvgl/src/misc/lv_grad.c ****  *      TYPEDEFS
+  17:Drivers/lvgl/src/misc/lv_grad.c ****  **********************/
+  18:Drivers/lvgl/src/misc/lv_grad.c **** 
+  19:Drivers/lvgl/src/misc/lv_grad.c **** /**********************
+  20:Drivers/lvgl/src/misc/lv_grad.c ****  *  STATIC PROTOTYPES
+  21:Drivers/lvgl/src/misc/lv_grad.c ****  **********************/
+  22:Drivers/lvgl/src/misc/lv_grad.c **** 
+  23:Drivers/lvgl/src/misc/lv_grad.c **** /**********************
+  24:Drivers/lvgl/src/misc/lv_grad.c ****  *  STATIC VARIABLES
+  25:Drivers/lvgl/src/misc/lv_grad.c ****  **********************/
+  26:Drivers/lvgl/src/misc/lv_grad.c **** 
+  27:Drivers/lvgl/src/misc/lv_grad.c **** /**********************
+  28:Drivers/lvgl/src/misc/lv_grad.c ****  *      MACROS
+  29:Drivers/lvgl/src/misc/lv_grad.c ****  **********************/
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s 			page 2
+
+
+  30:Drivers/lvgl/src/misc/lv_grad.c **** 
+  31:Drivers/lvgl/src/misc/lv_grad.c **** /**********************
+  32:Drivers/lvgl/src/misc/lv_grad.c ****  *   GLOBAL FUNCTIONS
+  33:Drivers/lvgl/src/misc/lv_grad.c ****  **********************/
+  34:Drivers/lvgl/src/misc/lv_grad.c **** void lv_grad_init_stops(lv_grad_dsc_t * dsc, const lv_color_t colors[], const lv_opa_t opa[],
+  35:Drivers/lvgl/src/misc/lv_grad.c ****                         const uint8_t fracs[], int num_stops)
+  36:Drivers/lvgl/src/misc/lv_grad.c **** {
+  30              		.loc 1 36 1 view -0
+  31              		.cfi_startproc
+  32              		@ args = 4, pretend = 0, frame = 0
+  33              		@ frame_needed = 0, uses_anonymous_args = 0
+  34              		.loc 1 36 1 is_stmt 0 view .LVU1
+  35 0000 2DE9F043 		push	{r4, r5, r6, r7, r8, r9, lr}
+  36              	.LCFI0:
+  37              		.cfi_def_cfa_offset 28
+  38              		.cfi_offset 4, -28
+  39              		.cfi_offset 5, -24
+  40              		.cfi_offset 6, -20
+  41              		.cfi_offset 7, -16
+  42              		.cfi_offset 8, -12
+  43              		.cfi_offset 9, -8
+  44              		.cfi_offset 14, -4
+  45 0004 8E46     		mov	lr, r1
+  46 0006 1146     		mov	r1, r2
+  47              	.LVL1:
+  48              		.loc 1 36 1 view .LVU2
+  49 0008 1A46     		mov	r2, r3
+  50              	.LVL2:
+  51              		.loc 1 36 1 view .LVU3
+  52 000a 079B     		ldr	r3, [sp, #28]
+  53              	.LVL3:
+  37:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT(num_stops <= LV_GRADIENT_MAX_STOPS);
+  54              		.loc 1 37 5 is_stmt 1 view .LVU4
+  55              		.loc 1 37 5 view .LVU5
+  56 000c 022B     		cmp	r3, #2
+  57 000e 00DD     		ble	.L2
+  58              	.L3:
+  59              		.loc 1 37 5 view .LVU6
+  60              		.loc 1 37 5 view .LVU7
+  61              		.loc 1 37 5 view .LVU8
+  62              		.loc 1 37 5 view .LVU9
+  63              		.loc 1 37 5 view .LVU10
+  64 0010 FEE7     		b	.L3
+  65              	.L2:
+  66              		.loc 1 37 5 view .LVU11
+  38:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT(num_stops > 1);
+  67              		.loc 1 38 5 view .LVU12
+  68              		.loc 1 38 5 view .LVU13
+  69 0012 012B     		cmp	r3, #1
+  70 0014 07DD     		ble	.L5
+  71              		.loc 1 38 5 view .LVU14
+  39:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+  72              		.loc 1 39 5 view .LVU15
+  73              		.loc 1 39 5 view .LVU16
+  74 0016 38B1     		cbz	r0, .L7
+  75              		.loc 1 39 5 view .LVU17
+  76              		.loc 1 39 24 view .LVU18
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s 			page 3
+
+
+  40:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(colors);
+  77              		.loc 1 40 5 view .LVU19
+  78              		.loc 1 40 5 view .LVU20
+  79 0018 BEF1000F 		cmp	lr, #0
+  80 001c 05D0     		beq	.L9
+  81              		.loc 1 40 5 view .LVU21
+  82              		.loc 1 40 27 view .LVU22
+  41:Drivers/lvgl/src/misc/lv_grad.c **** 
+  42:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->stops_count = num_stops;
+  83              		.loc 1 42 5 view .LVU23
+  84              		.loc 1 42 22 is_stmt 0 view .LVU24
+  85 001e 8372     		strb	r3, [r0, #10]
+  43:Drivers/lvgl/src/misc/lv_grad.c ****     for(int i = 0; i < num_stops; i++) {
+  86              		.loc 1 43 5 is_stmt 1 view .LVU25
+  87              	.LBB2:
+  88              		.loc 1 43 9 view .LVU26
+  89              	.LVL4:
+  90              		.loc 1 43 13 is_stmt 0 view .LVU27
+  91 0020 4FF0000C 		mov	ip, #0
+  92              		.loc 1 43 5 view .LVU28
+  93 0024 10E0     		b	.L10
+  94              	.LVL5:
+  95              	.L5:
+  96              		.loc 1 43 5 view .LVU29
+  97              	.LBE2:
+  38:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+  98              		.loc 1 38 5 is_stmt 1 view .LVU30
+  38:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+  99              		.loc 1 38 5 view .LVU31
+  38:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+ 100              		.loc 1 38 5 view .LVU32
+  38:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+ 101              		.loc 1 38 5 view .LVU33
+  38:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+ 102              		.loc 1 38 5 view .LVU34
+ 103 0026 FEE7     		b	.L5
+ 104              	.L7:
+  39:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(colors);
+ 105              		.loc 1 39 5 view .LVU35
+  39:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(colors);
+ 106              		.loc 1 39 5 view .LVU36
+  39:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(colors);
+ 107              		.loc 1 39 5 view .LVU37
+  39:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(colors);
+ 108              		.loc 1 39 5 view .LVU38
+  39:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(colors);
+ 109              		.loc 1 39 5 view .LVU39
+ 110 0028 FEE7     		b	.L7
+ 111              	.L9:
+  40:Drivers/lvgl/src/misc/lv_grad.c **** 
+ 112              		.loc 1 40 5 view .LVU40
+  40:Drivers/lvgl/src/misc/lv_grad.c **** 
+ 113              		.loc 1 40 5 view .LVU41
+  40:Drivers/lvgl/src/misc/lv_grad.c **** 
+ 114              		.loc 1 40 5 view .LVU42
+  40:Drivers/lvgl/src/misc/lv_grad.c **** 
+ 115              		.loc 1 40 5 view .LVU43
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s 			page 4
+
+
+  40:Drivers/lvgl/src/misc/lv_grad.c **** 
+ 116              		.loc 1 40 5 view .LVU44
+ 117 002a FEE7     		b	.L9
+ 118              	.LVL6:
+ 119              	.L15:
+ 120              	.LBB3:
+  44:Drivers/lvgl/src/misc/lv_grad.c ****         dsc->stops[i].color = colors[i];
+  45:Drivers/lvgl/src/misc/lv_grad.c ****         dsc->stops[i].opa = opa != NULL ? opa[i] : LV_OPA_COVER;
+ 121              		.loc 1 45 27 is_stmt 0 discriminator 2 view .LVU45
+ 122 002c FF25     		movs	r5, #255
+ 123 002e 20E0     		b	.L11
+ 124              	.L12:
+  46:Drivers/lvgl/src/misc/lv_grad.c ****         dsc->stops[i].frac = fracs != NULL ? fracs[i] : 255 * i / (num_stops - 1);
+ 125              		.loc 1 46 61 discriminator 2 view .LVU46
+ 126 0030 CCEB0C25 		rsb	r5, ip, ip, lsl #8
+ 127              		.loc 1 46 78 discriminator 2 view .LVU47
+ 128 0034 5C1E     		subs	r4, r3, #1
+ 129              		.loc 1 46 65 discriminator 2 view .LVU48
+ 130 0036 95FBF4F5 		sdiv	r5, r5, r4
+ 131              		.loc 1 46 28 discriminator 2 view .LVU49
+ 132 003a EDB2     		uxtb	r5, r5
+ 133              	.L13:
+ 134              		.loc 1 46 28 discriminator 4 view .LVU50
+ 135 003c 0CEB8C04 		add	r4, ip, ip, lsl #2
+ 136 0040 0444     		add	r4, r4, r0
+ 137 0042 2571     		strb	r5, [r4, #4]
+  43:Drivers/lvgl/src/misc/lv_grad.c ****         dsc->stops[i].color = colors[i];
+ 138              		.loc 1 43 36 is_stmt 1 discriminator 2 view .LVU51
+ 139 0044 0CF1010C 		add	ip, ip, #1
+ 140              	.LVL7:
+ 141              	.L10:
+  43:Drivers/lvgl/src/misc/lv_grad.c ****         dsc->stops[i].color = colors[i];
+ 142              		.loc 1 43 22 discriminator 1 view .LVU52
+ 143 0048 9C45     		cmp	ip, r3
+ 144 004a 1ADA     		bge	.L17
+  44:Drivers/lvgl/src/misc/lv_grad.c ****         dsc->stops[i].color = colors[i];
+ 145              		.loc 1 44 9 view .LVU53
+  44:Drivers/lvgl/src/misc/lv_grad.c ****         dsc->stops[i].color = colors[i];
+ 146              		.loc 1 44 37 is_stmt 0 view .LVU54
+ 147 004c 6746     		mov	r7, ip
+ 148 004e 0CEB4C05 		add	r5, ip, ip, lsl #1
+ 149 0052 0EEB0509 		add	r9, lr, r5
+  44:Drivers/lvgl/src/misc/lv_grad.c ****         dsc->stops[i].color = colors[i];
+ 150              		.loc 1 44 29 view .LVU55
+ 151 0056 0CEB8C04 		add	r4, ip, ip, lsl #2
+ 152 005a 0619     		adds	r6, r0, r4
+ 153 005c 3EF80580 		ldrh	r8, [lr, r5]	@ unaligned
+ 154 0060 99F80250 		ldrb	r5, [r9, #2]	@ zero_extendqisi2
+ 155 0064 20F80480 		strh	r8, [r0, r4]	@ unaligned
+ 156 0068 B570     		strb	r5, [r6, #2]
+  45:Drivers/lvgl/src/misc/lv_grad.c ****         dsc->stops[i].frac = fracs != NULL ? fracs[i] : 255 * i / (num_stops - 1);
+ 157              		.loc 1 45 9 is_stmt 1 view .LVU56
+  45:Drivers/lvgl/src/misc/lv_grad.c ****         dsc->stops[i].frac = fracs != NULL ? fracs[i] : 255 * i / (num_stops - 1);
+ 158              		.loc 1 45 27 is_stmt 0 view .LVU57
+ 159 006a 0029     		cmp	r1, #0
+ 160 006c DED0     		beq	.L15
+  45:Drivers/lvgl/src/misc/lv_grad.c ****         dsc->stops[i].frac = fracs != NULL ? fracs[i] : 255 * i / (num_stops - 1);
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s 			page 5
+
+
+ 161              		.loc 1 45 27 discriminator 1 view .LVU58
+ 162 006e 11F80C50 		ldrb	r5, [r1, ip]	@ zero_extendqisi2
+ 163              	.L11:
+  45:Drivers/lvgl/src/misc/lv_grad.c ****         dsc->stops[i].frac = fracs != NULL ? fracs[i] : 255 * i / (num_stops - 1);
+ 164              		.loc 1 45 27 discriminator 4 view .LVU59
+ 165 0072 0CEB8C04 		add	r4, ip, ip, lsl #2
+ 166 0076 0444     		add	r4, r4, r0
+ 167 0078 E570     		strb	r5, [r4, #3]
+ 168              		.loc 1 46 9 is_stmt 1 view .LVU60
+ 169              		.loc 1 46 28 is_stmt 0 view .LVU61
+ 170 007a 002A     		cmp	r2, #0
+ 171 007c D8D0     		beq	.L12
+ 172              		.loc 1 46 28 discriminator 1 view .LVU62
+ 173 007e D55D     		ldrb	r5, [r2, r7]	@ zero_extendqisi2
+ 174 0080 DCE7     		b	.L13
+ 175              	.L17:
+ 176              		.loc 1 46 28 discriminator 1 view .LVU63
+ 177              	.LBE3:
+  47:Drivers/lvgl/src/misc/lv_grad.c ****     }
+  48:Drivers/lvgl/src/misc/lv_grad.c **** }
+ 178              		.loc 1 48 1 view .LVU64
+ 179 0082 BDE8F083 		pop	{r4, r5, r6, r7, r8, r9, pc}
+ 180              		.loc 1 48 1 view .LVU65
+ 181              		.cfi_endproc
+ 182              	.LFE7:
+ 184              		.section	.text.lv_grad_horizontal_init,"ax",%progbits
+ 185              		.align	1
+ 186              		.global	lv_grad_horizontal_init
+ 187              		.syntax unified
+ 188              		.thumb
+ 189              		.thumb_func
+ 191              	lv_grad_horizontal_init:
+ 192              	.LVL8:
+ 193              	.LFB8:
+  49:Drivers/lvgl/src/misc/lv_grad.c **** 
+  50:Drivers/lvgl/src/misc/lv_grad.c **** void lv_grad_horizontal_init(lv_grad_dsc_t * dsc)
+  51:Drivers/lvgl/src/misc/lv_grad.c **** {
+ 194              		.loc 1 51 1 is_stmt 1 view -0
+ 195              		.cfi_startproc
+ 196              		@ args = 0, pretend = 0, frame = 0
+ 197              		@ frame_needed = 0, uses_anonymous_args = 0
+ 198              		@ link register save eliminated.
+  52:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+ 199              		.loc 1 52 5 view .LVU67
+ 200              		.loc 1 52 5 view .LVU68
+ 201 0000 28B1     		cbz	r0, .L20
+ 202              		.loc 1 52 5 view .LVU69
+ 203              		.loc 1 52 24 view .LVU70
+  53:Drivers/lvgl/src/misc/lv_grad.c **** 
+  54:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->dir = LV_GRAD_DIR_HOR;
+ 204              		.loc 1 54 5 view .LVU71
+ 205              		.loc 1 54 14 is_stmt 0 view .LVU72
+ 206 0002 C27A     		ldrb	r2, [r0, #11]	@ zero_extendqisi2
+ 207 0004 0221     		movs	r1, #2
+ 208 0006 61F30302 		bfi	r2, r1, #0, #4
+ 209 000a C272     		strb	r2, [r0, #11]
+  55:Drivers/lvgl/src/misc/lv_grad.c **** }
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s 			page 6
+
+
+ 210              		.loc 1 55 1 view .LVU73
+ 211 000c 7047     		bx	lr
+ 212              	.L20:
+  52:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+ 213              		.loc 1 52 5 is_stmt 1 view .LVU74
+  52:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+ 214              		.loc 1 52 5 view .LVU75
+  52:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+ 215              		.loc 1 52 5 view .LVU76
+  52:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+ 216              		.loc 1 52 5 view .LVU77
+  52:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+ 217              		.loc 1 52 5 view .LVU78
+ 218 000e FEE7     		b	.L20
+ 219              		.cfi_endproc
+ 220              	.LFE8:
+ 222              		.section	.text.lv_grad_vertical_init,"ax",%progbits
+ 223              		.align	1
+ 224              		.global	lv_grad_vertical_init
+ 225              		.syntax unified
+ 226              		.thumb
+ 227              		.thumb_func
+ 229              	lv_grad_vertical_init:
+ 230              	.LVL9:
+ 231              	.LFB9:
+  56:Drivers/lvgl/src/misc/lv_grad.c **** 
+  57:Drivers/lvgl/src/misc/lv_grad.c **** void lv_grad_vertical_init(lv_grad_dsc_t * dsc)
+  58:Drivers/lvgl/src/misc/lv_grad.c **** {
+ 232              		.loc 1 58 1 view -0
+ 233              		.cfi_startproc
+ 234              		@ args = 0, pretend = 0, frame = 0
+ 235              		@ frame_needed = 0, uses_anonymous_args = 0
+ 236              		@ link register save eliminated.
+  59:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+ 237              		.loc 1 59 5 view .LVU80
+ 238              		.loc 1 59 5 view .LVU81
+ 239 0000 28B1     		cbz	r0, .L23
+ 240              		.loc 1 59 5 view .LVU82
+ 241              		.loc 1 59 24 view .LVU83
+  60:Drivers/lvgl/src/misc/lv_grad.c **** 
+  61:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->dir = LV_GRAD_DIR_VER;
+ 242              		.loc 1 61 5 view .LVU84
+ 243              		.loc 1 61 14 is_stmt 0 view .LVU85
+ 244 0002 C27A     		ldrb	r2, [r0, #11]	@ zero_extendqisi2
+ 245 0004 0121     		movs	r1, #1
+ 246 0006 61F30302 		bfi	r2, r1, #0, #4
+ 247 000a C272     		strb	r2, [r0, #11]
+  62:Drivers/lvgl/src/misc/lv_grad.c **** }
+ 248              		.loc 1 62 1 view .LVU86
+ 249 000c 7047     		bx	lr
+ 250              	.L23:
+  59:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+ 251              		.loc 1 59 5 is_stmt 1 view .LVU87
+  59:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+ 252              		.loc 1 59 5 view .LVU88
+  59:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+ 253              		.loc 1 59 5 view .LVU89
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s 			page 7
+
+
+  59:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+ 254              		.loc 1 59 5 view .LVU90
+  59:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+ 255              		.loc 1 59 5 view .LVU91
+ 256 000e FEE7     		b	.L23
+ 257              		.cfi_endproc
+ 258              	.LFE9:
+ 260              		.section	.text.lv_grad_linear_init,"ax",%progbits
+ 261              		.align	1
+ 262              		.global	lv_grad_linear_init
+ 263              		.syntax unified
+ 264              		.thumb
+ 265              		.thumb_func
+ 267              	lv_grad_linear_init:
+ 268              	.LVL10:
+ 269              	.LFB10:
+  63:Drivers/lvgl/src/misc/lv_grad.c **** 
+  64:Drivers/lvgl/src/misc/lv_grad.c **** void lv_grad_linear_init(lv_grad_dsc_t * dsc, int32_t from_x, int32_t from_y, int32_t to_x, int32_t
+  65:Drivers/lvgl/src/misc/lv_grad.c ****                          lv_grad_extend_t extend)
+  66:Drivers/lvgl/src/misc/lv_grad.c **** {
+ 270              		.loc 1 66 1 view -0
+ 271              		.cfi_startproc
+ 272              		@ args = 8, pretend = 0, frame = 0
+ 273              		@ frame_needed = 0, uses_anonymous_args = 0
+  67:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+ 274              		.loc 1 67 5 view .LVU93
+ 275              		.loc 1 67 5 view .LVU94
+ 276 0000 D0B1     		cbz	r0, .L26
+  66:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+ 277              		.loc 1 66 1 is_stmt 0 view .LVU95
+ 278 0002 00B5     		push	{lr}
+ 279              	.LCFI1:
+ 280              		.cfi_def_cfa_offset 4
+ 281              		.cfi_offset 14, -4
+ 282 0004 8446     		mov	ip, r0
+ 283              		.loc 1 67 5 is_stmt 1 view .LVU96
+ 284              		.loc 1 67 24 view .LVU97
+  68:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->dir = LV_GRAD_DIR_LINEAR;
+ 285              		.loc 1 68 5 view .LVU98
+ 286              		.loc 1 68 14 is_stmt 0 view .LVU99
+ 287 0006 C07A     		ldrb	r0, [r0, #11]	@ zero_extendqisi2
+ 288              	.LVL11:
+ 289              		.loc 1 68 14 view .LVU100
+ 290 0008 4FF0030E 		mov	lr, #3
+ 291 000c 6EF30300 		bfi	r0, lr, #0, #4
+ 292 0010 8CF80B00 		strb	r0, [ip, #11]
+  69:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.linear.start.x = from_x;
+ 293              		.loc 1 69 5 is_stmt 1 view .LVU101
+ 294              		.loc 1 69 32 is_stmt 0 view .LVU102
+ 295 0014 CCF80C10 		str	r1, [ip, #12]
+  70:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.linear.start.y = from_y;
+ 296              		.loc 1 70 5 is_stmt 1 view .LVU103
+ 297              		.loc 1 70 32 is_stmt 0 view .LVU104
+ 298 0018 CCF81020 		str	r2, [ip, #16]
+  71:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.linear.end.x = to_x;
+ 299              		.loc 1 71 5 is_stmt 1 view .LVU105
+ 300              		.loc 1 71 30 is_stmt 0 view .LVU106
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s 			page 8
+
+
+ 301 001c CCF81430 		str	r3, [ip, #20]
+  72:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.linear.end.y = to_y;
+ 302              		.loc 1 72 5 is_stmt 1 view .LVU107
+ 303              		.loc 1 72 30 is_stmt 0 view .LVU108
+ 304 0020 019B     		ldr	r3, [sp, #4]
+ 305              	.LVL12:
+ 306              		.loc 1 72 30 view .LVU109
+ 307 0022 CCF81830 		str	r3, [ip, #24]
+  73:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->extend = extend;
+ 308              		.loc 1 73 5 is_stmt 1 view .LVU110
+ 309              		.loc 1 73 17 is_stmt 0 view .LVU111
+ 310 0026 C3B2     		uxtb	r3, r0
+ 311 0028 9DF80820 		ldrb	r2, [sp, #8]	@ zero_extendqisi2
+ 312              	.LVL13:
+ 313              		.loc 1 73 17 view .LVU112
+ 314 002c 62F30613 		bfi	r3, r2, #4, #3
+ 315 0030 8CF80B30 		strb	r3, [ip, #11]
+  74:Drivers/lvgl/src/misc/lv_grad.c **** }
+ 316              		.loc 1 74 1 view .LVU113
+ 317 0034 5DF804FB 		ldr	pc, [sp], #4
+ 318              	.LVL14:
+ 319              	.L26:
+ 320              	.LCFI2:
+ 321              		.cfi_def_cfa_offset 0
+ 322              		.cfi_restore 14
+  67:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->dir = LV_GRAD_DIR_LINEAR;
+ 323              		.loc 1 67 5 is_stmt 1 view .LVU114
+  67:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->dir = LV_GRAD_DIR_LINEAR;
+ 324              		.loc 1 67 5 view .LVU115
+  67:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->dir = LV_GRAD_DIR_LINEAR;
+ 325              		.loc 1 67 5 view .LVU116
+  67:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->dir = LV_GRAD_DIR_LINEAR;
+ 326              		.loc 1 67 5 view .LVU117
+  67:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->dir = LV_GRAD_DIR_LINEAR;
+ 327              		.loc 1 67 5 view .LVU118
+ 328 0038 FEE7     		b	.L26
+ 329              		.cfi_endproc
+ 330              	.LFE10:
+ 332              		.section	.text.lv_grad_radial_init,"ax",%progbits
+ 333              		.align	1
+ 334              		.global	lv_grad_radial_init
+ 335              		.syntax unified
+ 336              		.thumb
+ 337              		.thumb_func
+ 339              	lv_grad_radial_init:
+ 340              	.LVL15:
+ 341              	.LFB11:
+  75:Drivers/lvgl/src/misc/lv_grad.c **** 
+  76:Drivers/lvgl/src/misc/lv_grad.c **** void lv_grad_radial_init(lv_grad_dsc_t * dsc, int32_t center_x, int32_t center_y, int32_t to_x, int
+  77:Drivers/lvgl/src/misc/lv_grad.c ****                          lv_grad_extend_t extend)
+  78:Drivers/lvgl/src/misc/lv_grad.c **** {
+ 342              		.loc 1 78 1 view -0
+ 343              		.cfi_startproc
+ 344              		@ args = 8, pretend = 0, frame = 0
+ 345              		@ frame_needed = 0, uses_anonymous_args = 0
+  79:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+ 346              		.loc 1 79 5 view .LVU120
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s 			page 9
+
+
+ 347              		.loc 1 79 5 view .LVU121
+ 348 0000 10B3     		cbz	r0, .L31
+  78:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+ 349              		.loc 1 78 1 is_stmt 0 view .LVU122
+ 350 0002 00B5     		push	{lr}
+ 351              	.LCFI3:
+ 352              		.cfi_def_cfa_offset 4
+ 353              		.cfi_offset 14, -4
+ 354 0004 8446     		mov	ip, r0
+ 355              		.loc 1 79 5 is_stmt 1 view .LVU123
+ 356              		.loc 1 79 24 view .LVU124
+  80:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->dir = LV_GRAD_DIR_RADIAL;
+ 357              		.loc 1 80 5 view .LVU125
+ 358              		.loc 1 80 14 is_stmt 0 view .LVU126
+ 359 0006 C07A     		ldrb	r0, [r0, #11]	@ zero_extendqisi2
+ 360              	.LVL16:
+ 361              		.loc 1 80 14 view .LVU127
+ 362 0008 4FF0040E 		mov	lr, #4
+ 363 000c 6EF30300 		bfi	r0, lr, #0, #4
+ 364 0010 8CF80B00 		strb	r0, [ip, #11]
+  81:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.radial.focal.x = center_x;
+ 365              		.loc 1 81 5 is_stmt 1 view .LVU128
+ 366              		.loc 1 81 32 is_stmt 0 view .LVU129
+ 367 0014 CCF80C10 		str	r1, [ip, #12]
+  82:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.radial.focal.y = center_y;
+ 368              		.loc 1 82 5 is_stmt 1 view .LVU130
+ 369              		.loc 1 82 32 is_stmt 0 view .LVU131
+ 370 0018 CCF81020 		str	r2, [ip, #16]
+  83:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.radial.focal_extent.x = center_x;
+ 371              		.loc 1 83 5 is_stmt 1 view .LVU132
+ 372              		.loc 1 83 39 is_stmt 0 view .LVU133
+ 373 001c CCF81410 		str	r1, [ip, #20]
+  84:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.radial.focal_extent.y = center_y;
+ 374              		.loc 1 84 5 is_stmt 1 view .LVU134
+ 375              		.loc 1 84 39 is_stmt 0 view .LVU135
+ 376 0020 CCF81820 		str	r2, [ip, #24]
+  85:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.radial.end.x = center_x;
+ 377              		.loc 1 85 5 is_stmt 1 view .LVU136
+ 378              		.loc 1 85 30 is_stmt 0 view .LVU137
+ 379 0024 CCF81C10 		str	r1, [ip, #28]
+  86:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.radial.end.y = center_y;
+ 380              		.loc 1 86 5 is_stmt 1 view .LVU138
+ 381              		.loc 1 86 30 is_stmt 0 view .LVU139
+ 382 0028 CCF82020 		str	r2, [ip, #32]
+  87:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.radial.end_extent.x = to_x;
+ 383              		.loc 1 87 5 is_stmt 1 view .LVU140
+ 384              		.loc 1 87 37 is_stmt 0 view .LVU141
+ 385 002c CCF82430 		str	r3, [ip, #36]
+  88:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.radial.end_extent.y = to_y;
+ 386              		.loc 1 88 5 is_stmt 1 view .LVU142
+ 387              		.loc 1 88 37 is_stmt 0 view .LVU143
+ 388 0030 019B     		ldr	r3, [sp, #4]
+ 389              	.LVL17:
+ 390              		.loc 1 88 37 view .LVU144
+ 391 0032 CCF82830 		str	r3, [ip, #40]
+  89:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->extend = extend;
+ 392              		.loc 1 89 5 is_stmt 1 view .LVU145
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s 			page 10
+
+
+ 393              		.loc 1 89 17 is_stmt 0 view .LVU146
+ 394 0036 C3B2     		uxtb	r3, r0
+ 395 0038 9DF80820 		ldrb	r2, [sp, #8]	@ zero_extendqisi2
+ 396              	.LVL18:
+ 397              		.loc 1 89 17 view .LVU147
+ 398 003c 62F30613 		bfi	r3, r2, #4, #3
+ 399 0040 8CF80B30 		strb	r3, [ip, #11]
+  90:Drivers/lvgl/src/misc/lv_grad.c **** }
+ 400              		.loc 1 90 1 view .LVU148
+ 401 0044 5DF804FB 		ldr	pc, [sp], #4
+ 402              	.LVL19:
+ 403              	.L31:
+ 404              	.LCFI4:
+ 405              		.cfi_def_cfa_offset 0
+ 406              		.cfi_restore 14
+  79:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->dir = LV_GRAD_DIR_RADIAL;
+ 407              		.loc 1 79 5 is_stmt 1 view .LVU149
+  79:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->dir = LV_GRAD_DIR_RADIAL;
+ 408              		.loc 1 79 5 view .LVU150
+  79:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->dir = LV_GRAD_DIR_RADIAL;
+ 409              		.loc 1 79 5 view .LVU151
+  79:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->dir = LV_GRAD_DIR_RADIAL;
+ 410              		.loc 1 79 5 view .LVU152
+  79:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->dir = LV_GRAD_DIR_RADIAL;
+ 411              		.loc 1 79 5 view .LVU153
+ 412 0048 FEE7     		b	.L31
+ 413              		.cfi_endproc
+ 414              	.LFE11:
+ 416              		.section	.text.lv_grad_conical_init,"ax",%progbits
+ 417              		.align	1
+ 418              		.global	lv_grad_conical_init
+ 419              		.syntax unified
+ 420              		.thumb
+ 421              		.thumb_func
+ 423              	lv_grad_conical_init:
+ 424              	.LVL20:
+ 425              	.LFB12:
+  91:Drivers/lvgl/src/misc/lv_grad.c **** 
+  92:Drivers/lvgl/src/misc/lv_grad.c **** void lv_grad_conical_init(lv_grad_dsc_t * dsc, int32_t center_x, int32_t center_y, int32_t start_an
+  93:Drivers/lvgl/src/misc/lv_grad.c ****                           int32_t end_angle, lv_grad_extend_t extend)
+  94:Drivers/lvgl/src/misc/lv_grad.c **** {
+ 426              		.loc 1 94 1 view -0
+ 427              		.cfi_startproc
+ 428              		@ args = 8, pretend = 0, frame = 0
+ 429              		@ frame_needed = 0, uses_anonymous_args = 0
+  95:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+ 430              		.loc 1 95 5 view .LVU155
+ 431              		.loc 1 95 5 view .LVU156
+ 432 0000 D0B1     		cbz	r0, .L36
+  94:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+ 433              		.loc 1 94 1 is_stmt 0 view .LVU157
+ 434 0002 00B5     		push	{lr}
+ 435              	.LCFI5:
+ 436              		.cfi_def_cfa_offset 4
+ 437              		.cfi_offset 14, -4
+ 438 0004 8446     		mov	ip, r0
+ 439              		.loc 1 95 5 is_stmt 1 view .LVU158
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s 			page 11
+
+
+ 440              		.loc 1 95 24 view .LVU159
+  96:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->dir = LV_GRAD_DIR_CONICAL;
+ 441              		.loc 1 96 5 view .LVU160
+ 442              		.loc 1 96 14 is_stmt 0 view .LVU161
+ 443 0006 C07A     		ldrb	r0, [r0, #11]	@ zero_extendqisi2
+ 444              	.LVL21:
+ 445              		.loc 1 96 14 view .LVU162
+ 446 0008 4FF0050E 		mov	lr, #5
+ 447 000c 6EF30300 		bfi	r0, lr, #0, #4
+ 448 0010 8CF80B00 		strb	r0, [ip, #11]
+  97:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.conical.center.x = center_x;
+ 449              		.loc 1 97 5 is_stmt 1 view .LVU163
+ 450              		.loc 1 97 34 is_stmt 0 view .LVU164
+ 451 0014 CCF80C10 		str	r1, [ip, #12]
+  98:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.conical.center.y = center_y;
+ 452              		.loc 1 98 5 is_stmt 1 view .LVU165
+ 453              		.loc 1 98 34 is_stmt 0 view .LVU166
+ 454 0018 CCF81020 		str	r2, [ip, #16]
+  99:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.conical.start_angle = start_angle;
+ 455              		.loc 1 99 5 is_stmt 1 view .LVU167
+ 456              		.loc 1 99 37 is_stmt 0 view .LVU168
+ 457 001c ACF81430 		strh	r3, [ip, #20]	@ movhi
+ 100:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.conical.end_angle = end_angle;
+ 458              		.loc 1 100 5 is_stmt 1 view .LVU169
+ 459              		.loc 1 100 35 is_stmt 0 view .LVU170
+ 460 0020 019B     		ldr	r3, [sp, #4]
+ 461              	.LVL22:
+ 462              		.loc 1 100 35 view .LVU171
+ 463 0022 ACF81630 		strh	r3, [ip, #22]	@ movhi
+ 101:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->extend = extend;
+ 464              		.loc 1 101 5 is_stmt 1 view .LVU172
+ 465              		.loc 1 101 17 is_stmt 0 view .LVU173
+ 466 0026 C3B2     		uxtb	r3, r0
+ 467 0028 9DF80820 		ldrb	r2, [sp, #8]	@ zero_extendqisi2
+ 468              	.LVL23:
+ 469              		.loc 1 101 17 view .LVU174
+ 470 002c 62F30613 		bfi	r3, r2, #4, #3
+ 471 0030 8CF80B30 		strb	r3, [ip, #11]
+ 102:Drivers/lvgl/src/misc/lv_grad.c **** }
+ 472              		.loc 1 102 1 view .LVU175
+ 473 0034 5DF804FB 		ldr	pc, [sp], #4
+ 474              	.LVL24:
+ 475              	.L36:
+ 476              	.LCFI6:
+ 477              		.cfi_def_cfa_offset 0
+ 478              		.cfi_restore 14
+  95:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->dir = LV_GRAD_DIR_CONICAL;
+ 479              		.loc 1 95 5 is_stmt 1 view .LVU176
+  95:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->dir = LV_GRAD_DIR_CONICAL;
+ 480              		.loc 1 95 5 view .LVU177
+  95:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->dir = LV_GRAD_DIR_CONICAL;
+ 481              		.loc 1 95 5 view .LVU178
+  95:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->dir = LV_GRAD_DIR_CONICAL;
+ 482              		.loc 1 95 5 view .LVU179
+  95:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->dir = LV_GRAD_DIR_CONICAL;
+ 483              		.loc 1 95 5 view .LVU180
+ 484 0038 FEE7     		b	.L36
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s 			page 12
+
+
+ 485              		.cfi_endproc
+ 486              	.LFE12:
+ 488              		.section	.text.lv_grad_radial_set_focal,"ax",%progbits
+ 489              		.align	1
+ 490              		.global	lv_grad_radial_set_focal
+ 491              		.syntax unified
+ 492              		.thumb
+ 493              		.thumb_func
+ 495              	lv_grad_radial_set_focal:
+ 496              	.LVL25:
+ 497              	.LFB13:
+ 103:Drivers/lvgl/src/misc/lv_grad.c **** 
+ 104:Drivers/lvgl/src/misc/lv_grad.c **** void lv_grad_radial_set_focal(lv_grad_dsc_t * dsc, int32_t center_x, int32_t center_y, int32_t radi
+ 105:Drivers/lvgl/src/misc/lv_grad.c **** {
+ 498              		.loc 1 105 1 view -0
+ 499              		.cfi_startproc
+ 500              		@ args = 0, pretend = 0, frame = 0
+ 501              		@ frame_needed = 0, uses_anonymous_args = 0
+ 502              		@ link register save eliminated.
+ 106:Drivers/lvgl/src/misc/lv_grad.c ****     LV_ASSERT_NULL(dsc);
+ 503              		.loc 1 106 5 view .LVU182
+ 504              		.loc 1 106 5 view .LVU183
+ 505 0000 28B1     		cbz	r0, .L41
+ 506              		.loc 1 106 5 view .LVU184
+ 507              		.loc 1 106 24 view .LVU185
+ 107:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.radial.focal.x = center_x;
+ 508              		.loc 1 107 5 view .LVU186
+ 509              		.loc 1 107 32 is_stmt 0 view .LVU187
+ 510 0002 C160     		str	r1, [r0, #12]
+ 108:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.radial.focal.y = center_y;
+ 511              		.loc 1 108 5 is_stmt 1 view .LVU188
+ 512              		.loc 1 108 32 is_stmt 0 view .LVU189
+ 513 0004 0261     		str	r2, [r0, #16]
+ 109:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.radial.focal_extent.x = center_x + radius;
+ 514              		.loc 1 109 5 is_stmt 1 view .LVU190
+ 515              		.loc 1 109 50 is_stmt 0 view .LVU191
+ 516 0006 1944     		add	r1, r1, r3
+ 517              	.LVL26:
+ 518              		.loc 1 109 39 view .LVU192
+ 519 0008 4161     		str	r1, [r0, #20]
+ 110:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.radial.focal_extent.y = center_y;
+ 520              		.loc 1 110 5 is_stmt 1 view .LVU193
+ 521              		.loc 1 110 39 is_stmt 0 view .LVU194
+ 522 000a 8261     		str	r2, [r0, #24]
+ 111:Drivers/lvgl/src/misc/lv_grad.c **** }
+ 523              		.loc 1 111 1 view .LVU195
+ 524 000c 7047     		bx	lr
+ 525              	.LVL27:
+ 526              	.L41:
+ 106:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.radial.focal.x = center_x;
+ 527              		.loc 1 106 5 is_stmt 1 view .LVU196
+ 106:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.radial.focal.x = center_x;
+ 528              		.loc 1 106 5 view .LVU197
+ 106:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.radial.focal.x = center_x;
+ 529              		.loc 1 106 5 view .LVU198
+ 106:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.radial.focal.x = center_x;
+ 530              		.loc 1 106 5 view .LVU199
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s 			page 13
+
+
+ 106:Drivers/lvgl/src/misc/lv_grad.c ****     dsc->params.radial.focal.x = center_x;
+ 531              		.loc 1 106 5 view .LVU200
+ 532 000e FEE7     		b	.L41
+ 533              		.cfi_endproc
+ 534              	.LFE13:
+ 536              		.text
+ 537              	.Letext0:
+ 538              		.file 2 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/arm-none-eabi/include/machine/_defa
+ 539              		.file 3 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/arm-none-eabi/include/sys/_stdint.h
+ 540              		.file 4 "Drivers/lvgl/src/misc/lv_types.h"
+ 541              		.file 5 "Drivers/lvgl/src/misc/lv_color.h"
+ 542              		.file 6 "Drivers/lvgl/src/misc/lv_area.h"
+ 543              		.file 7 "Drivers/lvgl/src/misc/lv_grad.h"
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s 			page 14
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 lv_grad.c
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s:21     .text.lv_grad_init_stops:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s:27     .text.lv_grad_init_stops:00000000 lv_grad_init_stops
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s:185    .text.lv_grad_horizontal_init:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s:191    .text.lv_grad_horizontal_init:00000000 lv_grad_horizontal_init
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s:223    .text.lv_grad_vertical_init:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s:229    .text.lv_grad_vertical_init:00000000 lv_grad_vertical_init
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s:261    .text.lv_grad_linear_init:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s:267    .text.lv_grad_linear_init:00000000 lv_grad_linear_init
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s:333    .text.lv_grad_radial_init:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s:339    .text.lv_grad_radial_init:00000000 lv_grad_radial_init
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s:417    .text.lv_grad_conical_init:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s:423    .text.lv_grad_conical_init:00000000 lv_grad_conical_init
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s:489    .text.lv_grad_radial_set_focal:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccgDWtLa.s:495    .text.lv_grad_radial_set_focal:00000000 lv_grad_radial_set_focal
+
+NO UNDEFINED SYMBOLS

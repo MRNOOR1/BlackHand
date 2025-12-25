@@ -1,0 +1,1144 @@
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"lv_draw_sw_letter.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c"
+  20              		.section	.text.draw_letter_cb,"ax",%progbits
+  21              		.align	1
+  22              		.syntax unified
+  23              		.thumb
+  24              		.thumb_func
+  26              	draw_letter_cb:
+  27              	.LVL0:
+  28              	.LFB195:
+   1:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** /**
+   2:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****  * @file lv_draw_sw_letter.c
+   3:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****  *
+   4:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****  */
+   5:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+   6:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** /*********************
+   7:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****  *      INCLUDES
+   8:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****  *********************/
+   9:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #include "blend/lv_draw_sw_blend_private.h"
+  10:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #include "../lv_draw_label_private.h"
+  11:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #include "../../draw/lv_draw_private.h"
+  12:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #include "lv_draw_sw.h"
+  13:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  14:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #if LV_USE_FREETYPE && LV_USE_VECTOR_GRAPHIC && LV_USE_THORVG
+  15:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  16:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     #include "../../libs/freetype/lv_freetype_private.h"
+  17:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     #include "../lv_draw_vector_private.h"
+  18:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  19:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #endif
+  20:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  21:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #if LV_USE_DRAW_SW
+  22:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  23:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #include "../../display/lv_display.h"
+  24:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #include "../../misc/lv_math.h"
+  25:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #include "../../misc/lv_assert.h"
+  26:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #include "../../misc/lv_area.h"
+  27:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #include "../../misc/lv_style.h"
+  28:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #include "../../font/lv_font.h"
+  29:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #include "../../core/lv_refr_private.h"
+  30:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #include "../../stdlib/lv_string.h"
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s 			page 2
+
+
+  31:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  32:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** /*********************
+  33:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****  *      DEFINES
+  34:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****  *********************/
+  35:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  36:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** /**********************
+  37:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****  *      TYPEDEFS
+  38:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****  **********************/
+  39:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #if LV_USE_FREETYPE && LV_USE_VECTOR_GRAPHIC && LV_USE_THORVG
+  40:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  41:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** typedef struct {
+  42:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     lv_vector_path_t * inside_path;     /*The regular glyph*/
+  43:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     lv_vector_path_t * outside_path;    /*A bigger glyph that goes in the background for the letter
+  44:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     lv_vector_path_t * cur_path;
+  45:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** } lv_draw_sw_letter_outlines_t;
+  46:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  47:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #endif /* LV_USE_FREETYPE && LV_USE_VECTOR_GRAPHIC && LV_USE_THORVG */
+  48:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  49:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** /**********************
+  50:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****  *  STATIC PROTOTYPES
+  51:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****  **********************/
+  52:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  53:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** static void /* LV_ATTRIBUTE_FAST_MEM */ draw_letter_cb(lv_draw_task_t * t, lv_draw_glyph_dsc_t * gl
+  54:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                                                        lv_draw_fill_dsc_t * fill_draw_dsc, const lv
+  55:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  56:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #if LV_USE_FREETYPE && LV_USE_VECTOR_GRAPHIC && LV_USE_THORVG
+  57:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  58:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     static void freetype_outline_event_cb(lv_event_t * e);
+  59:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     static void draw_letter_outline(lv_draw_task_t * t, lv_draw_glyph_dsc_t * dsc);
+  60:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  61:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #endif
+  62:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  63:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** /**********************
+  64:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****  *  STATIC VARIABLES
+  65:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****  **********************/
+  66:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  67:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** /**********************
+  68:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****  *  GLOBAL VARIABLES
+  69:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****  **********************/
+  70:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  71:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** /**********************
+  72:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****  *      MACROS
+  73:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****  **********************/
+  74:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  75:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** /**********************
+  76:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****  *   GLOBAL FUNCTIONS
+  77:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****  **********************/
+  78:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  79:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** void lv_draw_sw_letter(lv_draw_task_t * t, const lv_draw_letter_dsc_t * dsc, const lv_area_t * coor
+  80:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** {
+  81:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     if(dsc->opa <= LV_OPA_MIN)
+  82:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****         return;
+  83:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  84:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     LV_PROFILER_DRAW_BEGIN;
+  85:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  86:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     lv_draw_glyph_dsc_t glyph_dsc;
+  87:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     lv_draw_glyph_dsc_init(&glyph_dsc);
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s 			page 3
+
+
+  88:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     glyph_dsc.opa = dsc->opa;
+  89:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     glyph_dsc.bg_coords = NULL;
+  90:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     glyph_dsc.color = dsc->color;
+  91:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     glyph_dsc.rotation = dsc->rotation;
+  92:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     glyph_dsc.pivot = dsc->pivot;
+  93:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  94:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     lv_draw_unit_draw_letter(t, &glyph_dsc, &(lv_point_t) {
+  95:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****         .x = coords->x1, .y = coords->y1
+  96:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     },
+  97:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     dsc->font, dsc->unicode, draw_letter_cb);
+  98:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+  99:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     if(glyph_dsc._draw_buf) {
+ 100:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****         lv_draw_buf_destroy(glyph_dsc._draw_buf);
+ 101:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****         glyph_dsc._draw_buf = NULL;
+ 102:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     }
+ 103:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 104:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     LV_PROFILER_DRAW_END;
+ 105:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** }
+ 106:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 107:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** void lv_draw_sw_label(lv_draw_task_t * t, const lv_draw_label_dsc_t * dsc, const lv_area_t * coords
+ 108:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** {
+ 109:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     if(dsc->opa <= LV_OPA_MIN) return;
+ 110:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 111:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     LV_PROFILER_DRAW_BEGIN;
+ 112:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 113:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #if LV_USE_FREETYPE && LV_USE_VECTOR_GRAPHIC && LV_USE_THORVG
+ 114:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     static bool is_init = false;
+ 115:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     if(!is_init) {
+ 116:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****         lv_freetype_outline_add_event(freetype_outline_event_cb, LV_EVENT_ALL, t);
+ 117:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****         is_init = true;
+ 118:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     }
+ 119:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #endif
+ 120:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 121:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     lv_draw_label_iterate_characters(t, dsc, coords, draw_letter_cb);
+ 122:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     LV_PROFILER_DRAW_END;
+ 123:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** }
+ 124:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 125:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** /**********************
+ 126:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****  *   STATIC FUNCTIONS
+ 127:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****  **********************/
+ 128:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 129:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** static void LV_ATTRIBUTE_FAST_MEM draw_letter_cb(lv_draw_task_t * t, lv_draw_glyph_dsc_t * glyph_dr
+ 130:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                                                  lv_draw_fill_dsc_t * fill_draw_dsc, const lv_area_
+ 131:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** {
+  29              		.loc 1 131 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 128
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		.loc 1 131 1 is_stmt 0 view .LVU1
+  34 0000 2DE9F043 		push	{r4, r5, r6, r7, r8, r9, lr}
+  35              	.LCFI0:
+  36              		.cfi_def_cfa_offset 28
+  37              		.cfi_offset 4, -28
+  38              		.cfi_offset 5, -24
+  39              		.cfi_offset 6, -20
+  40              		.cfi_offset 7, -16
+  41              		.cfi_offset 8, -12
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s 			page 4
+
+
+  42              		.cfi_offset 9, -8
+  43              		.cfi_offset 14, -4
+  44 0004 A1B0     		sub	sp, sp, #132
+  45              	.LCFI1:
+  46              		.cfi_def_cfa_offset 160
+  47 0006 0746     		mov	r7, r0
+  48 0008 1446     		mov	r4, r2
+  49 000a 1D46     		mov	r5, r3
+ 132:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     if(glyph_draw_dsc) {
+  50              		.loc 1 132 5 is_stmt 1 view .LVU2
+  51              		.loc 1 132 7 is_stmt 0 view .LVU3
+  52 000c 0029     		cmp	r1, #0
+  53 000e 62D0     		beq	.L2
+  54 0010 0E46     		mov	r6, r1
+ 133:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****         switch(glyph_draw_dsc->format) {
+  55              		.loc 1 133 9 is_stmt 1 view .LVU4
+  56              		.loc 1 133 30 is_stmt 0 view .LVU5
+  57 0012 0B79     		ldrb	r3, [r1, #4]	@ zero_extendqisi2
+  58              	.LVL1:
+  59              		.loc 1 133 9 view .LVU6
+  60 0014 192B     		cmp	r3, #25
+  61 0016 5ED8     		bhi	.L2
+  62 0018 DFE803F0 		tbb	[pc, r3]
+  63              	.LVL2:
+  64              	.L4:
+  65 001c 0D       		.byte	(.L5-.L4)/2
+  66 001d 26       		.byte	(.L3-.L4)/2
+  67 001e 26       		.byte	(.L3-.L4)/2
+  68 001f 26       		.byte	(.L3-.L4)/2
+  69 0020 26       		.byte	(.L3-.L4)/2
+  70 0021 5D       		.byte	(.L2-.L4)/2
+  71 0022 5D       		.byte	(.L2-.L4)/2
+  72 0023 5D       		.byte	(.L2-.L4)/2
+  73 0024 26       		.byte	(.L3-.L4)/2
+  74 0025 5D       		.byte	(.L2-.L4)/2
+  75 0026 5D       		.byte	(.L2-.L4)/2
+  76 0027 5D       		.byte	(.L2-.L4)/2
+  77 0028 5D       		.byte	(.L2-.L4)/2
+  78 0029 5D       		.byte	(.L2-.L4)/2
+  79 002a 5D       		.byte	(.L2-.L4)/2
+  80 002b 5D       		.byte	(.L2-.L4)/2
+  81 002c 5D       		.byte	(.L2-.L4)/2
+  82 002d 5D       		.byte	(.L2-.L4)/2
+  83 002e 5D       		.byte	(.L2-.L4)/2
+  84 002f 5D       		.byte	(.L2-.L4)/2
+  85 0030 5D       		.byte	(.L2-.L4)/2
+  86 0031 5D       		.byte	(.L2-.L4)/2
+  87 0032 5D       		.byte	(.L2-.L4)/2
+  88 0033 5D       		.byte	(.L2-.L4)/2
+  89 0034 5D       		.byte	(.L2-.L4)/2
+  90 0035 26       		.byte	(.L3-.L4)/2
+  91              		.p2align 1
+  92              	.L5:
+  93              	.LBB11:
+ 134:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****             case LV_FONT_GLYPH_FORMAT_NONE: {
+ 135:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #if LV_USE_FONT_PLACEHOLDER
+ 136:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                     if(glyph_draw_dsc->bg_coords == NULL) break;
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s 			page 5
+
+
+  94              		.loc 1 136 21 is_stmt 1 view .LVU7
+  95              		.loc 1 136 38 is_stmt 0 view .LVU8
+  96 0036 CB68     		ldr	r3, [r1, #12]
+  97              		.loc 1 136 23 view .LVU9
+  98 0038 002B     		cmp	r3, #0
+  99 003a 4CD0     		beq	.L2
+ 137:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                     /* Draw a placeholder rectangle*/
+ 138:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                     lv_draw_border_dsc_t border_draw_dsc;
+ 100              		.loc 1 138 21 is_stmt 1 view .LVU10
+ 139:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                     lv_draw_border_dsc_init(&border_draw_dsc);
+ 101              		.loc 1 139 21 view .LVU11
+ 102 003c 0DF11008 		add	r8, sp, #16
+ 103 0040 4046     		mov	r0, r8
+ 104              	.LVL3:
+ 105              		.loc 1 139 21 is_stmt 0 view .LVU12
+ 106 0042 FFF7FEFF 		bl	lv_draw_border_dsc_init
+ 107              	.LVL4:
+ 140:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                     border_draw_dsc.opa = glyph_draw_dsc->opa;
+ 108              		.loc 1 140 21 is_stmt 1 view .LVU13
+ 109              		.loc 1 140 57 is_stmt 0 view .LVU14
+ 110 0046 F37D     		ldrb	r3, [r6, #23]	@ zero_extendqisi2
+ 111              		.loc 1 140 41 view .LVU15
+ 112 0048 8DF83830 		strb	r3, [sp, #56]
+ 141:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                     border_draw_dsc.color = glyph_draw_dsc->color;
+ 113              		.loc 1 141 21 is_stmt 1 view .LVU16
+ 114              		.loc 1 141 43 is_stmt 0 view .LVU17
+ 115 004c 7369     		ldr	r3, [r6, #20]
+ 116 004e ADF83030 		strh	r3, [sp, #48]	@ movhi
+ 117 0052 1B0C     		lsrs	r3, r3, #16
+ 118 0054 8DF83230 		strb	r3, [sp, #50]
+ 142:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                     border_draw_dsc.width = 1;
+ 119              		.loc 1 142 21 is_stmt 1 view .LVU18
+ 120              		.loc 1 142 43 is_stmt 0 view .LVU19
+ 121 0058 0123     		movs	r3, #1
+ 122 005a 0D93     		str	r3, [sp, #52]
+ 143:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                     lv_draw_sw_border(t, &border_draw_dsc, glyph_draw_dsc->bg_coords);
+ 123              		.loc 1 143 21 is_stmt 1 view .LVU20
+ 124 005c F268     		ldr	r2, [r6, #12]
+ 125 005e 4146     		mov	r1, r8
+ 126 0060 3846     		mov	r0, r7
+ 127 0062 FFF7FEFF 		bl	lv_draw_sw_border
+ 128              	.LVL5:
+ 129              	.LBE11:
+ 144:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #endif
+ 145:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                 }
+ 146:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                 break;
+ 130              		.loc 1 146 17 view .LVU21
+ 131 0066 36E0     		b	.L2
+ 132              	.LVL6:
+ 133              	.L3:
+ 147:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****             case LV_FONT_GLYPH_FORMAT_A1:
+ 148:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****             case LV_FONT_GLYPH_FORMAT_A2:
+ 149:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****             case LV_FONT_GLYPH_FORMAT_A3:
+ 150:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****             case LV_FONT_GLYPH_FORMAT_A4:
+ 151:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****             case LV_FONT_GLYPH_FORMAT_A8:
+ 152:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****             case LV_FONT_GLYPH_FORMAT_IMAGE: {
+ 153:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                     if(glyph_draw_dsc->rotation % 3600 == 0 && glyph_draw_dsc->format != LV_FONT_GL
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s 			page 6
+
+
+ 134              		.loc 1 153 21 view .LVU22
+ 135              		.loc 1 153 38 is_stmt 0 view .LVU23
+ 136 0068 086A     		ldr	r0, [r1, #32]
+ 137              	.LVL7:
+ 138              		.loc 1 153 49 view .LVU24
+ 139 006a 5549     		ldr	r1, .L16
+ 140              	.LVL8:
+ 141              		.loc 1 153 49 view .LVU25
+ 142 006c 81FB0021 		smull	r2, r1, r1, r0
+ 143 0070 0144     		add	r1, r1, r0
+ 144 0072 C217     		asrs	r2, r0, #31
+ 145 0074 C2EBE122 		rsb	r2, r2, r1, asr #11
+ 146 0078 4FF46161 		mov	r1, #3600
+ 147 007c 01FB1202 		mls	r2, r1, r2, r0
+ 148              		.loc 1 153 23 view .LVU26
+ 149 0080 0AB9     		cbnz	r2, .L7
+ 150              		.loc 1 153 61 discriminator 1 view .LVU27
+ 151 0082 192B     		cmp	r3, #25
+ 152 0084 31D1     		bne	.L14
+ 153              	.L7:
+ 154              	.LBB12:
+ 154:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                         lv_area_t mask_area = *glyph_draw_dsc->letter_coords;
+ 155:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 156:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                         if(lv_font_has_static_bitmap(glyph_draw_dsc->g->resolved_font) &&
+ 157:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                            glyph_draw_dsc->g->format == LV_FONT_GLYPH_FORMAT_A8) {
+ 158:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             glyph_draw_dsc->g->req_raw_bitmap = 1;
+ 159:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             const void * bitmap = lv_font_get_glyph_static_bitmap(glyph_draw_dsc->g
+ 160:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             lv_draw_sw_blend_dsc_t blend_dsc;
+ 161:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             lv_memzero(&blend_dsc, sizeof(blend_dsc));
+ 162:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.color = glyph_draw_dsc->color;
+ 163:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.opa = glyph_draw_dsc->opa;
+ 164:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_buf = bitmap;
+ 165:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_area = &mask_area;
+ 166:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_stride = glyph_draw_dsc->g->stride;
+ 167:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.blend_area = glyph_draw_dsc->letter_coords;
+ 168:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_res = LV_DRAW_SW_MASK_RES_CHANGED;
+ 169:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             lv_draw_sw_blend(t, &blend_dsc);
+ 170:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                         }
+ 171:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                         else {
+ 172:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             glyph_draw_dsc->glyph_data = lv_font_get_glyph_bitmap(glyph_draw_dsc->g
+ 173:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             if(glyph_draw_dsc->glyph_data == NULL) {
+ 174:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                                 LV_LOG_WARN("Couldn't get the bitmap of a glyph");
+ 175:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                                 break;
+ 176:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             }
+ 177:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 178:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             mask_area.x2 = mask_area.x1 + lv_draw_buf_width_to_stride(lv_area_get_w
+ 179:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             lv_draw_sw_blend_dsc_t blend_dsc;
+ 180:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             lv_memzero(&blend_dsc, sizeof(blend_dsc));
+ 181:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.color = glyph_draw_dsc->color;
+ 182:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.opa = glyph_draw_dsc->opa;
+ 183:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             const lv_draw_buf_t * draw_buf = glyph_draw_dsc->glyph_data;
+ 184:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_buf = draw_buf->data;
+ 185:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_area = &mask_area;
+ 186:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_stride = draw_buf->header.stride;
+ 187:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.blend_area = glyph_draw_dsc->letter_coords;
+ 188:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_res = LV_DRAW_SW_MASK_RES_CHANGED;
+ 189:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             lv_draw_sw_blend(t, &blend_dsc);
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s 			page 7
+
+
+ 190:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                         }
+ 191:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                     }
+ 192:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                     else {
+ 193:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                         glyph_draw_dsc->glyph_data = lv_font_get_glyph_bitmap(glyph_draw_dsc->g, gl
+ 155              		.loc 1 193 25 is_stmt 1 view .LVU28
+ 156              		.loc 1 193 54 is_stmt 0 view .LVU29
+ 157 0086 F16A     		ldr	r1, [r6, #44]
+ 158 0088 3069     		ldr	r0, [r6, #16]
+ 159 008a FFF7FEFF 		bl	lv_font_get_glyph_bitmap
+ 160              	.LVL9:
+ 161              		.loc 1 193 52 discriminator 1 view .LVU30
+ 162 008e 3060     		str	r0, [r6]
+ 194:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                         lv_draw_image_dsc_t img_dsc;
+ 163              		.loc 1 194 25 is_stmt 1 view .LVU31
+ 195:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                         lv_draw_image_dsc_init(&img_dsc);
+ 164              		.loc 1 195 25 view .LVU32
+ 165 0090 0DF11008 		add	r8, sp, #16
+ 166 0094 4046     		mov	r0, r8
+ 167 0096 FFF7FEFF 		bl	lv_draw_image_dsc_init
+ 168              	.LVL10:
+ 196:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                         img_dsc.rotation = glyph_draw_dsc->rotation;
+ 169              		.loc 1 196 25 view .LVU33
+ 170              		.loc 1 196 58 is_stmt 0 view .LVU34
+ 171 009a 336A     		ldr	r3, [r6, #32]
+ 172              		.loc 1 196 42 view .LVU35
+ 173 009c 1093     		str	r3, [sp, #64]
+ 197:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                         img_dsc.scale_x = LV_SCALE_NONE;
+ 174              		.loc 1 197 25 is_stmt 1 view .LVU36
+ 175              		.loc 1 197 41 is_stmt 0 view .LVU37
+ 176 009e 4FF48073 		mov	r3, #256
+ 177 00a2 1193     		str	r3, [sp, #68]
+ 198:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                         img_dsc.scale_y = LV_SCALE_NONE;
+ 178              		.loc 1 198 25 is_stmt 1 view .LVU38
+ 179              		.loc 1 198 41 is_stmt 0 view .LVU39
+ 180 00a4 1293     		str	r3, [sp, #72]
+ 199:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                         img_dsc.opa = glyph_draw_dsc->opa;
+ 181              		.loc 1 199 25 is_stmt 1 view .LVU40
+ 182              		.loc 1 199 53 is_stmt 0 view .LVU41
+ 183 00a6 F37D     		ldrb	r3, [r6, #23]	@ zero_extendqisi2
+ 184              		.loc 1 199 37 view .LVU42
+ 185 00a8 8DF86030 		strb	r3, [sp, #96]
+ 200:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                         img_dsc.src = glyph_draw_dsc->glyph_data;
+ 186              		.loc 1 200 25 is_stmt 1 view .LVU43
+ 187              		.loc 1 200 53 is_stmt 0 view .LVU44
+ 188 00ac 3368     		ldr	r3, [r6]
+ 189              		.loc 1 200 37 view .LVU45
+ 190 00ae 0B93     		str	r3, [sp, #44]
+ 201:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                         img_dsc.recolor = glyph_draw_dsc->color;
+ 191              		.loc 1 201 25 is_stmt 1 view .LVU46
+ 192              		.loc 1 201 41 is_stmt 0 view .LVU47
+ 193 00b0 7369     		ldr	r3, [r6, #20]
+ 194 00b2 ADF85C30 		strh	r3, [sp, #92]	@ movhi
+ 195 00b6 1B0C     		lsrs	r3, r3, #16
+ 196 00b8 8DF85E30 		strb	r3, [sp, #94]
+ 202:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                         img_dsc.pivot = (lv_point_t) {
+ 197              		.loc 1 202 25 is_stmt 1 view .LVU48
+ 203:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             .x = glyph_draw_dsc->pivot.x,
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s 			page 8
+
+
+ 198              		.loc 1 203 55 is_stmt 0 view .LVU49
+ 199 00bc 716A     		ldr	r1, [r6, #36]
+ 204:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             .y = glyph_draw_dsc->g->box_h + glyph_draw_dsc->g->ofs_y
+ 200              		.loc 1 204 48 view .LVU50
+ 201 00be 3269     		ldr	r2, [r6, #16]
+ 202              		.loc 1 204 51 view .LVU51
+ 203 00c0 1389     		ldrh	r3, [r2, #8]
+ 204              		.loc 1 204 78 view .LVU52
+ 205 00c2 B2F90C20 		ldrsh	r2, [r2, #12]
+ 206              		.loc 1 204 59 view .LVU53
+ 207 00c6 1344     		add	r3, r3, r2
+ 202:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                         img_dsc.pivot = (lv_point_t) {
+ 208              		.loc 1 202 39 view .LVU54
+ 209 00c8 1591     		str	r1, [sp, #84]
+ 210 00ca 1693     		str	r3, [sp, #88]
+ 205:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                         };
+ 206:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                         lv_draw_sw_image(t, &img_dsc, glyph_draw_dsc->letter_coords);
+ 211              		.loc 1 206 25 is_stmt 1 view .LVU55
+ 212 00cc B268     		ldr	r2, [r6, #8]
+ 213 00ce 4146     		mov	r1, r8
+ 214 00d0 3846     		mov	r0, r7
+ 215 00d2 FFF7FEFF 		bl	lv_draw_sw_image
+ 216              	.LVL11:
+ 217              	.L2:
+ 218              		.loc 1 206 25 is_stmt 0 view .LVU56
+ 219              	.LBE12:
+ 207:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                     }
+ 208:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                     break;
+ 209:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                 }
+ 210:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                 break;
+ 211:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #if LV_USE_FREETYPE && LV_USE_VECTOR_GRAPHIC && LV_USE_THORVG
+ 212:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****             case LV_FONT_GLYPH_FORMAT_VECTOR: {
+ 213:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                     draw_letter_outline(t, glyph_draw_dsc);
+ 214:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                 }
+ 215:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                 break;
+ 216:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** #endif
+ 217:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****             default:
+ 218:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                 break;
+ 219:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****         }
+ 220:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     }
+ 221:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 222:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     if(fill_draw_dsc && fill_area) {
+ 220              		.loc 1 222 5 is_stmt 1 view .LVU57
+ 221              		.loc 1 222 7 is_stmt 0 view .LVU58
+ 222 00d6 2CB1     		cbz	r4, .L1
+ 223              		.loc 1 222 22 discriminator 1 view .LVU59
+ 224 00d8 25B1     		cbz	r5, .L1
+ 223:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****         lv_draw_sw_fill(t, fill_draw_dsc, fill_area);
+ 225              		.loc 1 223 9 is_stmt 1 view .LVU60
+ 226 00da 2A46     		mov	r2, r5
+ 227 00dc 2146     		mov	r1, r4
+ 228 00de 3846     		mov	r0, r7
+ 229 00e0 FFF7FEFF 		bl	lv_draw_sw_fill
+ 230              	.LVL12:
+ 231              	.L1:
+ 224:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     }
+ 225:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** }
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s 			page 9
+
+
+ 232              		.loc 1 225 1 is_stmt 0 view .LVU61
+ 233 00e4 21B0     		add	sp, sp, #132
+ 234              	.LCFI2:
+ 235              		.cfi_remember_state
+ 236              		.cfi_def_cfa_offset 28
+ 237              		@ sp needed
+ 238 00e6 BDE8F083 		pop	{r4, r5, r6, r7, r8, r9, pc}
+ 239              	.LVL13:
+ 240              	.L14:
+ 241              	.LCFI3:
+ 242              		.cfi_restore_state
+ 243              	.LBB13:
+ 154:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 244              		.loc 1 154 25 is_stmt 1 view .LVU62
+ 154:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 245              		.loc 1 154 62 is_stmt 0 view .LVU63
+ 246 00ea B368     		ldr	r3, [r6, #8]
+ 154:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 247              		.loc 1 154 35 view .LVU64
+ 248 00ec 0FCB     		ldm	r3, {r0, r1, r2, r3}
+ 249 00ee 8DE80F00 		stm	sp, {r0, r1, r2, r3}
+ 156:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                            glyph_draw_dsc->g->format == LV_FONT_GLYPH_FORMAT_A8) {
+ 250              		.loc 1 156 25 is_stmt 1 view .LVU65
+ 156:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                            glyph_draw_dsc->g->format == LV_FONT_GLYPH_FORMAT_A8) {
+ 251              		.loc 1 156 68 is_stmt 0 view .LVU66
+ 252 00f2 3369     		ldr	r3, [r6, #16]
+ 156:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                            glyph_draw_dsc->g->format == LV_FONT_GLYPH_FORMAT_A8) {
+ 253              		.loc 1 156 28 view .LVU67
+ 254 00f4 1868     		ldr	r0, [r3]
+ 255 00f6 FFF7FEFF 		bl	lv_font_has_static_bitmap
+ 256              	.LVL14:
+ 156:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                            glyph_draw_dsc->g->format == LV_FONT_GLYPH_FORMAT_A8) {
+ 257              		.loc 1 156 27 discriminator 1 view .LVU68
+ 258 00fa 18B1     		cbz	r0, .L8
+ 157:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             glyph_draw_dsc->g->req_raw_bitmap = 1;
+ 259              		.loc 1 157 42 view .LVU69
+ 260 00fc 3369     		ldr	r3, [r6, #16]
+ 157:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             glyph_draw_dsc->g->req_raw_bitmap = 1;
+ 261              		.loc 1 157 45 view .LVU70
+ 262 00fe 1A7C     		ldrb	r2, [r3, #16]	@ zero_extendqisi2
+ 156:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                            glyph_draw_dsc->g->format == LV_FONT_GLYPH_FORMAT_A8) {
+ 263              		.loc 1 156 88 discriminator 1 view .LVU71
+ 264 0100 082A     		cmp	r2, #8
+ 265 0102 33D0     		beq	.L15
+ 266              	.L8:
+ 267              	.LBB14:
+ 172:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             if(glyph_draw_dsc->glyph_data == NULL) {
+ 268              		.loc 1 172 29 is_stmt 1 view .LVU72
+ 172:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             if(glyph_draw_dsc->glyph_data == NULL) {
+ 269              		.loc 1 172 58 is_stmt 0 view .LVU73
+ 270 0104 F16A     		ldr	r1, [r6, #44]
+ 271 0106 3069     		ldr	r0, [r6, #16]
+ 272 0108 FFF7FEFF 		bl	lv_font_get_glyph_bitmap
+ 273              	.LVL15:
+ 172:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             if(glyph_draw_dsc->glyph_data == NULL) {
+ 274              		.loc 1 172 56 discriminator 1 view .LVU74
+ 275 010c 3060     		str	r0, [r6]
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s 			page 10
+
+
+ 173:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                                 LV_LOG_WARN("Couldn't get the bitmap of a glyph");
+ 276              		.loc 1 173 29 is_stmt 1 view .LVU75
+ 173:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                                 LV_LOG_WARN("Couldn't get the bitmap of a glyph");
+ 277              		.loc 1 173 31 is_stmt 0 view .LVU76
+ 278 010e 0028     		cmp	r0, #0
+ 279 0110 E1D0     		beq	.L2
+ 178:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             lv_draw_sw_blend_dsc_t blend_dsc;
+ 280              		.loc 1 178 29 is_stmt 1 view .LVU77
+ 178:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             lv_draw_sw_blend_dsc_t blend_dsc;
+ 281              		.loc 1 178 53 is_stmt 0 view .LVU78
+ 282 0112 DDF80080 		ldr	r8, [sp]
+ 178:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             lv_draw_sw_blend_dsc_t blend_dsc;
+ 283              		.loc 1 178 87 view .LVU79
+ 284 0116 6846     		mov	r0, sp
+ 285 0118 FFF7FEFF 		bl	lv_area_get_width
+ 286              	.LVL16:
+ 178:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             lv_draw_sw_blend_dsc_t blend_dsc;
+ 287              		.loc 1 178 59 discriminator 1 view .LVU80
+ 288 011c 0E21     		movs	r1, #14
+ 289 011e FFF7FEFF 		bl	lv_draw_buf_width_to_stride
+ 290              	.LVL17:
+ 178:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             lv_draw_sw_blend_dsc_t blend_dsc;
+ 291              		.loc 1 178 57 discriminator 2 view .LVU81
+ 292 0122 8044     		add	r8, r8, r0
+ 178:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             lv_draw_sw_blend_dsc_t blend_dsc;
+ 293              		.loc 1 178 138 discriminator 2 view .LVU82
+ 294 0124 08F1FF33 		add	r3, r8, #-1
+ 178:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             lv_draw_sw_blend_dsc_t blend_dsc;
+ 295              		.loc 1 178 42 discriminator 2 view .LVU83
+ 296 0128 0293     		str	r3, [sp, #8]
+ 179:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             lv_memzero(&blend_dsc, sizeof(blend_dsc));
+ 297              		.loc 1 179 29 is_stmt 1 view .LVU84
+ 180:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.color = glyph_draw_dsc->color;
+ 298              		.loc 1 180 29 view .LVU85
+ 299              	.LVL18:
+ 300              	.LBB15:
+ 301              	.LBI15:
+ 302              		.file 2 "Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h"
+   1:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** /**
+   2:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @file lv_string.h
+   3:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  *
+   4:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  */
+   5:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** 
+   6:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** #ifndef LV_STRING_H
+   7:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** #define LV_STRING_H
+   8:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** 
+   9:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** #ifdef __cplusplus
+  10:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** extern "C" {
+  11:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** #endif
+  12:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** 
+  13:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** /*********************
+  14:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  *      INCLUDES
+  15:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  *********************/
+  16:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** #include "../lv_conf_internal.h"
+  17:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** #include "../misc/lv_types.h"
+  18:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** 
+  19:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** /*********************
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s 			page 11
+
+
+  20:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  *      DEFINES
+  21:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  *********************/
+  22:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** 
+  23:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** /**********************
+  24:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  *      TYPEDEFS
+  25:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  **********************/
+  26:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** 
+  27:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** /**********************
+  28:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * GLOBAL PROTOTYPES
+  29:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  **********************/
+  30:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** 
+  31:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** /**
+  32:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @brief Copies a block of memory from a source address to a destination address.
+  33:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @param dst Pointer to the destination array where the content is to be copied.
+  34:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @param src Pointer to the source of data to be copied.
+  35:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @param len Number of bytes to copy.
+  36:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @return Pointer to the destination array.
+  37:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @note The function does not check for any overlapping of the source and destination memory block
+  38:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  */
+  39:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** void * lv_memcpy(void * dst, const void * src, size_t len);
+  40:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** 
+  41:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** /**
+  42:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @brief Fills a block of memory with a specified value.
+  43:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @param dst Pointer to the destination array to fill with the specified value.
+  44:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @param v Value to be set. The value is passed as an int, but the function fills
+  45:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  *          the block of memory using the unsigned char conversion of this value.
+  46:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @param len Number of bytes to be set to the value.
+  47:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  */
+  48:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** void lv_memset(void * dst, uint8_t v, size_t len);
+  49:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** 
+  50:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** /**
+  51:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @brief Move a block of memory from source to destination
+  52:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @param dst Pointer to the destination array where the content is to be copied.
+  53:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @param src Pointer to the source of data to be copied.
+  54:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @param len Number of bytes to copy
+  55:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @return Pointer to the destination array.
+  56:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  */
+  57:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** void * lv_memmove(void * dst, const void * src, size_t len);
+  58:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** 
+  59:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** /**
+  60:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @brief This function will compare two memory blocks
+  61:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @param p1 Pointer to the first memory block
+  62:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @param p2 Pointer to the second memory block
+  63:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @param len Number of bytes to compare
+  64:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @return The difference between the value of the first unmatching byte.
+  65:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  */
+  66:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** int lv_memcmp(const void * p1, const void * p2, size_t len);
+  67:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** 
+  68:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** /**
+  69:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * Same as `memset(dst, 0x00, len)`.
+  70:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @param dst pointer to the destination buffer
+  71:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  * @param len number of byte to set
+  72:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****  */
+  73:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** static inline void lv_memzero(void * dst, size_t len)
+ 303              		.loc 2 73 20 view .LVU86
+ 304              	.LBB16:
+  74:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** {
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s 			page 12
+
+
+  75:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h ****     lv_memset(dst, 0x00, len);
+ 305              		.loc 2 75 5 view .LVU87
+ 306 012a 0DF11008 		add	r8, sp, #16
+ 307              	.LVL19:
+ 308              		.loc 2 75 5 is_stmt 0 view .LVU88
+ 309 012e 2C22     		movs	r2, #44
+ 310 0130 0021     		movs	r1, #0
+ 311 0132 4046     		mov	r0, r8
+ 312 0134 FFF7FEFF 		bl	lv_memset
+ 313              	.LVL20:
+ 314              		.loc 2 75 5 view .LVU89
+ 315              	.LBE16:
+ 316              	.LBE15:
+ 181:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.opa = glyph_draw_dsc->opa;
+ 317              		.loc 1 181 29 is_stmt 1 view .LVU90
+ 181:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.opa = glyph_draw_dsc->opa;
+ 318              		.loc 1 181 45 is_stmt 0 view .LVU91
+ 319 0138 B28A     		ldrh	r2, [r6, #20]	@ unaligned
+ 320 013a B37D     		ldrb	r3, [r6, #22]	@ zero_extendqisi2
+ 321 013c ADF82520 		strh	r2, [sp, #37]	@ unaligned
+ 322 0140 8DF82730 		strb	r3, [sp, #39]
+ 182:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             const lv_draw_buf_t * draw_buf = glyph_draw_dsc->glyph_data;
+ 323              		.loc 1 182 29 is_stmt 1 view .LVU92
+ 182:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             const lv_draw_buf_t * draw_buf = glyph_draw_dsc->glyph_data;
+ 324              		.loc 1 182 59 is_stmt 0 view .LVU93
+ 325 0144 F37D     		ldrb	r3, [r6, #23]	@ zero_extendqisi2
+ 182:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             const lv_draw_buf_t * draw_buf = glyph_draw_dsc->glyph_data;
+ 326              		.loc 1 182 43 view .LVU94
+ 327 0146 8DF82430 		strb	r3, [sp, #36]
+ 183:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_buf = draw_buf->data;
+ 328              		.loc 1 183 29 is_stmt 1 view .LVU95
+ 183:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_buf = draw_buf->data;
+ 329              		.loc 1 183 51 is_stmt 0 view .LVU96
+ 330 014a 3368     		ldr	r3, [r6]
+ 331              	.LVL21:
+ 184:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_area = &mask_area;
+ 332              		.loc 1 184 29 is_stmt 1 view .LVU97
+ 184:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_area = &mask_area;
+ 333              		.loc 1 184 58 is_stmt 0 view .LVU98
+ 334 014c 1A69     		ldr	r2, [r3, #16]
+ 184:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_area = &mask_area;
+ 335              		.loc 1 184 48 view .LVU99
+ 336 014e 0A92     		str	r2, [sp, #40]
+ 185:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_stride = draw_buf->header.stride;
+ 337              		.loc 1 185 29 is_stmt 1 view .LVU100
+ 185:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_stride = draw_buf->header.stride;
+ 338              		.loc 1 185 49 is_stmt 0 view .LVU101
+ 339 0150 CDF830D0 		str	sp, [sp, #48]
+ 186:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.blend_area = glyph_draw_dsc->letter_coords;
+ 340              		.loc 1 186 29 is_stmt 1 view .LVU102
+ 186:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.blend_area = glyph_draw_dsc->letter_coords;
+ 341              		.loc 1 186 69 is_stmt 0 view .LVU103
+ 342 0154 1B89     		ldrh	r3, [r3, #8]
+ 343              	.LVL22:
+ 186:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.blend_area = glyph_draw_dsc->letter_coords;
+ 344              		.loc 1 186 51 view .LVU104
+ 345 0156 0D93     		str	r3, [sp, #52]
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s 			page 13
+
+
+ 187:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_res = LV_DRAW_SW_MASK_RES_CHANGED;
+ 346              		.loc 1 187 29 is_stmt 1 view .LVU105
+ 187:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_res = LV_DRAW_SW_MASK_RES_CHANGED;
+ 347              		.loc 1 187 66 is_stmt 0 view .LVU106
+ 348 0158 B368     		ldr	r3, [r6, #8]
+ 187:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_res = LV_DRAW_SW_MASK_RES_CHANGED;
+ 349              		.loc 1 187 50 view .LVU107
+ 350 015a 0493     		str	r3, [sp, #16]
+ 188:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             lv_draw_sw_blend(t, &blend_dsc);
+ 351              		.loc 1 188 29 is_stmt 1 view .LVU108
+ 188:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             lv_draw_sw_blend(t, &blend_dsc);
+ 352              		.loc 1 188 48 is_stmt 0 view .LVU109
+ 353 015c 0223     		movs	r3, #2
+ 354 015e 8DF82C30 		strb	r3, [sp, #44]
+ 189:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                         }
+ 355              		.loc 1 189 29 is_stmt 1 view .LVU110
+ 356 0162 4146     		mov	r1, r8
+ 357 0164 3846     		mov	r0, r7
+ 358 0166 FFF7FEFF 		bl	lv_draw_sw_blend
+ 359              	.LVL23:
+ 360 016a B4E7     		b	.L2
+ 361              	.LVL24:
+ 362              	.L15:
+ 189:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                         }
+ 363              		.loc 1 189 29 is_stmt 0 view .LVU111
+ 364              	.LBE14:
+ 365              	.LBB17:
+ 158:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             const void * bitmap = lv_font_get_glyph_static_bitmap(glyph_draw_dsc->g
+ 366              		.loc 1 158 29 is_stmt 1 view .LVU112
+ 158:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             const void * bitmap = lv_font_get_glyph_static_bitmap(glyph_draw_dsc->g
+ 367              		.loc 1 158 63 is_stmt 0 view .LVU113
+ 368 016c 5A7C     		ldrb	r2, [r3, #17]	@ zero_extendqisi2
+ 369 016e 42F00202 		orr	r2, r2, #2
+ 370 0172 5A74     		strb	r2, [r3, #17]
+ 159:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             lv_draw_sw_blend_dsc_t blend_dsc;
+ 371              		.loc 1 159 29 is_stmt 1 view .LVU114
+ 159:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             lv_draw_sw_blend_dsc_t blend_dsc;
+ 372              		.loc 1 159 51 is_stmt 0 view .LVU115
+ 373 0174 3069     		ldr	r0, [r6, #16]
+ 374 0176 FFF7FEFF 		bl	lv_font_get_glyph_static_bitmap
+ 375              	.LVL25:
+ 376 017a 8046     		mov	r8, r0
+ 377              	.LVL26:
+ 160:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             lv_memzero(&blend_dsc, sizeof(blend_dsc));
+ 378              		.loc 1 160 29 is_stmt 1 view .LVU116
+ 161:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.color = glyph_draw_dsc->color;
+ 379              		.loc 1 161 29 view .LVU117
+ 380              	.LBB18:
+ 381              	.LBI18:
+  73:Drivers/lvgl/src/draw/sw/blend/../../../misc/../stdlib/lv_string.h **** {
+ 382              		.loc 2 73 20 view .LVU118
+ 383              	.LBB19:
+ 384              		.loc 2 75 5 view .LVU119
+ 385 017c 0DF11009 		add	r9, sp, #16
+ 386              	.LVL27:
+ 387              		.loc 2 75 5 is_stmt 0 view .LVU120
+ 388 0180 2C22     		movs	r2, #44
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s 			page 14
+
+
+ 389 0182 0021     		movs	r1, #0
+ 390 0184 4846     		mov	r0, r9
+ 391              	.LVL28:
+ 392              		.loc 2 75 5 view .LVU121
+ 393 0186 FFF7FEFF 		bl	lv_memset
+ 394              	.LVL29:
+ 395              		.loc 2 75 5 view .LVU122
+ 396              	.LBE19:
+ 397              	.LBE18:
+ 162:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.opa = glyph_draw_dsc->opa;
+ 398              		.loc 1 162 29 is_stmt 1 view .LVU123
+ 162:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.opa = glyph_draw_dsc->opa;
+ 399              		.loc 1 162 45 is_stmt 0 view .LVU124
+ 400 018a B28A     		ldrh	r2, [r6, #20]	@ unaligned
+ 401 018c B37D     		ldrb	r3, [r6, #22]	@ zero_extendqisi2
+ 402 018e ADF82520 		strh	r2, [sp, #37]	@ unaligned
+ 403 0192 8DF82730 		strb	r3, [sp, #39]
+ 163:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_buf = bitmap;
+ 404              		.loc 1 163 29 is_stmt 1 view .LVU125
+ 163:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_buf = bitmap;
+ 405              		.loc 1 163 59 is_stmt 0 view .LVU126
+ 406 0196 F37D     		ldrb	r3, [r6, #23]	@ zero_extendqisi2
+ 163:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_buf = bitmap;
+ 407              		.loc 1 163 43 view .LVU127
+ 408 0198 8DF82430 		strb	r3, [sp, #36]
+ 164:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_area = &mask_area;
+ 409              		.loc 1 164 29 is_stmt 1 view .LVU128
+ 164:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_area = &mask_area;
+ 410              		.loc 1 164 48 is_stmt 0 view .LVU129
+ 411 019c CDF82880 		str	r8, [sp, #40]
+ 165:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_stride = glyph_draw_dsc->g->stride;
+ 412              		.loc 1 165 29 is_stmt 1 view .LVU130
+ 165:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_stride = glyph_draw_dsc->g->stride;
+ 413              		.loc 1 165 49 is_stmt 0 view .LVU131
+ 414 01a0 CDF830D0 		str	sp, [sp, #48]
+ 166:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.blend_area = glyph_draw_dsc->letter_coords;
+ 415              		.loc 1 166 29 is_stmt 1 view .LVU132
+ 166:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.blend_area = glyph_draw_dsc->letter_coords;
+ 416              		.loc 1 166 67 is_stmt 0 view .LVU133
+ 417 01a4 3369     		ldr	r3, [r6, #16]
+ 166:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.blend_area = glyph_draw_dsc->letter_coords;
+ 418              		.loc 1 166 70 view .LVU134
+ 419 01a6 DB89     		ldrh	r3, [r3, #14]
+ 166:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.blend_area = glyph_draw_dsc->letter_coords;
+ 420              		.loc 1 166 51 view .LVU135
+ 421 01a8 0D93     		str	r3, [sp, #52]
+ 167:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_res = LV_DRAW_SW_MASK_RES_CHANGED;
+ 422              		.loc 1 167 29 is_stmt 1 view .LVU136
+ 167:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_res = LV_DRAW_SW_MASK_RES_CHANGED;
+ 423              		.loc 1 167 66 is_stmt 0 view .LVU137
+ 424 01aa B368     		ldr	r3, [r6, #8]
+ 167:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             blend_dsc.mask_res = LV_DRAW_SW_MASK_RES_CHANGED;
+ 425              		.loc 1 167 50 view .LVU138
+ 426 01ac 0493     		str	r3, [sp, #16]
+ 168:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             lv_draw_sw_blend(t, &blend_dsc);
+ 427              		.loc 1 168 29 is_stmt 1 view .LVU139
+ 168:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             lv_draw_sw_blend(t, &blend_dsc);
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s 			page 15
+
+
+ 428              		.loc 1 168 48 is_stmt 0 view .LVU140
+ 429 01ae 0223     		movs	r3, #2
+ 430 01b0 8DF82C30 		strb	r3, [sp, #44]
+ 169:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                         }
+ 431              		.loc 1 169 29 is_stmt 1 view .LVU141
+ 432 01b4 4946     		mov	r1, r9
+ 433 01b6 3846     		mov	r0, r7
+ 434 01b8 FFF7FEFF 		bl	lv_draw_sw_blend
+ 435              	.LVL30:
+ 436              	.LBE17:
+ 157:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****                             glyph_draw_dsc->g->req_raw_bitmap = 1;
+ 437              		.loc 1 157 82 is_stmt 0 view .LVU142
+ 438 01bc 8BE7     		b	.L2
+ 439              	.L17:
+ 440 01be 00BF     		.align	2
+ 441              	.L16:
+ 442 01c0 C5B3A291 		.word	-1851608123
+ 443              	.LBE13:
+ 444              		.cfi_endproc
+ 445              	.LFE195:
+ 447              		.section	.text.lv_draw_sw_letter,"ax",%progbits
+ 448              		.align	1
+ 449              		.global	lv_draw_sw_letter
+ 450              		.syntax unified
+ 451              		.thumb
+ 452              		.thumb_func
+ 454              	lv_draw_sw_letter:
+ 455              	.LVL31:
+ 456              	.LFB193:
+  80:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     if(dsc->opa <= LV_OPA_MIN)
+ 457              		.loc 1 80 1 is_stmt 1 view -0
+ 458              		.cfi_startproc
+ 459              		@ args = 0, pretend = 0, frame = 56
+ 460              		@ frame_needed = 0, uses_anonymous_args = 0
+  81:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****         return;
+ 461              		.loc 1 81 5 view .LVU144
+  81:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****         return;
+ 462              		.loc 1 81 11 is_stmt 0 view .LVU145
+ 463 0000 91F84430 		ldrb	r3, [r1, #68]	@ zero_extendqisi2
+  81:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****         return;
+ 464              		.loc 1 81 7 view .LVU146
+ 465 0004 022B     		cmp	r3, #2
+ 466 0006 00D8     		bhi	.L26
+ 467 0008 7047     		bx	lr
+ 468              	.L26:
+  80:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     if(dsc->opa <= LV_OPA_MIN)
+ 469              		.loc 1 80 1 view .LVU147
+ 470 000a F0B5     		push	{r4, r5, r6, r7, lr}
+ 471              	.LCFI4:
+ 472              		.cfi_def_cfa_offset 20
+ 473              		.cfi_offset 4, -20
+ 474              		.cfi_offset 5, -16
+ 475              		.cfi_offset 6, -12
+ 476              		.cfi_offset 7, -8
+ 477              		.cfi_offset 14, -4
+ 478 000c 91B0     		sub	sp, sp, #68
+ 479              	.LCFI5:
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s 			page 16
+
+
+ 480              		.cfi_def_cfa_offset 88
+ 481 000e 0646     		mov	r6, r0
+ 482 0010 0C46     		mov	r4, r1
+ 483 0012 1546     		mov	r5, r2
+  84:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 484              		.loc 1 84 27 is_stmt 1 view .LVU148
+  86:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     lv_draw_glyph_dsc_init(&glyph_dsc);
+ 485              		.loc 1 86 5 view .LVU149
+  87:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     glyph_dsc.opa = dsc->opa;
+ 486              		.loc 1 87 5 view .LVU150
+ 487 0014 02AF     		add	r7, sp, #8
+ 488 0016 3846     		mov	r0, r7
+ 489              	.LVL32:
+  87:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     glyph_dsc.opa = dsc->opa;
+ 490              		.loc 1 87 5 is_stmt 0 view .LVU151
+ 491 0018 FFF7FEFF 		bl	lv_draw_glyph_dsc_init
+ 492              	.LVL33:
+  88:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     glyph_dsc.bg_coords = NULL;
+ 493              		.loc 1 88 5 is_stmt 1 view .LVU152
+  88:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     glyph_dsc.bg_coords = NULL;
+ 494              		.loc 1 88 24 is_stmt 0 view .LVU153
+ 495 001c 94F84430 		ldrb	r3, [r4, #68]	@ zero_extendqisi2
+  88:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     glyph_dsc.bg_coords = NULL;
+ 496              		.loc 1 88 19 view .LVU154
+ 497 0020 8DF81F30 		strb	r3, [sp, #31]
+  89:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     glyph_dsc.color = dsc->color;
+ 498              		.loc 1 89 5 is_stmt 1 view .LVU155
+  89:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     glyph_dsc.color = dsc->color;
+ 499              		.loc 1 89 25 is_stmt 0 view .LVU156
+ 500 0024 0023     		movs	r3, #0
+ 501 0026 0593     		str	r3, [sp, #20]
+  90:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     glyph_dsc.rotation = dsc->rotation;
+ 502              		.loc 1 90 5 is_stmt 1 view .LVU157
+  90:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     glyph_dsc.rotation = dsc->rotation;
+ 503              		.loc 1 90 21 is_stmt 0 view .LVU158
+ 504 0028 636A     		ldr	r3, [r4, #36]
+ 505 002a ADF81C30 		strh	r3, [sp, #28]	@ movhi
+ 506 002e 1B0C     		lsrs	r3, r3, #16
+ 507 0030 8DF81E30 		strb	r3, [sp, #30]
+  91:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     glyph_dsc.pivot = dsc->pivot;
+ 508              		.loc 1 91 5 is_stmt 1 view .LVU159
+  91:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     glyph_dsc.pivot = dsc->pivot;
+ 509              		.loc 1 91 29 is_stmt 0 view .LVU160
+ 510 0034 A36A     		ldr	r3, [r4, #40]
+  91:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     glyph_dsc.pivot = dsc->pivot;
+ 511              		.loc 1 91 24 view .LVU161
+ 512 0036 0A93     		str	r3, [sp, #40]
+  92:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 513              		.loc 1 92 5 is_stmt 1 view .LVU162
+  92:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 514              		.loc 1 92 21 is_stmt 0 view .LVU163
+ 515 0038 0BAB     		add	r3, sp, #44
+ 516 003a 04F13C02 		add	r2, r4, #60
+ 517 003e 92E80300 		ldm	r2, {r0, r1}
+ 518 0042 83E80300 		stm	r3, {r0, r1}
+  94:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****         .x = coords->x1, .y = coords->y1
+ 519              		.loc 1 94 5 is_stmt 1 view .LVU164
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s 			page 17
+
+
+  95:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     },
+ 520              		.loc 1 95 20 is_stmt 0 view .LVU165
+ 521 0046 2B68     		ldr	r3, [r5]
+  94:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****         .x = coords->x1, .y = coords->y1
+ 522              		.loc 1 94 59 view .LVU166
+ 523 0048 0E93     		str	r3, [sp, #56]
+  95:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     },
+ 524              		.loc 1 95 37 view .LVU167
+ 525 004a 6B68     		ldr	r3, [r5, #4]
+  94:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****         .x = coords->x1, .y = coords->y1
+ 526              		.loc 1 94 59 view .LVU168
+ 527 004c 0F93     		str	r3, [sp, #60]
+  97:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 528              		.loc 1 97 19 view .LVU169
+ 529 004e E369     		ldr	r3, [r4, #28]
+  94:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****         .x = coords->x1, .y = coords->y1
+ 530              		.loc 1 94 5 view .LVU170
+ 531 0050 084A     		ldr	r2, .L27
+ 532 0052 0192     		str	r2, [sp, #4]
+ 533 0054 0093     		str	r3, [sp]
+ 534 0056 236A     		ldr	r3, [r4, #32]
+ 535 0058 0EAA     		add	r2, sp, #56
+ 536 005a 3946     		mov	r1, r7
+ 537 005c 3046     		mov	r0, r6
+ 538 005e FFF7FEFF 		bl	lv_draw_unit_draw_letter
+ 539              	.LVL34:
+  99:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****         lv_draw_buf_destroy(glyph_dsc._draw_buf);
+ 540              		.loc 1 99 5 is_stmt 1 view .LVU171
+  99:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****         lv_draw_buf_destroy(glyph_dsc._draw_buf);
+ 541              		.loc 1 99 17 is_stmt 0 view .LVU172
+ 542 0062 0D98     		ldr	r0, [sp, #52]
+  99:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****         lv_draw_buf_destroy(glyph_dsc._draw_buf);
+ 543              		.loc 1 99 7 view .LVU173
+ 544 0064 18B1     		cbz	r0, .L18
+ 100:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****         glyph_dsc._draw_buf = NULL;
+ 545              		.loc 1 100 9 is_stmt 1 view .LVU174
+ 546 0066 FFF7FEFF 		bl	lv_draw_buf_destroy
+ 547              	.LVL35:
+ 101:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     }
+ 548              		.loc 1 101 9 view .LVU175
+ 101:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     }
+ 549              		.loc 1 101 29 is_stmt 0 view .LVU176
+ 550 006a 0023     		movs	r3, #0
+ 551 006c 0D93     		str	r3, [sp, #52]
+ 104:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** }
+ 552              		.loc 1 104 25 is_stmt 1 view .LVU177
+ 553              	.L18:
+ 105:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 554              		.loc 1 105 1 is_stmt 0 view .LVU178
+ 555 006e 11B0     		add	sp, sp, #68
+ 556              	.LCFI6:
+ 557              		.cfi_def_cfa_offset 20
+ 558              		@ sp needed
+ 559 0070 F0BD     		pop	{r4, r5, r6, r7, pc}
+ 560              	.LVL36:
+ 561              	.L28:
+ 105:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s 			page 18
+
+
+ 562              		.loc 1 105 1 view .LVU179
+ 563 0072 00BF     		.align	2
+ 564              	.L27:
+ 565 0074 00000000 		.word	draw_letter_cb
+ 566              		.cfi_endproc
+ 567              	.LFE193:
+ 569              		.section	.text.lv_draw_sw_label,"ax",%progbits
+ 570              		.align	1
+ 571              		.global	lv_draw_sw_label
+ 572              		.syntax unified
+ 573              		.thumb
+ 574              		.thumb_func
+ 576              	lv_draw_sw_label:
+ 577              	.LVL37:
+ 578              	.LFB194:
+ 108:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     if(dsc->opa <= LV_OPA_MIN) return;
+ 579              		.loc 1 108 1 is_stmt 1 view -0
+ 580              		.cfi_startproc
+ 581              		@ args = 0, pretend = 0, frame = 0
+ 582              		@ frame_needed = 0, uses_anonymous_args = 0
+ 108:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     if(dsc->opa <= LV_OPA_MIN) return;
+ 583              		.loc 1 108 1 is_stmt 0 view .LVU181
+ 584 0000 08B5     		push	{r3, lr}
+ 585              	.LCFI7:
+ 586              		.cfi_def_cfa_offset 8
+ 587              		.cfi_offset 3, -8
+ 588              		.cfi_offset 14, -4
+ 109:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 589              		.loc 1 109 5 is_stmt 1 view .LVU182
+ 109:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 590              		.loc 1 109 11 is_stmt 0 view .LVU183
+ 591 0002 91F85A30 		ldrb	r3, [r1, #90]	@ zero_extendqisi2
+ 109:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 592              		.loc 1 109 7 view .LVU184
+ 593 0006 022B     		cmp	r3, #2
+ 594 0008 00D8     		bhi	.L32
+ 595              	.LVL38:
+ 596              	.L29:
+ 123:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 597              		.loc 1 123 1 view .LVU185
+ 598 000a 08BD     		pop	{r3, pc}
+ 599              	.LVL39:
+ 600              	.L32:
+ 111:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** 
+ 601              		.loc 1 111 27 is_stmt 1 view .LVU186
+ 121:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c ****     LV_PROFILER_DRAW_END;
+ 602              		.loc 1 121 5 view .LVU187
+ 603 000c 014B     		ldr	r3, .L33
+ 604 000e FFF7FEFF 		bl	lv_draw_label_iterate_characters
+ 605              	.LVL40:
+ 122:Drivers/lvgl/src/draw/sw/lv_draw_sw_letter.c **** }
+ 606              		.loc 1 122 25 view .LVU188
+ 607 0012 FAE7     		b	.L29
+ 608              	.L34:
+ 609              		.align	2
+ 610              	.L33:
+ 611 0014 00000000 		.word	draw_letter_cb
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s 			page 19
+
+
+ 612              		.cfi_endproc
+ 613              	.LFE194:
+ 615              		.text
+ 616              	.Letext0:
+ 617              		.file 3 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/arm-none-eabi/include/machine/_defa
+ 618              		.file 4 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/arm-none-eabi/include/sys/_stdint.h
+ 619              		.file 5 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/lib/gcc/arm-none-eabi/14.3.1/includ
+ 620              		.file 6 "Drivers/lvgl/src/draw/sw/blend/../../../misc/lv_types.h"
+ 621              		.file 7 "Drivers/lvgl/src/draw/sw/../lv_draw.h"
+ 622              		.file 8 "Drivers/lvgl/src/draw/sw/../../draw/lv_draw_private.h"
+ 623              		.file 9 "Drivers/lvgl/src/draw/sw/blend/../../../misc/../font/lv_font.h"
+ 624              		.file 10 "Drivers/lvgl/src/draw/sw/../lv_draw_image.h"
+ 625              		.file 11 "Drivers/lvgl/src/draw/sw/../lv_draw_label_private.h"
+ 626              		.file 12 "Drivers/lvgl/src/draw/sw/blend/lv_draw_sw_blend_private.h"
+ 627              		.file 13 "Drivers/lvgl/src/draw/sw/blend/../../../misc/../font/../draw/lv_draw_buf.h"
+ 628              		.file 14 "Drivers/lvgl/src/draw/sw/blend/../../../misc/lv_area.h"
+ 629              		.file 15 "Drivers/lvgl/src/draw/sw/blend/../../../misc/lv_color.h"
+ 630              		.file 16 "Drivers/lvgl/src/draw/sw/blend/../lv_draw_sw_mask.h"
+ 631              		.file 17 "Drivers/lvgl/src/draw/sw/blend/../../../misc/../font/../draw/lv_image_dsc.h"
+ 632              		.file 18 "Drivers/lvgl/src/draw/sw/blend/../../../misc/lv_text.h"
+ 633              		.file 19 "Drivers/lvgl/src/draw/sw/blend/../../../misc/lv_bidi.h"
+ 634              		.file 20 "Drivers/lvgl/src/draw/sw/blend/../../../misc/lv_grad.h"
+ 635              		.file 21 "Drivers/lvgl/src/draw/sw/blend/../../../misc/lv_style.h"
+ 636              		.file 22 "Drivers/lvgl/src/draw/sw/../lv_draw_rect.h"
+ 637              		.file 23 "Drivers/lvgl/src/draw/sw/../lv_draw_label.h"
+ 638              		.file 24 "Drivers/lvgl/src/draw/sw/lv_draw_sw.h"
+ 639              		.file 25 "Drivers/lvgl/src/draw/sw/blend/lv_draw_sw_blend.h"
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s 			page 20
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 lv_draw_sw_letter.c
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s:21     .text.draw_letter_cb:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s:26     .text.draw_letter_cb:00000000 draw_letter_cb
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s:65     .text.draw_letter_cb:0000001c $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s:91     .text.draw_letter_cb:00000036 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s:442    .text.draw_letter_cb:000001c0 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s:448    .text.lv_draw_sw_letter:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s:454    .text.lv_draw_sw_letter:00000000 lv_draw_sw_letter
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s:565    .text.lv_draw_sw_letter:00000074 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s:570    .text.lv_draw_sw_label:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s:576    .text.lv_draw_sw_label:00000000 lv_draw_sw_label
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cchtmDGJ.s:611    .text.lv_draw_sw_label:00000014 $d
+
+UNDEFINED SYMBOLS
+lv_draw_border_dsc_init
+lv_draw_sw_border
+lv_font_get_glyph_bitmap
+lv_draw_image_dsc_init
+lv_draw_sw_image
+lv_draw_sw_fill
+lv_font_has_static_bitmap
+lv_area_get_width
+lv_draw_buf_width_to_stride
+lv_memset
+lv_draw_sw_blend
+lv_font_get_glyph_static_bitmap
+lv_draw_glyph_dsc_init
+lv_draw_unit_draw_letter
+lv_draw_buf_destroy
+lv_draw_label_iterate_characters

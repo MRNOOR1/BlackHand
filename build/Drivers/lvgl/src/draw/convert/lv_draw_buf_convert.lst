@@ -1,0 +1,743 @@
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccfAZAIC.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"lv_draw_buf_convert.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c"
+  20              		.section	.text.lv_draw_buf_convert_premultiply,"ax",%progbits
+  21              		.align	1
+  22              		.global	lv_draw_buf_convert_premultiply
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	lv_draw_buf_convert_premultiply:
+  28              	.LVL0:
+  29              	.LFB10:
+   1:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** /**
+   2:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****  * @file lv_draw_buf_convert.c
+   3:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****  *
+   4:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****  */
+   5:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** 
+   6:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** /*********************
+   7:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****  *      INCLUDES
+   8:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****  *********************/
+   9:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** #include "lv_draw_buf_convert.h"
+  10:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** #include "../../misc/lv_profiler.h"
+  11:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** 
+  12:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** #if LV_USE_DRAW_SW_ASM == LV_DRAW_SW_ASM_NEON
+  13:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     #include "neon/lv_draw_buf_convert_neon.h"
+  14:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** #elif LV_USE_DRAW_SW_ASM == LV_DRAW_SW_ASM_HELIUM
+  15:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     #include "helium/lv_draw_buf_convert_helium.h"
+  16:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** #elif LV_USE_DRAW_SW_ASM == LV_DRAW_SW_ASM_CUSTOM
+  17:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     #include LV_DRAW_SW_ASM_CUSTOM_INCLUDE
+  18:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** #endif
+  19:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** 
+  20:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** /*********************
+  21:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****  *      DEFINES
+  22:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****  *********************/
+  23:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** 
+  24:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** /**********************
+  25:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****  *  STATIC PROTOTYPES
+  26:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****  **********************/
+  27:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** 
+  28:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** /**********************
+  29:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****  *   STATIC FUNCTIONS
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccfAZAIC.s 			page 2
+
+
+  30:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****  **********************/
+  31:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** 
+  32:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** /**********************
+  33:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****  *      MACROS
+  34:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****  **********************/
+  35:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** 
+  36:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** #ifndef LV_DRAW_CONVERT_PREMULTIPLY_INDEXED
+  37:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     #define LV_DRAW_CONVERT_PREMULTIPLY_INDEXED(...)                         LV_RESULT_INVALID
+  38:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** #endif
+  39:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** 
+  40:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** #ifndef LV_DRAW_CONVERT_PREMULTIPLY_ARGB8888
+  41:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     #define LV_DRAW_CONVERT_PREMULTIPLY_ARGB8888(...)                         LV_RESULT_INVALID
+  42:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** #endif
+  43:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** 
+  44:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** #ifndef LV_DRAW_CONVERT_PREMULTIPLY_RGB565A8
+  45:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     #define LV_DRAW_CONVERT_PREMULTIPLY_RGB565A8(...)                         LV_RESULT_INVALID
+  46:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** #endif
+  47:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** 
+  48:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** #ifndef LV_DRAW_CONVERT_PREMULTIPLY_ARGB8565
+  49:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     #define LV_DRAW_CONVERT_PREMULTIPLY_ARGB8565(...)                         LV_RESULT_INVALID
+  50:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** #endif
+  51:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** 
+  52:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** /**********************
+  53:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****  *   GLOBAL FUNCTIONS
+  54:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****  **********************/
+  55:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** 
+  56:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** lv_result_t lv_draw_buf_convert_premultiply(lv_draw_buf_t * draw_buf)
+  57:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** {
+  30              		.loc 1 57 1 view -0
+  31              		.cfi_startproc
+  32              		@ args = 0, pretend = 0, frame = 8
+  33              		@ frame_needed = 0, uses_anonymous_args = 0
+  58:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     LV_PROFILER_DRAW_BEGIN;
+  34              		.loc 1 58 27 view .LVU1
+  59:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     LV_ASSERT_NULL(draw_buf);
+  35              		.loc 1 59 5 view .LVU2
+  36              		.loc 1 59 5 view .LVU3
+  37 0000 80B1     		cbz	r0, .L3
+  57:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     LV_PROFILER_DRAW_BEGIN;
+  38              		.loc 1 57 1 is_stmt 0 view .LVU4
+  39 0002 2DE9F04F 		push	{r4, r5, r6, r7, r8, r9, r10, fp, lr}
+  40              	.LCFI0:
+  41              		.cfi_def_cfa_offset 36
+  42              		.cfi_offset 4, -36
+  43              		.cfi_offset 5, -32
+  44              		.cfi_offset 6, -28
+  45              		.cfi_offset 7, -24
+  46              		.cfi_offset 8, -20
+  47              		.cfi_offset 9, -16
+  48              		.cfi_offset 10, -12
+  49              		.cfi_offset 11, -8
+  50              		.cfi_offset 14, -4
+  51 0006 83B0     		sub	sp, sp, #12
+  52              	.LCFI1:
+  53              		.cfi_def_cfa_offset 48
+  54 0008 0346     		mov	r3, r0
+  55              		.loc 1 59 5 is_stmt 1 view .LVU5
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccfAZAIC.s 			page 3
+
+
+  56              		.loc 1 59 29 view .LVU6
+  60:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** 
+  61:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     /*Premultiply color with alpha, do case by case by judging color format*/
+  62:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     lv_color_format_t cf = draw_buf->header.cf;
+  57              		.loc 1 62 5 view .LVU7
+  58              		.loc 1 62 23 is_stmt 0 view .LVU8
+  59 000a 4278     		ldrb	r2, [r0, #1]	@ zero_extendqisi2
+  60              	.LVL1:
+  63:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     if(LV_COLOR_FORMAT_IS_INDEXED(cf)) {
+  61              		.loc 1 63 5 is_stmt 1 view .LVU9
+  62 000c D11F     		subs	r1, r2, #7
+  63 000e 0D29     		cmp	r1, #13
+  64 0010 7CD8     		bhi	.L27
+  65 0012 DFE801F0 		tbb	[pc, r1]
+  66              	.LVL2:
+  67              	.L6:
+  68 0016 08       		.byte	(.L9-.L6)/2
+  69 0017 08       		.byte	(.L9-.L6)/2
+  70 0018 08       		.byte	(.L9-.L6)/2
+  71 0019 08       		.byte	(.L9-.L6)/2
+  72 001a 7B       		.byte	(.L27-.L6)/2
+  73 001b 7B       		.byte	(.L27-.L6)/2
+  74 001c 7B       		.byte	(.L27-.L6)/2
+  75 001d 7B       		.byte	(.L27-.L6)/2
+  76 001e 7B       		.byte	(.L27-.L6)/2
+  77 001f 25       		.byte	(.L8-.L6)/2
+  78 0020 7B       		.byte	(.L27-.L6)/2
+  79 0021 7B       		.byte	(.L27-.L6)/2
+  80 0022 61       		.byte	(.L7-.L6)/2
+  81 0023 3E       		.byte	(.L5-.L6)/2
+  82              		.p2align 1
+  83              	.L3:
+  84              	.LCFI2:
+  85              		.cfi_def_cfa_offset 0
+  86              		.cfi_restore 4
+  87              		.cfi_restore 5
+  88              		.cfi_restore 6
+  89              		.cfi_restore 7
+  90              		.cfi_restore 8
+  91              		.cfi_restore 9
+  92              		.cfi_restore 10
+  93              		.cfi_restore 11
+  94              		.cfi_restore 14
+  59:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** 
+  95              		.loc 1 59 5 view .LVU10
+  59:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** 
+  96              		.loc 1 59 5 view .LVU11
+  59:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** 
+  97              		.loc 1 59 5 view .LVU12
+  59:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** 
+  98              		.loc 1 59 5 view .LVU13
+  59:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** 
+  99              		.loc 1 59 5 view .LVU14
+ 100 0024 FEE7     		b	.L3
+ 101              	.LVL3:
+ 102              	.L9:
+ 103              	.LCFI3:
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccfAZAIC.s 			page 4
+
+
+ 104              		.cfi_def_cfa_offset 48
+ 105              		.cfi_offset 4, -36
+ 106              		.cfi_offset 5, -32
+ 107              		.cfi_offset 6, -28
+ 108              		.cfi_offset 7, -24
+ 109              		.cfi_offset 8, -20
+ 110              		.cfi_offset 9, -16
+ 111              		.cfi_offset 10, -12
+ 112              		.cfi_offset 11, -8
+ 113              		.cfi_offset 14, -4
+  64:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****         if(LV_RESULT_INVALID == LV_DRAW_CONVERT_PREMULTIPLY_INDEXED(draw_buf)) {
+ 114              		.loc 1 64 9 view .LVU15
+ 115              	.LBB2:
+  65:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             int size = LV_COLOR_INDEXED_PALETTE_SIZE(cf);
+ 116              		.loc 1 65 13 view .LVU16
+ 117 0026 073A     		subs	r2, r2, #7
+ 118              	.LVL4:
+ 119              		.loc 1 65 13 is_stmt 0 view .LVU17
+ 120 0028 032A     		cmp	r2, #3
+ 121 002a 03D8     		bhi	.L10
+ 122 002c DFE802F0 		tbb	[pc, r2]
+ 123              	.L12:
+ 124 0030 0D       		.byte	(.L28-.L12)/2
+ 125 0031 04       		.byte	(.L14-.L12)/2
+ 126 0032 08       		.byte	(.L13-.L12)/2
+ 127 0033 0A       		.byte	(.L11-.L12)/2
+ 128              		.p2align 1
+ 129              	.L10:
+ 130              	.LBE2:
+  62:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     if(LV_COLOR_FORMAT_IS_INDEXED(cf)) {
+ 131              		.loc 1 62 23 view .LVU18
+ 132 0034 0025     		movs	r5, #0
+ 133 0036 00E0     		b	.L15
+ 134              	.L14:
+ 135 0038 0425     		movs	r5, #4
+ 136              	.L15:
+ 137              	.LVL5:
+ 138              	.LBB5:
+  66:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             lv_color32_t * palette = (lv_color32_t *)draw_buf->data;
+ 139              		.loc 1 66 13 is_stmt 1 view .LVU19
+ 140              		.loc 1 66 28 is_stmt 0 view .LVU20
+ 141 003a 1E69     		ldr	r6, [r3, #16]
+ 142              	.LVL6:
+  67:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             for(int i = 0; i < size; i++) {
+ 143              		.loc 1 67 13 is_stmt 1 view .LVU21
+ 144              	.LBB3:
+ 145              		.loc 1 67 17 view .LVU22
+ 146              		.loc 1 67 21 is_stmt 0 view .LVU23
+ 147 003c 0024     		movs	r4, #0
+ 148              		.loc 1 67 13 view .LVU24
+ 149 003e 0BE0     		b	.L16
+ 150              	.LVL7:
+ 151              	.L13:
+ 152              		.loc 1 67 13 view .LVU25
+ 153              	.LBE3:
+ 154              	.LBE5:
+  62:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     if(LV_COLOR_FORMAT_IS_INDEXED(cf)) {
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccfAZAIC.s 			page 5
+
+
+ 155              		.loc 1 62 23 view .LVU26
+ 156 0040 1025     		movs	r5, #16
+ 157 0042 FAE7     		b	.L15
+ 158              	.L11:
+ 159 0044 4FF48075 		mov	r5, #256
+ 160 0048 F7E7     		b	.L15
+ 161              	.L28:
+ 162 004a 0225     		movs	r5, #2
+ 163 004c F5E7     		b	.L15
+ 164              	.LVL8:
+ 165              	.L17:
+ 166              	.LBB6:
+ 167              	.LBB4:
+  68:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 lv_color_premultiply(&palette[i]);
+ 168              		.loc 1 68 17 is_stmt 1 view .LVU27
+ 169 004e 06EB8400 		add	r0, r6, r4, lsl #2
+ 170 0052 FFF7FEFF 		bl	lv_color_premultiply
+ 171              	.LVL9:
+  67:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             for(int i = 0; i < size; i++) {
+ 172              		.loc 1 67 39 discriminator 3 view .LVU28
+ 173 0056 0134     		adds	r4, r4, #1
+ 174              	.LVL10:
+ 175              	.L16:
+  67:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             for(int i = 0; i < size; i++) {
+ 176              		.loc 1 67 30 discriminator 1 view .LVU29
+ 177 0058 AC42     		cmp	r4, r5
+ 178 005a F8DB     		blt	.L17
+ 179              	.LBE4:
+ 180              	.LBE6:
+  69:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             }
+  70:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****         }
+  71:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     }
+  72:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     else if(cf == LV_COLOR_FORMAT_ARGB8888) {
+  73:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****         if(LV_RESULT_INVALID == LV_DRAW_CONVERT_PREMULTIPLY_ARGB8888(draw_buf)) {
+  74:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t h = draw_buf->header.h;
+  75:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t w = draw_buf->header.w;
+  76:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t stride = draw_buf->header.stride;
+  77:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint8_t * line = (uint8_t *)draw_buf->data;
+  78:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             for(uint32_t y = 0; y < h; y++) {
+  79:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 lv_color32_t * pixel = (lv_color32_t *)line;
+  80:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 for(uint32_t x = 0; x < w; x++) {
+  81:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     lv_color_premultiply(pixel);
+  82:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     pixel++;
+  83:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 }
+  84:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 line += stride;
+  85:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             }
+  86:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****         }
+  87:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     }
+  88:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     else if(cf == LV_COLOR_FORMAT_RGB565A8) {
+  89:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****         if(LV_RESULT_INVALID == LV_DRAW_CONVERT_PREMULTIPLY_RGB565A8(draw_buf)) {
+  90:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t h = draw_buf->header.h;
+  91:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t w = draw_buf->header.w;
+  92:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t stride = draw_buf->header.stride;
+  93:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t alpha_stride = stride / 2;
+  94:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint8_t * line = (uint8_t *)draw_buf->data;
+  95:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             lv_opa_t * alpha = (lv_opa_t *)(line + stride * h);
+  96:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             for(uint32_t y = 0; y < h; y++) {
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccfAZAIC.s 			page 6
+
+
+  97:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 lv_color16_t * pixel = (lv_color16_t *)line;
+  98:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 for(uint32_t x = 0; x < w; x++) {
+  99:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     lv_color16_premultiply(pixel, alpha[x]);
+ 100:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     pixel++;
+ 101:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 }
+ 102:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 line += stride;
+ 103:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 alpha += alpha_stride;
+ 104:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             }
+ 105:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****         }
+ 106:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     }
+ 107:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     else if(cf == LV_COLOR_FORMAT_ARGB8565) {
+ 108:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****         if(LV_RESULT_INVALID == LV_DRAW_CONVERT_PREMULTIPLY_ARGB8565(draw_buf)) {
+ 109:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t h = draw_buf->header.h;
+ 110:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t w = draw_buf->header.w;
+ 111:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t stride = draw_buf->header.stride;
+ 112:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint8_t * line = (uint8_t *)draw_buf->data;
+ 113:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             for(uint32_t y = 0; y < h; y++) {
+ 114:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 uint8_t * pixel = line;
+ 115:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 for(uint32_t x = 0; x < w; x++) {
+ 116:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     uint8_t alpha = pixel[2];
+ 117:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     lv_color16_premultiply((lv_color16_t *)pixel, alpha);
+ 118:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     pixel += 3;
+ 119:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 }
+ 120:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 line += stride;
+ 121:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             }
+ 122:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****         }
+ 123:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     }
+ 124:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     else {
+ 125:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****         LV_LOG_WARN("color format: %d not supported for premultiply", cf);
+ 126:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****         LV_PROFILER_DRAW_END;
+ 127:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****         return LV_RESULT_INVALID;
+ 128:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     }
+ 129:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** 
+ 130:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     LV_PROFILER_DRAW_END;
+ 131:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     return LV_RESULT_OK;
+ 181              		.loc 1 131 12 is_stmt 0 view .LVU30
+ 182 005c 0120     		movs	r0, #1
+ 183 005e 56E0     		b	.L4
+ 184              	.LVL11:
+ 185              	.L8:
+  73:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t h = draw_buf->header.h;
+ 186              		.loc 1 73 9 is_stmt 1 view .LVU31
+ 187              	.LBB7:
+  74:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t w = draw_buf->header.w;
+ 188              		.loc 1 74 13 view .LVU32
+  74:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t w = draw_buf->header.w;
+ 189              		.loc 1 74 42 is_stmt 0 view .LVU33
+ 190 0060 B3F80690 		ldrh	r9, [r3, #6]
+ 191              	.LVL12:
+  75:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t stride = draw_buf->header.stride;
+ 192              		.loc 1 75 13 is_stmt 1 view .LVU34
+  75:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t stride = draw_buf->header.stride;
+ 193              		.loc 1 75 42 is_stmt 0 view .LVU35
+ 194 0064 9E88     		ldrh	r6, [r3, #4]
+ 195              	.LVL13:
+  76:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint8_t * line = (uint8_t *)draw_buf->data;
+ 196              		.loc 1 76 13 is_stmt 1 view .LVU36
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccfAZAIC.s 			page 7
+
+
+  76:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint8_t * line = (uint8_t *)draw_buf->data;
+ 197              		.loc 1 76 47 is_stmt 0 view .LVU37
+ 198 0066 B3F808A0 		ldrh	r10, [r3, #8]
+ 199              	.LVL14:
+  77:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             for(uint32_t y = 0; y < h; y++) {
+ 200              		.loc 1 77 13 is_stmt 1 view .LVU38
+  77:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             for(uint32_t y = 0; y < h; y++) {
+ 201              		.loc 1 77 23 is_stmt 0 view .LVU39
+ 202 006a D3F81080 		ldr	r8, [r3, #16]
+ 203              	.LVL15:
+  78:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 lv_color32_t * pixel = (lv_color32_t *)line;
+ 204              		.loc 1 78 13 is_stmt 1 view .LVU40
+ 205              	.LBB8:
+  78:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 lv_color32_t * pixel = (lv_color32_t *)line;
+ 206              		.loc 1 78 17 view .LVU41
+  78:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 lv_color32_t * pixel = (lv_color32_t *)line;
+ 207              		.loc 1 78 26 is_stmt 0 view .LVU42
+ 208 006e 0027     		movs	r7, #0
+  78:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 lv_color32_t * pixel = (lv_color32_t *)line;
+ 209              		.loc 1 78 13 view .LVU43
+ 210 0070 08E0     		b	.L18
+ 211              	.LVL16:
+ 212              	.L19:
+ 213              	.LBB9:
+ 214              	.LBB10:
+  81:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     pixel++;
+ 215              		.loc 1 81 21 is_stmt 1 view .LVU44
+ 216 0072 2846     		mov	r0, r5
+ 217 0074 FFF7FEFF 		bl	lv_color_premultiply
+ 218              	.LVL17:
+  82:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 }
+ 219              		.loc 1 82 21 view .LVU45
+  82:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 }
+ 220              		.loc 1 82 26 is_stmt 0 view .LVU46
+ 221 0078 0435     		adds	r5, r5, #4
+ 222              	.LVL18:
+  80:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     lv_color_premultiply(pixel);
+ 223              		.loc 1 80 45 is_stmt 1 discriminator 3 view .LVU47
+ 224 007a 0134     		adds	r4, r4, #1
+ 225              	.LVL19:
+ 226              	.L20:
+  80:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     lv_color_premultiply(pixel);
+ 227              		.loc 1 80 39 discriminator 1 view .LVU48
+ 228 007c B442     		cmp	r4, r6
+ 229 007e F8D3     		bcc	.L19
+ 230              	.LBE10:
+  84:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             }
+ 231              		.loc 1 84 17 view .LVU49
+  84:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             }
+ 232              		.loc 1 84 22 is_stmt 0 view .LVU50
+ 233 0080 D044     		add	r8, r8, r10
+ 234              	.LVL20:
+  84:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             }
+ 235              		.loc 1 84 22 view .LVU51
+ 236              	.LBE9:
+  78:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 lv_color32_t * pixel = (lv_color32_t *)line;
+ 237              		.loc 1 78 41 is_stmt 1 discriminator 2 view .LVU52
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccfAZAIC.s 			page 8
+
+
+ 238 0082 0137     		adds	r7, r7, #1
+ 239              	.LVL21:
+ 240              	.L18:
+  78:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 lv_color32_t * pixel = (lv_color32_t *)line;
+ 241              		.loc 1 78 35 discriminator 1 view .LVU53
+ 242 0084 4F45     		cmp	r7, r9
+ 243 0086 02D2     		bcs	.L34
+ 244              	.LBB12:
+  79:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 for(uint32_t x = 0; x < w; x++) {
+ 245              		.loc 1 79 32 is_stmt 0 view .LVU54
+ 246 0088 4546     		mov	r5, r8
+ 247              	.LBB11:
+  80:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     lv_color_premultiply(pixel);
+ 248              		.loc 1 80 30 view .LVU55
+ 249 008a 0024     		movs	r4, #0
+ 250 008c F6E7     		b	.L20
+ 251              	.L34:
+  80:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     lv_color_premultiply(pixel);
+ 252              		.loc 1 80 30 view .LVU56
+ 253              	.LBE11:
+ 254              	.LBE12:
+ 255              	.LBE8:
+ 256              	.LBE7:
+ 257              		.loc 1 131 12 view .LVU57
+ 258 008e 0120     		movs	r0, #1
+ 259 0090 3DE0     		b	.L4
+ 260              	.LVL22:
+ 261              	.L5:
+  89:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t h = draw_buf->header.h;
+ 262              		.loc 1 89 9 is_stmt 1 view .LVU58
+ 263              	.LBB13:
+  90:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t w = draw_buf->header.w;
+ 264              		.loc 1 90 13 view .LVU59
+  90:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t w = draw_buf->header.w;
+ 265              		.loc 1 90 42 is_stmt 0 view .LVU60
+ 266 0092 B3F806A0 		ldrh	r10, [r3, #6]
+ 267              	.LVL23:
+  91:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t stride = draw_buf->header.stride;
+ 268              		.loc 1 91 13 is_stmt 1 view .LVU61
+  91:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t stride = draw_buf->header.stride;
+ 269              		.loc 1 91 42 is_stmt 0 view .LVU62
+ 270 0096 9F88     		ldrh	r7, [r3, #4]
+ 271              	.LVL24:
+  92:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t alpha_stride = stride / 2;
+ 272              		.loc 1 92 13 is_stmt 1 view .LVU63
+  92:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t alpha_stride = stride / 2;
+ 273              		.loc 1 92 47 is_stmt 0 view .LVU64
+ 274 0098 B3F808B0 		ldrh	fp, [r3, #8]
+ 275              	.LVL25:
+  93:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint8_t * line = (uint8_t *)draw_buf->data;
+ 276              		.loc 1 93 13 is_stmt 1 view .LVU65
+  93:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint8_t * line = (uint8_t *)draw_buf->data;
+ 277              		.loc 1 93 22 is_stmt 0 view .LVU66
+ 278 009c 4FEA5B02 		lsr	r2, fp, #1
+ 279              	.LVL26:
+  93:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint8_t * line = (uint8_t *)draw_buf->data;
+ 280              		.loc 1 93 22 view .LVU67
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccfAZAIC.s 			page 9
+
+
+ 281 00a0 0192     		str	r2, [sp, #4]
+ 282              	.LVL27:
+  94:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             lv_opa_t * alpha = (lv_opa_t *)(line + stride * h);
+ 283              		.loc 1 94 13 is_stmt 1 view .LVU68
+  94:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             lv_opa_t * alpha = (lv_opa_t *)(line + stride * h);
+ 284              		.loc 1 94 23 is_stmt 0 view .LVU69
+ 285 00a2 D3F81090 		ldr	r9, [r3, #16]
+ 286              	.LVL28:
+  95:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             for(uint32_t y = 0; y < h; y++) {
+ 287              		.loc 1 95 13 is_stmt 1 view .LVU70
+  95:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             for(uint32_t y = 0; y < h; y++) {
+ 288              		.loc 1 95 24 is_stmt 0 view .LVU71
+ 289 00a6 0BFB0A96 		mla	r6, fp, r10, r9
+ 290              	.LVL29:
+  96:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 lv_color16_t * pixel = (lv_color16_t *)line;
+ 291              		.loc 1 96 13 is_stmt 1 view .LVU72
+ 292              	.LBB14:
+  96:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 lv_color16_t * pixel = (lv_color16_t *)line;
+ 293              		.loc 1 96 17 view .LVU73
+  96:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 lv_color16_t * pixel = (lv_color16_t *)line;
+ 294              		.loc 1 96 26 is_stmt 0 view .LVU74
+ 295 00aa 4FF00008 		mov	r8, #0
+  96:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 lv_color16_t * pixel = (lv_color16_t *)line;
+ 296              		.loc 1 96 13 view .LVU75
+ 297 00ae 0CE0     		b	.L21
+ 298              	.LVL30:
+ 299              	.L22:
+ 300              	.LBB15:
+ 301              	.LBB16:
+  99:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     pixel++;
+ 302              		.loc 1 99 21 is_stmt 1 view .LVU76
+ 303 00b0 315D     		ldrb	r1, [r6, r4]	@ zero_extendqisi2
+ 304 00b2 2846     		mov	r0, r5
+ 305 00b4 FFF7FEFF 		bl	lv_color16_premultiply
+ 306              	.LVL31:
+ 100:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 }
+ 307              		.loc 1 100 21 view .LVU77
+ 100:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 }
+ 308              		.loc 1 100 26 is_stmt 0 view .LVU78
+ 309 00b8 0235     		adds	r5, r5, #2
+ 310              	.LVL32:
+  98:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     lv_color16_premultiply(pixel, alpha[x]);
+ 311              		.loc 1 98 45 is_stmt 1 discriminator 3 view .LVU79
+ 312 00ba 0134     		adds	r4, r4, #1
+ 313              	.LVL33:
+ 314              	.L23:
+  98:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     lv_color16_premultiply(pixel, alpha[x]);
+ 315              		.loc 1 98 39 discriminator 1 view .LVU80
+ 316 00bc BC42     		cmp	r4, r7
+ 317 00be F7D3     		bcc	.L22
+ 318              	.LBE16:
+ 102:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 alpha += alpha_stride;
+ 319              		.loc 1 102 17 view .LVU81
+ 102:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 alpha += alpha_stride;
+ 320              		.loc 1 102 22 is_stmt 0 view .LVU82
+ 321 00c0 D944     		add	r9, r9, fp
+ 322              	.LVL34:
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccfAZAIC.s 			page 10
+
+
+ 103:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             }
+ 323              		.loc 1 103 17 is_stmt 1 view .LVU83
+ 103:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             }
+ 324              		.loc 1 103 23 is_stmt 0 view .LVU84
+ 325 00c2 019B     		ldr	r3, [sp, #4]
+ 326 00c4 1E44     		add	r6, r6, r3
+ 327              	.LVL35:
+ 103:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             }
+ 328              		.loc 1 103 23 view .LVU85
+ 329              	.LBE15:
+  96:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 lv_color16_t * pixel = (lv_color16_t *)line;
+ 330              		.loc 1 96 41 is_stmt 1 discriminator 2 view .LVU86
+ 331 00c6 08F10108 		add	r8, r8, #1
+ 332              	.LVL36:
+ 333              	.L21:
+  96:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 lv_color16_t * pixel = (lv_color16_t *)line;
+ 334              		.loc 1 96 35 discriminator 1 view .LVU87
+ 335 00ca D045     		cmp	r8, r10
+ 336 00cc 02D2     		bcs	.L35
+ 337              	.LBB18:
+  97:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 for(uint32_t x = 0; x < w; x++) {
+ 338              		.loc 1 97 32 is_stmt 0 view .LVU88
+ 339 00ce 4D46     		mov	r5, r9
+ 340              	.LBB17:
+  98:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     lv_color16_premultiply(pixel, alpha[x]);
+ 341              		.loc 1 98 30 view .LVU89
+ 342 00d0 0024     		movs	r4, #0
+ 343 00d2 F3E7     		b	.L23
+ 344              	.L35:
+  98:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     lv_color16_premultiply(pixel, alpha[x]);
+ 345              		.loc 1 98 30 view .LVU90
+ 346              	.LBE17:
+ 347              	.LBE18:
+ 348              	.LBE14:
+ 349              	.LBE13:
+ 350              		.loc 1 131 12 view .LVU91
+ 351 00d4 0120     		movs	r0, #1
+ 352 00d6 1AE0     		b	.L4
+ 353              	.LVL37:
+ 354              	.L7:
+ 108:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t h = draw_buf->header.h;
+ 355              		.loc 1 108 9 is_stmt 1 view .LVU92
+ 356              	.LBB19:
+ 109:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t w = draw_buf->header.w;
+ 357              		.loc 1 109 13 view .LVU93
+ 109:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t w = draw_buf->header.w;
+ 358              		.loc 1 109 42 is_stmt 0 view .LVU94
+ 359 00d8 B3F80690 		ldrh	r9, [r3, #6]
+ 360              	.LVL38:
+ 110:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t stride = draw_buf->header.stride;
+ 361              		.loc 1 110 13 is_stmt 1 view .LVU95
+ 110:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint32_t stride = draw_buf->header.stride;
+ 362              		.loc 1 110 42 is_stmt 0 view .LVU96
+ 363 00dc 9E88     		ldrh	r6, [r3, #4]
+ 364              	.LVL39:
+ 111:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint8_t * line = (uint8_t *)draw_buf->data;
+ 365              		.loc 1 111 13 is_stmt 1 view .LVU97
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccfAZAIC.s 			page 11
+
+
+ 111:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             uint8_t * line = (uint8_t *)draw_buf->data;
+ 366              		.loc 1 111 47 is_stmt 0 view .LVU98
+ 367 00de B3F808A0 		ldrh	r10, [r3, #8]
+ 368              	.LVL40:
+ 112:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             for(uint32_t y = 0; y < h; y++) {
+ 369              		.loc 1 112 13 is_stmt 1 view .LVU99
+ 112:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             for(uint32_t y = 0; y < h; y++) {
+ 370              		.loc 1 112 23 is_stmt 0 view .LVU100
+ 371 00e2 D3F81080 		ldr	r8, [r3, #16]
+ 372              	.LVL41:
+ 113:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 uint8_t * pixel = line;
+ 373              		.loc 1 113 13 is_stmt 1 view .LVU101
+ 374              	.LBB20:
+ 113:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 uint8_t * pixel = line;
+ 375              		.loc 1 113 17 view .LVU102
+ 113:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 uint8_t * pixel = line;
+ 376              		.loc 1 113 26 is_stmt 0 view .LVU103
+ 377 00e6 0027     		movs	r7, #0
+ 113:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 uint8_t * pixel = line;
+ 378              		.loc 1 113 13 view .LVU104
+ 379 00e8 09E0     		b	.L24
+ 380              	.LVL42:
+ 381              	.L25:
+ 382              	.LBB21:
+ 383              	.LBB22:
+ 384              	.LBB23:
+ 116:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     lv_color16_premultiply((lv_color16_t *)pixel, alpha);
+ 385              		.loc 1 116 21 is_stmt 1 view .LVU105
+ 117:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     pixel += 3;
+ 386              		.loc 1 117 21 view .LVU106
+ 387 00ea A178     		ldrb	r1, [r4, #2]	@ zero_extendqisi2
+ 388 00ec 2046     		mov	r0, r4
+ 389 00ee FFF7FEFF 		bl	lv_color16_premultiply
+ 390              	.LVL43:
+ 118:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 }
+ 391              		.loc 1 118 21 view .LVU107
+ 118:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 }
+ 392              		.loc 1 118 27 is_stmt 0 view .LVU108
+ 393 00f2 0334     		adds	r4, r4, #3
+ 394              	.LVL44:
+ 118:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 }
+ 395              		.loc 1 118 27 view .LVU109
+ 396              	.LBE23:
+ 115:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     uint8_t alpha = pixel[2];
+ 397              		.loc 1 115 45 is_stmt 1 discriminator 3 view .LVU110
+ 398 00f4 0135     		adds	r5, r5, #1
+ 399              	.LVL45:
+ 400              	.L26:
+ 115:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     uint8_t alpha = pixel[2];
+ 401              		.loc 1 115 39 discriminator 1 view .LVU111
+ 402 00f6 B542     		cmp	r5, r6
+ 403 00f8 F7D3     		bcc	.L25
+ 404              	.LBE22:
+ 120:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             }
+ 405              		.loc 1 120 17 view .LVU112
+ 120:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             }
+ 406              		.loc 1 120 22 is_stmt 0 view .LVU113
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccfAZAIC.s 			page 12
+
+
+ 407 00fa D044     		add	r8, r8, r10
+ 408              	.LVL46:
+ 120:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****             }
+ 409              		.loc 1 120 22 view .LVU114
+ 410              	.LBE21:
+ 113:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 uint8_t * pixel = line;
+ 411              		.loc 1 113 41 is_stmt 1 discriminator 2 view .LVU115
+ 412 00fc 0137     		adds	r7, r7, #1
+ 413              	.LVL47:
+ 414              	.L24:
+ 113:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 uint8_t * pixel = line;
+ 415              		.loc 1 113 35 discriminator 1 view .LVU116
+ 416 00fe 4F45     		cmp	r7, r9
+ 417 0100 02D2     		bcs	.L36
+ 418              	.LBB25:
+ 114:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                 for(uint32_t x = 0; x < w; x++) {
+ 419              		.loc 1 114 27 is_stmt 0 view .LVU117
+ 420 0102 4446     		mov	r4, r8
+ 421              	.LBB24:
+ 115:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     uint8_t alpha = pixel[2];
+ 422              		.loc 1 115 30 view .LVU118
+ 423 0104 0025     		movs	r5, #0
+ 424 0106 F6E7     		b	.L26
+ 425              	.L36:
+ 115:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****                     uint8_t alpha = pixel[2];
+ 426              		.loc 1 115 30 view .LVU119
+ 427              	.LBE24:
+ 428              	.LBE25:
+ 429              	.LBE20:
+ 430              	.LBE19:
+ 431              		.loc 1 131 12 view .LVU120
+ 432 0108 0120     		movs	r0, #1
+ 433              	.LBB27:
+ 434              	.LBB26:
+ 435 010a 00E0     		b	.L4
+ 436              	.LVL48:
+ 437              	.L27:
+ 438              		.loc 1 131 12 view .LVU121
+ 439              	.LBE26:
+ 440              	.LBE27:
+  62:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c ****     if(LV_COLOR_FORMAT_IS_INDEXED(cf)) {
+ 441              		.loc 1 62 23 view .LVU122
+ 442 010c 0020     		movs	r0, #0
+ 443              	.LVL49:
+ 444              	.L4:
+ 132:Drivers/lvgl/src/draw/convert/lv_draw_buf_convert.c **** }
+ 445              		.loc 1 132 1 view .LVU123
+ 446 010e 03B0     		add	sp, sp, #12
+ 447              	.LCFI4:
+ 448              		.cfi_def_cfa_offset 36
+ 449              		@ sp needed
+ 450 0110 BDE8F08F 		pop	{r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 451              		.cfi_endproc
+ 452              	.LFE10:
+ 454              		.text
+ 455              	.Letext0:
+ 456              		.file 2 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/arm-none-eabi/include/machine/_defa
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccfAZAIC.s 			page 13
+
+
+ 457              		.file 3 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/arm-none-eabi/include/sys/_stdint.h
+ 458              		.file 4 "Drivers/lvgl/src/draw/convert/../../misc/lv_types.h"
+ 459              		.file 5 "Drivers/lvgl/src/draw/convert/../lv_draw_buf.h"
+ 460              		.file 6 "Drivers/lvgl/src/draw/convert/../../misc/lv_color.h"
+ 461              		.file 7 "Drivers/lvgl/src/draw/convert/../lv_image_dsc.h"
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccfAZAIC.s 			page 14
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 lv_draw_buf_convert.c
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccfAZAIC.s:21     .text.lv_draw_buf_convert_premultiply:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccfAZAIC.s:27     .text.lv_draw_buf_convert_premultiply:00000000 lv_draw_buf_convert_premultiply
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccfAZAIC.s:68     .text.lv_draw_buf_convert_premultiply:00000016 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccfAZAIC.s:82     .text.lv_draw_buf_convert_premultiply:00000024 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccfAZAIC.s:124    .text.lv_draw_buf_convert_premultiply:00000030 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccfAZAIC.s:128    .text.lv_draw_buf_convert_premultiply:00000034 $t
+
+UNDEFINED SYMBOLS
+lv_color_premultiply
+lv_color16_premultiply

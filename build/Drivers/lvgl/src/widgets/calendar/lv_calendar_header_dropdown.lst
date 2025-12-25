@@ -1,0 +1,1142 @@
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"lv_calendar_header_dropdown.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c"
+  20              		.section	.rodata.my_constructor.str1.4,"aMS",%progbits,1
+  21              		.align	2
+  22              	.LC0:
+  23 0000 32303235 		.ascii	"2025\0122024\0122023\0122022\0122021\0122020\012201"
+  23      0A323032 
+  23      340A3230 
+  23      32330A32 
+  23      3032320A 
+  24 0021 390A3230 		.ascii	"9\0122018\0122017\0122016\0122015\0122014\0122013\012"
+  24      31380A32 
+  24      3031370A 
+  24      32303136 
+  24      0A323031 
+  25 0041 32303132 		.ascii	"2012\0122011\0122010\0122009\0122008\0122007\012200"
+  25      0A323031 
+  25      310A3230 
+  25      31300A32 
+  25      3030390A 
+  26 0062 360A3230 		.ascii	"6\0122005\0122004\0122003\0122002\0122001\0122000\012"
+  26      30350A32 
+  26      3030340A 
+  26      32303033 
+  26      0A323030 
+  27 0082 31393939 		.ascii	"1999\0121998\0121997\0121996\0121995\0121994\012199"
+  27      0A313939 
+  27      380A3139 
+  27      39370A31 
+  27      3939360A 
+  28 00a3 330A3139 		.ascii	"3\0121992\0121991\0121990\0121989\0121988\0121987\012"
+  28      39320A31 
+  28      3939310A 
+  28      31393930 
+  28      0A313938 
+  29 00c3 31393836 		.ascii	"1986\0121985\0121984\0121983\0121982\0121981\012198"
+  29      0A313938 
+  29      350A3139 
+  29      38340A31 
+  29      3938330A 
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s 			page 2
+
+
+  30 00e4 300A3139 		.ascii	"0\0121979\0121978\0121977\0121976\0121975\0121974\012"
+  30      37390A31 
+  30      3937380A 
+  30      31393737 
+  30      0A313937 
+  31 0104 31393733 		.ascii	"1973\0121972\0121971\0121970\0121969\0121968\012196"
+  31      0A313937 
+  31      320A3139 
+  31      37310A31 
+  31      3937300A 
+  32 0125 370A3139 		.ascii	"7\0121966\0121965\0121964\0121963\0121962\0121961\012"
+  32      36360A31 
+  32      3936350A 
+  32      31393634 
+  32      0A313936 
+  33 0145 31393630 		.ascii	"1960\0121959\0121958\0121957\0121956\0121955\012195"
+  33      0A313935 
+  33      390A3139 
+  33      35380A31 
+  33      3935370A 
+  34 0166 340A3139 		.ascii	"4\0121953\0121952\0121951\0121950\0121949\0121948\012"
+  34      35330A31 
+  34      3935320A 
+  34      31393531 
+  34      0A313935 
+  35 0186 31393437 		.ascii	"1947\0121946\0121945\0121944\0121943\0121942\012194"
+  35      0A313934 
+  35      360A3139 
+  35      34350A31 
+  35      3934340A 
+  36 01a7 310A3139 		.ascii	"1\0121940\0121939\0121938\0121937\0121936\0121935\012"
+  36      34300A31 
+  36      3933390A 
+  36      31393338 
+  36      0A313933 
+  37 01c7 31393334 		.ascii	"1934\0121933\0121932\0121931\0121930\0121929\012192"
+  37      0A313933 
+  37      330A3139 
+  37      33320A31 
+  37      3933310A 
+  38 01e8 380A3139 		.ascii	"8\0121927\0121926\0121925\0121924\0121923\0121922\012"
+  38      32370A31 
+  38      3932360A 
+  38      31393235 
+  38      0A313932 
+  39 0208 31393231 		.ascii	"1921\0121920\0121919\0121918\0121917\0121916\012191"
+  39      0A313932 
+  39      300A3139 
+  39      31390A31 
+  39      3931380A 
+  40 0229 350A3139 		.ascii	"5\0121914\0121913\0121912\0121911\0121910\0121909\012"
+  40      31340A31 
+  40      3931330A 
+  40      31393132 
+  40      0A313931 
+  41 0249 31393038 		.ascii	"1908\0121907\0121906\0121905\0121904\0121903\012190"
+  41      0A313930 
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s 			page 3
+
+
+  41      370A3139 
+  41      30360A31 
+  41      3930350A 
+  42 026a 320A3139 		.ascii	"2\0121901\000"
+  42      303100
+  43 0271 000000   		.align	2
+  44              	.LC1:
+  45 0274 30310A30 		.ascii	"01\01202\01203\01204\01205\01206\01207\01208\01209\012"
+  45      320A3033 
+  45      0A30340A 
+  45      30350A30 
+  45      360A3037 
+  46 028f 31300A31 		.ascii	"10\01211\01212\000"
+  46      310A3132 
+  46      00
+  47              		.section	.text.my_constructor,"ax",%progbits
+  48              		.align	1
+  49              		.syntax unified
+  50              		.thumb
+  51              		.thumb_func
+  53              	my_constructor:
+  54              	.LVL0:
+  55              	.LFB183:
+   1:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** /**
+   2:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****  * @file lv_calendar_header_dropdown.c
+   3:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****  *
+   4:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****  */
+   5:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+   6:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** /*********************
+   7:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****  *      INCLUDES
+   8:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****  *********************/
+   9:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** #include "../../core/lv_obj_class_private.h"
+  10:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** #include "lv_calendar_header_dropdown.h"
+  11:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** #if LV_USE_CALENDAR && LV_USE_CALENDAR_HEADER_DROPDOWN
+  12:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+  13:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** #include "lv_calendar.h"
+  14:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** #include "../dropdown/lv_dropdown.h"
+  15:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** #include "../../layouts/flex/lv_flex.h"
+  16:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+  17:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** /*********************
+  18:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****  *      DEFINES
+  19:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****  *********************/
+  20:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+  21:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** /**********************
+  22:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****  *      TYPEDEFS
+  23:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****  **********************/
+  24:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+  25:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** /**********************
+  26:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****  *  STATIC PROTOTYPES
+  27:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****  **********************/
+  28:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** static void my_constructor(const lv_obj_class_t * class_p, lv_obj_t * obj);
+  29:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** static void year_event_cb(lv_event_t * e);
+  30:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** static void month_event_cb(lv_event_t * e);
+  31:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** static void value_changed_event_cb(lv_event_t * e);
+  32:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+  33:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** /**********************
+  34:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****  *  STATIC VARIABLES
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s 			page 4
+
+
+  35:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****  **********************/
+  36:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+  37:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** const lv_obj_class_t lv_calendar_header_dropdown_class = {
+  38:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     .base_class = &lv_obj_class,
+  39:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     .width_def = LV_PCT(100),
+  40:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     .height_def = LV_SIZE_CONTENT,
+  41:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     .constructor_cb = my_constructor,
+  42:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     .name = "lv_calendar_header_dropdown",
+  43:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** };
+  44:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+  45:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** static const char * month_list = "01\n02\n03\n04\n05\n06\n07\n08\n09\n10\n11\n12";
+  46:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** static const char * year_list = {
+  47:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     "2025\n2024\n2023\n2022\n2021\n"
+  48:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     "2020\n2019\n2018\n2017\n2016\n2015\n2014\n2013\n2012\n2011\n2010\n2009\n2008\n2007\n2006\n2005
+  49:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     "2000\n1999\n1998\n1997\n1996\n1995\n1994\n1993\n1992\n1991\n1990\n1989\n1988\n1987\n1986\n1985
+  50:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     "1980\n1979\n1978\n1977\n1976\n1975\n1974\n1973\n1972\n1971\n1970\n1969\n1968\n1967\n1966\n1965
+  51:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     "1960\n1959\n1958\n1957\n1956\n1955\n1954\n1953\n1952\n1951\n1950\n1949\n1948\n1947\n1946\n1945
+  52:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     "1940\n1939\n1938\n1937\n1936\n1935\n1934\n1933\n1932\n1931\n1930\n1929\n1928\n1927\n1926\n1925
+  53:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     "1920\n1919\n1918\n1917\n1916\n1915\n1914\n1913\n1912\n1911\n1910\n1909\n1908\n1907\n1906\n1905
+  54:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** };
+  55:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+  56:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** /**********************
+  57:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****  *      MACROS
+  58:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****  **********************/
+  59:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+  60:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** /**********************
+  61:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****  *   GLOBAL FUNCTIONS
+  62:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****  **********************/
+  63:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+  64:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** lv_obj_t * lv_calendar_add_header_dropdown(lv_obj_t * parent)
+  65:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** {
+  66:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * obj = lv_obj_class_create_obj(&lv_calendar_header_dropdown_class, parent);
+  67:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_class_init_obj(obj);
+  68:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+  69:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     return obj;
+  70:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** }
+  71:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+  72:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** void lv_calendar_header_dropdown_set_year_list(lv_obj_t * parent, const char * years_list)
+  73:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** {
+  74:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     /* Search for the header dropdown */
+  75:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * header = lv_obj_get_child_by_type(parent, 0, &lv_calendar_header_dropdown_class);
+  76:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     if(NULL == header) {
+  77:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****         /* Header not found */
+  78:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****         return;
+  79:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     }
+  80:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+  81:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     /* Search for the year dropdown
+  82:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****      * Index is 0 because in the header dropdown constructor the year dropdown (year_dd)
+  83:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****      * is the first created child of the header */
+  84:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     const int32_t year_dropdown_index = 0;
+  85:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * year_dropdown = lv_obj_get_child_by_type(header, year_dropdown_index, &lv_dropdown_c
+  86:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     if(NULL == year_dropdown) {
+  87:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****         /* year dropdown not found */
+  88:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****         return;
+  89:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     }
+  90:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+  91:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_dropdown_clear_options(year_dropdown);
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s 			page 5
+
+
+  92:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_dropdown_set_options(year_dropdown, years_list);
+  93:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+  94:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_invalidate(parent);
+  95:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** }
+  96:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+  97:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** /**********************
+  98:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****  *  STATIC FUNCTIONS
+  99:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****  **********************/
+ 100:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 101:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** static void my_constructor(const lv_obj_class_t * class_p, lv_obj_t * obj)
+ 102:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** {
+  56              		.loc 1 102 1 view -0
+  57              		.cfi_startproc
+  58              		@ args = 0, pretend = 0, frame = 0
+  59              		@ frame_needed = 0, uses_anonymous_args = 0
+  60              		.loc 1 102 1 is_stmt 0 view .LVU1
+  61 0000 70B5     		push	{r4, r5, r6, lr}
+  62              	.LCFI0:
+  63              		.cfi_def_cfa_offset 16
+  64              		.cfi_offset 4, -16
+  65              		.cfi_offset 5, -12
+  66              		.cfi_offset 6, -8
+  67              		.cfi_offset 14, -4
+  68 0002 0C46     		mov	r4, r1
+ 103:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     LV_TRACE_OBJ_CREATE("begin");
+  69              		.loc 1 103 33 is_stmt 1 view .LVU2
+ 104:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 105:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     LV_UNUSED(class_p);
+  70              		.loc 1 105 5 view .LVU3
+ 106:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 107:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * calendar = lv_obj_get_parent(obj);
+  71              		.loc 1 107 5 view .LVU4
+  72              		.loc 1 107 27 is_stmt 0 view .LVU5
+  73 0004 0846     		mov	r0, r1
+  74              	.LVL1:
+  75              		.loc 1 107 27 view .LVU6
+  76 0006 FFF7FEFF 		bl	lv_obj_get_parent
+  77              	.LVL2:
+  78              		.loc 1 107 27 view .LVU7
+  79 000a 0646     		mov	r6, r0
+  80              	.LVL3:
+ 108:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_move_to_index(obj, 0);
+  81              		.loc 1 108 5 is_stmt 1 view .LVU8
+  82 000c 0021     		movs	r1, #0
+  83 000e 2046     		mov	r0, r4
+  84              	.LVL4:
+  85              		.loc 1 108 5 is_stmt 0 view .LVU9
+  86 0010 FFF7FEFF 		bl	lv_obj_move_to_index
+  87              	.LVL5:
+ 109:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
+  88              		.loc 1 109 5 is_stmt 1 view .LVU10
+  89 0014 0021     		movs	r1, #0
+  90 0016 2046     		mov	r0, r4
+  91 0018 FFF7FEFF 		bl	lv_obj_set_flex_flow
+  92              	.LVL6:
+ 110:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 111:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * year_dd = lv_dropdown_create(obj);
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s 			page 6
+
+
+  93              		.loc 1 111 5 view .LVU11
+  94              		.loc 1 111 26 is_stmt 0 view .LVU12
+  95 001c 2046     		mov	r0, r4
+  96 001e FFF7FEFF 		bl	lv_dropdown_create
+  97              	.LVL7:
+  98 0022 0546     		mov	r5, r0
+  99              	.LVL8:
+ 112:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_dropdown_set_options(year_dd, year_list);
+ 100              		.loc 1 112 5 is_stmt 1 view .LVU13
+ 101 0024 1449     		ldr	r1, .L3
+ 102 0026 FFF7FEFF 		bl	lv_dropdown_set_options
+ 103              	.LVL9:
+ 113:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_add_event_cb(year_dd, year_event_cb, LV_EVENT_VALUE_CHANGED, calendar);
+ 104              		.loc 1 113 5 view .LVU14
+ 105 002a 3346     		mov	r3, r6
+ 106 002c 2322     		movs	r2, #35
+ 107 002e 1349     		ldr	r1, .L3+4
+ 108 0030 2846     		mov	r0, r5
+ 109 0032 FFF7FEFF 		bl	lv_obj_add_event_cb
+ 110              	.LVL10:
+ 114:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_set_flex_grow(year_dd, 1);
+ 111              		.loc 1 114 5 view .LVU15
+ 112 0036 0121     		movs	r1, #1
+ 113 0038 2846     		mov	r0, r5
+ 114 003a FFF7FEFF 		bl	lv_obj_set_flex_grow
+ 115              	.LVL11:
+ 115:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 116:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * month_dd = lv_dropdown_create(obj);
+ 116              		.loc 1 116 5 view .LVU16
+ 117              		.loc 1 116 27 is_stmt 0 view .LVU17
+ 118 003e 2046     		mov	r0, r4
+ 119 0040 FFF7FEFF 		bl	lv_dropdown_create
+ 120              	.LVL12:
+ 121 0044 0546     		mov	r5, r0
+ 122              	.LVL13:
+ 117:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_dropdown_set_options(month_dd, month_list);
+ 123              		.loc 1 117 5 is_stmt 1 view .LVU18
+ 124 0046 0E49     		ldr	r1, .L3+8
+ 125 0048 FFF7FEFF 		bl	lv_dropdown_set_options
+ 126              	.LVL14:
+ 118:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_add_event_cb(month_dd, month_event_cb, LV_EVENT_VALUE_CHANGED, calendar);
+ 127              		.loc 1 118 5 view .LVU19
+ 128 004c 3346     		mov	r3, r6
+ 129 004e 2322     		movs	r2, #35
+ 130 0050 0C49     		ldr	r1, .L3+12
+ 131 0052 2846     		mov	r0, r5
+ 132 0054 FFF7FEFF 		bl	lv_obj_add_event_cb
+ 133              	.LVL15:
+ 119:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_set_flex_grow(month_dd, 1);
+ 134              		.loc 1 119 5 view .LVU20
+ 135 0058 0121     		movs	r1, #1
+ 136 005a 2846     		mov	r0, r5
+ 137 005c FFF7FEFF 		bl	lv_obj_set_flex_grow
+ 138              	.LVL16:
+ 120:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 121:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_add_event_cb(obj, value_changed_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+ 139              		.loc 1 121 5 view .LVU21
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s 			page 7
+
+
+ 140 0060 0023     		movs	r3, #0
+ 141 0062 2322     		movs	r2, #35
+ 142 0064 0849     		ldr	r1, .L3+16
+ 143 0066 2046     		mov	r0, r4
+ 144 0068 FFF7FEFF 		bl	lv_obj_add_event_cb
+ 145              	.LVL17:
+ 122:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 123:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     /*Refresh the drop down*/
+ 124:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_send_event(obj, LV_EVENT_VALUE_CHANGED, NULL);
+ 146              		.loc 1 124 5 view .LVU22
+ 147 006c 0022     		movs	r2, #0
+ 148 006e 2321     		movs	r1, #35
+ 149 0070 2046     		mov	r0, r4
+ 150 0072 FFF7FEFF 		bl	lv_obj_send_event
+ 151              	.LVL18:
+ 125:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** }
+ 152              		.loc 1 125 1 is_stmt 0 view .LVU23
+ 153 0076 70BD     		pop	{r4, r5, r6, pc}
+ 154              	.LVL19:
+ 155              	.L4:
+ 156              		.loc 1 125 1 view .LVU24
+ 157              		.align	2
+ 158              	.L3:
+ 159 0078 00000000 		.word	.LC0
+ 160 007c 00000000 		.word	year_event_cb
+ 161 0080 74020000 		.word	.LC1
+ 162 0084 00000000 		.word	month_event_cb
+ 163 0088 00000000 		.word	value_changed_event_cb
+ 164              		.cfi_endproc
+ 165              	.LFE183:
+ 167              		.section	.text.value_changed_event_cb,"ax",%progbits
+ 168              		.align	1
+ 169              		.syntax unified
+ 170              		.thumb
+ 171              		.thumb_func
+ 173              	value_changed_event_cb:
+ 174              	.LVL20:
+ 175              	.LFB186:
+ 126:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 127:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** static void month_event_cb(lv_event_t * e)
+ 128:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** {
+ 129:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * dropdown = lv_event_get_current_target(e);
+ 130:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * calendar = lv_event_get_user_data(e);
+ 131:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 132:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     uint32_t sel = lv_dropdown_get_selected(dropdown);
+ 133:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 134:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     const lv_calendar_date_t * d;
+ 135:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     d = lv_calendar_get_showed_date(calendar);
+ 136:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_calendar_date_t newd = *d;
+ 137:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     newd.month = sel + 1;
+ 138:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 139:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_calendar_set_month_shown(calendar, newd.year, newd.month);
+ 140:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** }
+ 141:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 142:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** static void year_event_cb(lv_event_t * e)
+ 143:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** {
+ 144:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * dropdown = lv_event_get_current_target(e);
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s 			page 8
+
+
+ 145:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * calendar = lv_event_get_user_data(e);
+ 146:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 147:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     uint32_t sel = lv_dropdown_get_selected(dropdown);
+ 148:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 149:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     const char * year_p = lv_dropdown_get_options(dropdown);
+ 150:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 151:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     LV_ASSERT(3 + sel * 5 < lv_strlen(year_p));
+ 152:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 153:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     /* NOTE: Assumes YYYY format */
+ 154:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     const uint32_t year = (year_p[0 + sel * 5] - '0') * 1000 +
+ 155:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****                           (year_p[1 + sel * 5] - '0') * 100 +
+ 156:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****                           (year_p[2 + sel * 5] - '0') * 10 +
+ 157:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****                           (year_p[3 + sel * 5] - '0');
+ 158:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 159:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     const lv_calendar_date_t * d;
+ 160:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     d = lv_calendar_get_showed_date(calendar);
+ 161:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_calendar_date_t newd = *d;
+ 162:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     newd.year = year;
+ 163:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 164:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_calendar_set_month_shown(calendar, newd.year, newd.month);
+ 165:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** }
+ 166:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 167:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** static void value_changed_event_cb(lv_event_t * e)
+ 168:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** {
+ 176              		.loc 1 168 1 is_stmt 1 view -0
+ 177              		.cfi_startproc
+ 178              		@ args = 0, pretend = 0, frame = 0
+ 179              		@ frame_needed = 0, uses_anonymous_args = 0
+ 180              		.loc 1 168 1 is_stmt 0 view .LVU26
+ 181 0000 70B5     		push	{r4, r5, r6, lr}
+ 182              	.LCFI1:
+ 183              		.cfi_def_cfa_offset 16
+ 184              		.cfi_offset 4, -16
+ 185              		.cfi_offset 5, -12
+ 186              		.cfi_offset 6, -8
+ 187              		.cfi_offset 14, -4
+ 169:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * header = lv_event_get_current_target(e);
+ 188              		.loc 1 169 5 is_stmt 1 view .LVU27
+ 189              		.loc 1 169 25 is_stmt 0 view .LVU28
+ 190 0002 FFF7FEFF 		bl	lv_event_get_current_target
+ 191              	.LVL21:
+ 192              		.loc 1 169 25 view .LVU29
+ 193 0006 0646     		mov	r6, r0
+ 194              	.LVL22:
+ 170:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * calendar = lv_obj_get_parent(header);
+ 195              		.loc 1 170 5 is_stmt 1 view .LVU30
+ 196              		.loc 1 170 27 is_stmt 0 view .LVU31
+ 197 0008 FFF7FEFF 		bl	lv_obj_get_parent
+ 198              	.LVL23:
+ 171:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     const lv_calendar_date_t * cur_date = lv_calendar_get_showed_date(calendar);
+ 199              		.loc 1 171 5 is_stmt 1 view .LVU32
+ 200              		.loc 1 171 43 is_stmt 0 view .LVU33
+ 201 000c FFF7FEFF 		bl	lv_calendar_get_showed_date
+ 202              	.LVL24:
+ 203              		.loc 1 171 43 view .LVU34
+ 204 0010 0446     		mov	r4, r0
+ 205              	.LVL25:
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s 			page 9
+
+
+ 172:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * year_dd = lv_obj_get_child(header, 0);
+ 206              		.loc 1 172 5 is_stmt 1 view .LVU35
+ 207              		.loc 1 172 26 is_stmt 0 view .LVU36
+ 208 0012 0021     		movs	r1, #0
+ 209 0014 3046     		mov	r0, r6
+ 210              	.LVL26:
+ 211              		.loc 1 172 26 view .LVU37
+ 212 0016 FFF7FEFF 		bl	lv_obj_get_child
+ 213              	.LVL27:
+ 214 001a 0546     		mov	r5, r0
+ 215              	.LVL28:
+ 173:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * month_dd = lv_obj_get_child(header, 1);
+ 216              		.loc 1 173 5 is_stmt 1 view .LVU38
+ 217              		.loc 1 173 27 is_stmt 0 view .LVU39
+ 218 001c 0121     		movs	r1, #1
+ 219 001e 3046     		mov	r0, r6
+ 220              	.LVL29:
+ 221              		.loc 1 173 27 view .LVU40
+ 222 0020 FFF7FEFF 		bl	lv_obj_get_child
+ 223              	.LVL30:
+ 224 0024 0646     		mov	r6, r0
+ 225              	.LVL31:
+ 174:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     const char * year_p = lv_dropdown_get_options(year_dd);
+ 226              		.loc 1 174 5 is_stmt 1 view .LVU41
+ 227              		.loc 1 174 27 is_stmt 0 view .LVU42
+ 228 0026 2846     		mov	r0, r5
+ 229              	.LVL32:
+ 230              		.loc 1 174 27 view .LVU43
+ 231 0028 FFF7FEFF 		bl	lv_dropdown_get_options
+ 232              	.LVL33:
+ 175:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     /* NOTE: Assumes YYYY format */
+ 176:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     const int32_t first_year = (year_p[0] - '0') * 1000 +
+ 233              		.loc 1 176 5 is_stmt 1 view .LVU44
+ 234              		.loc 1 176 39 is_stmt 0 view .LVU45
+ 235 002c 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
+ 236              		.loc 1 176 43 view .LVU46
+ 237 002e 303B     		subs	r3, r3, #48
+ 177:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****                                (year_p[1] - '0') * 100 +
+ 238              		.loc 1 177 39 view .LVU47
+ 239 0030 4178     		ldrb	r1, [r0, #1]	@ zero_extendqisi2
+ 240              		.loc 1 177 43 view .LVU48
+ 241 0032 3039     		subs	r1, r1, #48
+ 242              		.loc 1 177 50 view .LVU49
+ 243 0034 6422     		movs	r2, #100
+ 244 0036 02FB01F1 		mul	r1, r2, r1
+ 176:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****                                (year_p[1] - '0') * 100 +
+ 245              		.loc 1 176 57 view .LVU50
+ 246 003a 4FF47A72 		mov	r2, #1000
+ 247 003e 02FB0311 		mla	r1, r2, r3, r1
+ 178:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****                                (year_p[2] - '0') * 10 + (year_p[3] - '0');
+ 248              		.loc 1 178 39 view .LVU51
+ 249 0042 8378     		ldrb	r3, [r0, #2]	@ zero_extendqisi2
+ 250              		.loc 1 178 43 view .LVU52
+ 251 0044 303B     		subs	r3, r3, #48
+ 252              		.loc 1 178 50 view .LVU53
+ 253 0046 03EB8303 		add	r3, r3, r3, lsl #2
+ 177:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****                                (year_p[1] - '0') * 100 +
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s 			page 10
+
+
+ 254              		.loc 1 177 56 view .LVU54
+ 255 004a 01EB4301 		add	r1, r1, r3, lsl #1
+ 256              		.loc 1 178 64 view .LVU55
+ 257 004e C378     		ldrb	r3, [r0, #3]	@ zero_extendqisi2
+ 258              		.loc 1 178 68 view .LVU56
+ 259 0050 303B     		subs	r3, r3, #48
+ 176:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****                                (year_p[1] - '0') * 100 +
+ 260              		.loc 1 176 19 view .LVU57
+ 261 0052 1944     		add	r1, r1, r3
+ 262              	.LVL34:
+ 179:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_dropdown_set_selected(year_dd, LV_ABS(first_year - cur_date->year));
+ 263              		.loc 1 179 5 is_stmt 1 view .LVU58
+ 264              		.loc 1 179 39 is_stmt 0 view .LVU59
+ 265 0054 2388     		ldrh	r3, [r4]
+ 266 0056 C91A     		subs	r1, r1, r3
+ 267              	.LVL35:
+ 268              		.loc 1 179 5 view .LVU60
+ 269 0058 0029     		cmp	r1, #0
+ 270 005a B8BF     		it	lt
+ 271 005c 4942     		rsblt	r1, r1, #0
+ 272 005e 2846     		mov	r0, r5
+ 273              	.LVL36:
+ 274              		.loc 1 179 5 view .LVU61
+ 275 0060 FFF7FEFF 		bl	lv_dropdown_set_selected
+ 276              	.LVL37:
+ 180:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_dropdown_set_selected(month_dd, cur_date->month - 1);
+ 277              		.loc 1 180 5 is_stmt 1 view .LVU62
+ 278              		.loc 1 180 48 is_stmt 0 view .LVU63
+ 279 0064 A178     		ldrb	r1, [r4, #2]	@ zero_extendqisi2
+ 280              		.loc 1 180 5 view .LVU64
+ 281 0066 0139     		subs	r1, r1, #1
+ 282 0068 3046     		mov	r0, r6
+ 283 006a FFF7FEFF 		bl	lv_dropdown_set_selected
+ 284              	.LVL38:
+ 181:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** }
+ 285              		.loc 1 181 1 view .LVU65
+ 286 006e 70BD     		pop	{r4, r5, r6, pc}
+ 287              		.loc 1 181 1 view .LVU66
+ 288              		.cfi_endproc
+ 289              	.LFE186:
+ 291              		.section	.text.month_event_cb,"ax",%progbits
+ 292              		.align	1
+ 293              		.syntax unified
+ 294              		.thumb
+ 295              		.thumb_func
+ 297              	month_event_cb:
+ 298              	.LVL39:
+ 299              	.LFB184:
+ 128:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * dropdown = lv_event_get_current_target(e);
+ 300              		.loc 1 128 1 is_stmt 1 view -0
+ 301              		.cfi_startproc
+ 302              		@ args = 0, pretend = 0, frame = 8
+ 303              		@ frame_needed = 0, uses_anonymous_args = 0
+ 128:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * dropdown = lv_event_get_current_target(e);
+ 304              		.loc 1 128 1 is_stmt 0 view .LVU68
+ 305 0000 30B5     		push	{r4, r5, lr}
+ 306              	.LCFI2:
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s 			page 11
+
+
+ 307              		.cfi_def_cfa_offset 12
+ 308              		.cfi_offset 4, -12
+ 309              		.cfi_offset 5, -8
+ 310              		.cfi_offset 14, -4
+ 311 0002 83B0     		sub	sp, sp, #12
+ 312              	.LCFI3:
+ 313              		.cfi_def_cfa_offset 24
+ 314 0004 0546     		mov	r5, r0
+ 129:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * calendar = lv_event_get_user_data(e);
+ 315              		.loc 1 129 5 is_stmt 1 view .LVU69
+ 129:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * calendar = lv_event_get_user_data(e);
+ 316              		.loc 1 129 27 is_stmt 0 view .LVU70
+ 317 0006 FFF7FEFF 		bl	lv_event_get_current_target
+ 318              	.LVL40:
+ 129:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * calendar = lv_event_get_user_data(e);
+ 319              		.loc 1 129 27 view .LVU71
+ 320 000a 0446     		mov	r4, r0
+ 321              	.LVL41:
+ 130:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 322              		.loc 1 130 5 is_stmt 1 view .LVU72
+ 130:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 323              		.loc 1 130 27 is_stmt 0 view .LVU73
+ 324 000c 2846     		mov	r0, r5
+ 325              	.LVL42:
+ 130:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 326              		.loc 1 130 27 view .LVU74
+ 327 000e FFF7FEFF 		bl	lv_event_get_user_data
+ 328              	.LVL43:
+ 329 0012 0546     		mov	r5, r0
+ 330              	.LVL44:
+ 132:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 331              		.loc 1 132 5 is_stmt 1 view .LVU75
+ 132:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 332              		.loc 1 132 20 is_stmt 0 view .LVU76
+ 333 0014 2046     		mov	r0, r4
+ 334              	.LVL45:
+ 132:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 335              		.loc 1 132 20 view .LVU77
+ 336 0016 FFF7FEFF 		bl	lv_dropdown_get_selected
+ 337              	.LVL46:
+ 338 001a 0446     		mov	r4, r0
+ 339              	.LVL47:
+ 134:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     d = lv_calendar_get_showed_date(calendar);
+ 340              		.loc 1 134 5 is_stmt 1 view .LVU78
+ 135:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_calendar_date_t newd = *d;
+ 341              		.loc 1 135 5 view .LVU79
+ 135:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_calendar_date_t newd = *d;
+ 342              		.loc 1 135 9 is_stmt 0 view .LVU80
+ 343 001c 2846     		mov	r0, r5
+ 344              	.LVL48:
+ 135:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_calendar_date_t newd = *d;
+ 345              		.loc 1 135 9 view .LVU81
+ 346 001e FFF7FEFF 		bl	lv_calendar_get_showed_date
+ 347              	.LVL49:
+ 136:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     newd.month = sel + 1;
+ 348              		.loc 1 136 5 is_stmt 1 view .LVU82
+ 136:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     newd.month = sel + 1;
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s 			page 12
+
+
+ 349              		.loc 1 136 24 is_stmt 0 view .LVU83
+ 350 0022 0068     		ldr	r0, [r0]	@ unaligned
+ 351              	.LVL50:
+ 136:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     newd.month = sel + 1;
+ 352              		.loc 1 136 24 view .LVU84
+ 353 0024 0190     		str	r0, [sp, #4]
+ 137:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 354              		.loc 1 137 5 is_stmt 1 view .LVU85
+ 137:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 355              		.loc 1 137 22 is_stmt 0 view .LVU86
+ 356 0026 621C     		adds	r2, r4, #1
+ 357 0028 D2B2     		uxtb	r2, r2
+ 137:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 358              		.loc 1 137 16 view .LVU87
+ 359 002a 8DF80620 		strb	r2, [sp, #6]
+ 139:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** }
+ 360              		.loc 1 139 5 is_stmt 1 view .LVU88
+ 361 002e BDF80410 		ldrh	r1, [sp, #4]
+ 362 0032 2846     		mov	r0, r5
+ 363 0034 FFF7FEFF 		bl	lv_calendar_set_month_shown
+ 364              	.LVL51:
+ 140:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 365              		.loc 1 140 1 is_stmt 0 view .LVU89
+ 366 0038 03B0     		add	sp, sp, #12
+ 367              	.LCFI4:
+ 368              		.cfi_def_cfa_offset 12
+ 369              		@ sp needed
+ 370 003a 30BD     		pop	{r4, r5, pc}
+ 140:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 371              		.loc 1 140 1 view .LVU90
+ 372              		.cfi_endproc
+ 373              	.LFE184:
+ 375              		.section	.text.year_event_cb,"ax",%progbits
+ 376              		.align	1
+ 377              		.syntax unified
+ 378              		.thumb
+ 379              		.thumb_func
+ 381              	year_event_cb:
+ 382              	.LVL52:
+ 383              	.LFB185:
+ 143:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * dropdown = lv_event_get_current_target(e);
+ 384              		.loc 1 143 1 is_stmt 1 view -0
+ 385              		.cfi_startproc
+ 386              		@ args = 0, pretend = 0, frame = 8
+ 387              		@ frame_needed = 0, uses_anonymous_args = 0
+ 143:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * dropdown = lv_event_get_current_target(e);
+ 388              		.loc 1 143 1 is_stmt 0 view .LVU92
+ 389 0000 F0B5     		push	{r4, r5, r6, r7, lr}
+ 390              	.LCFI5:
+ 391              		.cfi_def_cfa_offset 20
+ 392              		.cfi_offset 4, -20
+ 393              		.cfi_offset 5, -16
+ 394              		.cfi_offset 6, -12
+ 395              		.cfi_offset 7, -8
+ 396              		.cfi_offset 14, -4
+ 397 0002 83B0     		sub	sp, sp, #12
+ 398              	.LCFI6:
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s 			page 13
+
+
+ 399              		.cfi_def_cfa_offset 32
+ 400 0004 0446     		mov	r4, r0
+ 144:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * calendar = lv_event_get_user_data(e);
+ 401              		.loc 1 144 5 is_stmt 1 view .LVU93
+ 144:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * calendar = lv_event_get_user_data(e);
+ 402              		.loc 1 144 27 is_stmt 0 view .LVU94
+ 403 0006 FFF7FEFF 		bl	lv_event_get_current_target
+ 404              	.LVL53:
+ 144:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * calendar = lv_event_get_user_data(e);
+ 405              		.loc 1 144 27 view .LVU95
+ 406 000a 0546     		mov	r5, r0
+ 407              	.LVL54:
+ 145:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 408              		.loc 1 145 5 is_stmt 1 view .LVU96
+ 145:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 409              		.loc 1 145 27 is_stmt 0 view .LVU97
+ 410 000c 2046     		mov	r0, r4
+ 411              	.LVL55:
+ 145:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 412              		.loc 1 145 27 view .LVU98
+ 413 000e FFF7FEFF 		bl	lv_event_get_user_data
+ 414              	.LVL56:
+ 415 0012 0646     		mov	r6, r0
+ 416              	.LVL57:
+ 147:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 417              		.loc 1 147 5 is_stmt 1 view .LVU99
+ 147:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 418              		.loc 1 147 20 is_stmt 0 view .LVU100
+ 419 0014 2846     		mov	r0, r5
+ 420              	.LVL58:
+ 147:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 421              		.loc 1 147 20 view .LVU101
+ 422 0016 FFF7FEFF 		bl	lv_dropdown_get_selected
+ 423              	.LVL59:
+ 424 001a 0446     		mov	r4, r0
+ 425              	.LVL60:
+ 149:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 426              		.loc 1 149 5 is_stmt 1 view .LVU102
+ 149:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 427              		.loc 1 149 27 is_stmt 0 view .LVU103
+ 428 001c 2846     		mov	r0, r5
+ 429              	.LVL61:
+ 149:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 430              		.loc 1 149 27 view .LVU104
+ 431 001e FFF7FEFF 		bl	lv_dropdown_get_options
+ 432              	.LVL62:
+ 433 0022 0546     		mov	r5, r0
+ 434              	.LVL63:
+ 151:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 435              		.loc 1 151 5 is_stmt 1 view .LVU105
+ 151:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 436              		.loc 1 151 5 view .LVU106
+ 437 0024 04EB8404 		add	r4, r4, r4, lsl #2
+ 438              	.LVL64:
+ 151:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 439              		.loc 1 151 5 is_stmt 0 view .LVU107
+ 440 0028 E71C     		adds	r7, r4, #3
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s 			page 14
+
+
+ 441 002a FFF7FEFF 		bl	lv_strlen
+ 442              	.LVL65:
+ 151:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 443              		.loc 1 151 5 discriminator 1 view .LVU108
+ 444 002e 8742     		cmp	r7, r0
+ 445 0030 00D3     		bcc	.L10
+ 446              	.L11:
+ 151:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 447              		.loc 1 151 5 is_stmt 1 view .LVU109
+ 151:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 448              		.loc 1 151 5 view .LVU110
+ 151:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 449              		.loc 1 151 5 view .LVU111
+ 151:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 450              		.loc 1 151 5 view .LVU112
+ 151:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 451              		.loc 1 151 5 view .LVU113
+ 452 0032 FEE7     		b	.L11
+ 453              	.L10:
+ 151:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 454              		.loc 1 151 5 view .LVU114
+ 154:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****                           (year_p[1 + sel * 5] - '0') * 100 +
+ 455              		.loc 1 154 5 view .LVU115
+ 154:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****                           (year_p[1 + sel * 5] - '0') * 100 +
+ 456              		.loc 1 154 34 is_stmt 0 view .LVU116
+ 457 0034 2A5D     		ldrb	r2, [r5, r4]	@ zero_extendqisi2
+ 154:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****                           (year_p[1 + sel * 5] - '0') * 100 +
+ 458              		.loc 1 154 48 view .LVU117
+ 459 0036 303A     		subs	r2, r2, #48
+ 155:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****                           (year_p[2 + sel * 5] - '0') * 10 +
+ 460              		.loc 1 155 37 view .LVU118
+ 461 0038 631C     		adds	r3, r4, #1
+ 155:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****                           (year_p[2 + sel * 5] - '0') * 10 +
+ 462              		.loc 1 155 34 view .LVU119
+ 463 003a EB5C     		ldrb	r3, [r5, r3]	@ zero_extendqisi2
+ 155:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****                           (year_p[2 + sel * 5] - '0') * 10 +
+ 464              		.loc 1 155 48 view .LVU120
+ 465 003c 303B     		subs	r3, r3, #48
+ 155:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****                           (year_p[2 + sel * 5] - '0') * 10 +
+ 466              		.loc 1 155 55 view .LVU121
+ 467 003e 6421     		movs	r1, #100
+ 468 0040 01FB03F3 		mul	r3, r1, r3
+ 154:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****                           (year_p[1 + sel * 5] - '0') * 100 +
+ 469              		.loc 1 154 62 view .LVU122
+ 470 0044 4FF47A71 		mov	r1, #1000
+ 471 0048 01FB0233 		mla	r3, r1, r2, r3
+ 156:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****                           (year_p[3 + sel * 5] - '0');
+ 472              		.loc 1 156 37 view .LVU123
+ 473 004c 0234     		adds	r4, r4, #2
+ 156:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****                           (year_p[3 + sel * 5] - '0');
+ 474              		.loc 1 156 34 view .LVU124
+ 475 004e 2A5D     		ldrb	r2, [r5, r4]	@ zero_extendqisi2
+ 156:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****                           (year_p[3 + sel * 5] - '0');
+ 476              		.loc 1 156 48 view .LVU125
+ 477 0050 303A     		subs	r2, r2, #48
+ 156:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****                           (year_p[3 + sel * 5] - '0');
+ 478              		.loc 1 156 55 view .LVU126
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s 			page 15
+
+
+ 479 0052 02EB8202 		add	r2, r2, r2, lsl #2
+ 155:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****                           (year_p[2 + sel * 5] - '0') * 10 +
+ 480              		.loc 1 155 61 view .LVU127
+ 481 0056 03EB4204 		add	r4, r3, r2, lsl #1
+ 157:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 482              		.loc 1 157 34 view .LVU128
+ 483 005a EB5D     		ldrb	r3, [r5, r7]	@ zero_extendqisi2
+ 157:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 484              		.loc 1 157 48 view .LVU129
+ 485 005c 303B     		subs	r3, r3, #48
+ 156:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****                           (year_p[3 + sel * 5] - '0');
+ 486              		.loc 1 156 60 view .LVU130
+ 487 005e 1C44     		add	r4, r4, r3
+ 488              	.LVL66:
+ 159:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     d = lv_calendar_get_showed_date(calendar);
+ 489              		.loc 1 159 5 is_stmt 1 view .LVU131
+ 160:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_calendar_date_t newd = *d;
+ 490              		.loc 1 160 5 view .LVU132
+ 160:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_calendar_date_t newd = *d;
+ 491              		.loc 1 160 9 is_stmt 0 view .LVU133
+ 492 0060 3046     		mov	r0, r6
+ 493 0062 FFF7FEFF 		bl	lv_calendar_get_showed_date
+ 494              	.LVL67:
+ 161:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     newd.year = year;
+ 495              		.loc 1 161 5 is_stmt 1 view .LVU134
+ 161:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     newd.year = year;
+ 496              		.loc 1 161 24 is_stmt 0 view .LVU135
+ 497 0066 0068     		ldr	r0, [r0]	@ unaligned
+ 498              	.LVL68:
+ 161:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     newd.year = year;
+ 499              		.loc 1 161 24 view .LVU136
+ 500 0068 0190     		str	r0, [sp, #4]
+ 162:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 501              		.loc 1 162 5 is_stmt 1 view .LVU137
+ 162:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 502              		.loc 1 162 15 is_stmt 0 view .LVU138
+ 503 006a ADF80440 		strh	r4, [sp, #4]	@ movhi
+ 164:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** }
+ 504              		.loc 1 164 5 is_stmt 1 view .LVU139
+ 505 006e 9DF80620 		ldrb	r2, [sp, #6]	@ zero_extendqisi2
+ 506 0072 A1B2     		uxth	r1, r4
+ 507 0074 3046     		mov	r0, r6
+ 508 0076 FFF7FEFF 		bl	lv_calendar_set_month_shown
+ 509              	.LVL69:
+ 165:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 510              		.loc 1 165 1 is_stmt 0 view .LVU140
+ 511 007a 03B0     		add	sp, sp, #12
+ 512              	.LCFI7:
+ 513              		.cfi_def_cfa_offset 20
+ 514              		@ sp needed
+ 515 007c F0BD     		pop	{r4, r5, r6, r7, pc}
+ 165:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 516              		.loc 1 165 1 view .LVU141
+ 517              		.cfi_endproc
+ 518              	.LFE185:
+ 520              		.section	.text.lv_calendar_add_header_dropdown,"ax",%progbits
+ 521              		.align	1
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s 			page 16
+
+
+ 522              		.global	lv_calendar_add_header_dropdown
+ 523              		.syntax unified
+ 524              		.thumb
+ 525              		.thumb_func
+ 527              	lv_calendar_add_header_dropdown:
+ 528              	.LVL70:
+ 529              	.LFB181:
+  65:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * obj = lv_obj_class_create_obj(&lv_calendar_header_dropdown_class, parent);
+ 530              		.loc 1 65 1 is_stmt 1 view -0
+ 531              		.cfi_startproc
+ 532              		@ args = 0, pretend = 0, frame = 0
+ 533              		@ frame_needed = 0, uses_anonymous_args = 0
+  65:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * obj = lv_obj_class_create_obj(&lv_calendar_header_dropdown_class, parent);
+ 534              		.loc 1 65 1 is_stmt 0 view .LVU143
+ 535 0000 10B5     		push	{r4, lr}
+ 536              	.LCFI8:
+ 537              		.cfi_def_cfa_offset 8
+ 538              		.cfi_offset 4, -8
+ 539              		.cfi_offset 14, -4
+ 540 0002 0146     		mov	r1, r0
+  66:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_class_init_obj(obj);
+ 541              		.loc 1 66 5 is_stmt 1 view .LVU144
+  66:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_class_init_obj(obj);
+ 542              		.loc 1 66 22 is_stmt 0 view .LVU145
+ 543 0004 0348     		ldr	r0, .L15
+ 544              	.LVL71:
+  66:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_class_init_obj(obj);
+ 545              		.loc 1 66 22 view .LVU146
+ 546 0006 FFF7FEFF 		bl	lv_obj_class_create_obj
+ 547              	.LVL72:
+  66:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_class_init_obj(obj);
+ 548              		.loc 1 66 22 view .LVU147
+ 549 000a 0446     		mov	r4, r0
+ 550              	.LVL73:
+  67:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 551              		.loc 1 67 5 is_stmt 1 view .LVU148
+ 552 000c FFF7FEFF 		bl	lv_obj_class_init_obj
+ 553              	.LVL74:
+  69:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** }
+ 554              		.loc 1 69 5 view .LVU149
+  70:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 555              		.loc 1 70 1 is_stmt 0 view .LVU150
+ 556 0010 2046     		mov	r0, r4
+ 557 0012 10BD     		pop	{r4, pc}
+ 558              	.LVL75:
+ 559              	.L16:
+  70:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 560              		.loc 1 70 1 view .LVU151
+ 561              		.align	2
+ 562              	.L15:
+ 563 0014 00000000 		.word	lv_calendar_header_dropdown_class
+ 564              		.cfi_endproc
+ 565              	.LFE181:
+ 567              		.section	.text.lv_calendar_header_dropdown_set_year_list,"ax",%progbits
+ 568              		.align	1
+ 569              		.global	lv_calendar_header_dropdown_set_year_list
+ 570              		.syntax unified
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s 			page 17
+
+
+ 571              		.thumb
+ 572              		.thumb_func
+ 574              	lv_calendar_header_dropdown_set_year_list:
+ 575              	.LVL76:
+ 576              	.LFB182:
+  73:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     /* Search for the header dropdown */
+ 577              		.loc 1 73 1 is_stmt 1 view -0
+ 578              		.cfi_startproc
+ 579              		@ args = 0, pretend = 0, frame = 0
+ 580              		@ frame_needed = 0, uses_anonymous_args = 0
+  73:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     /* Search for the header dropdown */
+ 581              		.loc 1 73 1 is_stmt 0 view .LVU153
+ 582 0000 70B5     		push	{r4, r5, r6, lr}
+ 583              	.LCFI9:
+ 584              		.cfi_def_cfa_offset 16
+ 585              		.cfi_offset 4, -16
+ 586              		.cfi_offset 5, -12
+ 587              		.cfi_offset 6, -8
+ 588              		.cfi_offset 14, -4
+ 589 0002 0446     		mov	r4, r0
+ 590 0004 0D46     		mov	r5, r1
+  75:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     if(NULL == header) {
+ 591              		.loc 1 75 5 is_stmt 1 view .LVU154
+  75:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     if(NULL == header) {
+ 592              		.loc 1 75 25 is_stmt 0 view .LVU155
+ 593 0006 0A4A     		ldr	r2, .L20
+ 594 0008 0021     		movs	r1, #0
+ 595              	.LVL77:
+  75:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     if(NULL == header) {
+ 596              		.loc 1 75 25 view .LVU156
+ 597 000a FFF7FEFF 		bl	lv_obj_get_child_by_type
+ 598              	.LVL78:
+  76:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****         /* Header not found */
+ 599              		.loc 1 76 5 is_stmt 1 view .LVU157
+  76:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****         /* Header not found */
+ 600              		.loc 1 76 7 is_stmt 0 view .LVU158
+ 601 000e 70B1     		cbz	r0, .L17
+  84:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_obj_t * year_dropdown = lv_obj_get_child_by_type(header, year_dropdown_index, &lv_dropdown_c
+ 602              		.loc 1 84 5 is_stmt 1 view .LVU159
+ 603              	.LVL79:
+  85:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     if(NULL == year_dropdown) {
+ 604              		.loc 1 85 5 view .LVU160
+  85:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     if(NULL == year_dropdown) {
+ 605              		.loc 1 85 32 is_stmt 0 view .LVU161
+ 606 0010 084A     		ldr	r2, .L20+4
+ 607 0012 0021     		movs	r1, #0
+ 608 0014 FFF7FEFF 		bl	lv_obj_get_child_by_type
+ 609              	.LVL80:
+  86:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****         /* year dropdown not found */
+ 610              		.loc 1 86 5 is_stmt 1 view .LVU162
+  86:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****         /* year dropdown not found */
+ 611              		.loc 1 86 7 is_stmt 0 view .LVU163
+ 612 0018 0646     		mov	r6, r0
+ 613 001a 40B1     		cbz	r0, .L17
+  91:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c ****     lv_dropdown_set_options(year_dropdown, years_list);
+ 614              		.loc 1 91 5 is_stmt 1 view .LVU164
+ 615 001c FFF7FEFF 		bl	lv_dropdown_clear_options
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s 			page 18
+
+
+ 616              	.LVL81:
+  92:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 617              		.loc 1 92 5 view .LVU165
+ 618 0020 2946     		mov	r1, r5
+ 619 0022 3046     		mov	r0, r6
+ 620 0024 FFF7FEFF 		bl	lv_dropdown_set_options
+ 621              	.LVL82:
+  94:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** }
+ 622              		.loc 1 94 5 view .LVU166
+ 623 0028 2046     		mov	r0, r4
+ 624 002a FFF7FEFF 		bl	lv_obj_invalidate
+ 625              	.LVL83:
+ 626              	.L17:
+  95:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 627              		.loc 1 95 1 is_stmt 0 view .LVU167
+ 628 002e 70BD     		pop	{r4, r5, r6, pc}
+ 629              	.LVL84:
+ 630              	.L21:
+  95:Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.c **** 
+ 631              		.loc 1 95 1 view .LVU168
+ 632              		.align	2
+ 633              	.L20:
+ 634 0030 00000000 		.word	lv_calendar_header_dropdown_class
+ 635 0034 00000000 		.word	lv_dropdown_class
+ 636              		.cfi_endproc
+ 637              	.LFE182:
+ 639              		.global	lv_calendar_header_dropdown_class
+ 640              		.section	.rodata.str1.4,"aMS",%progbits,1
+ 641              		.align	2
+ 642              	.LC2:
+ 643 0000 6C765F63 		.ascii	"lv_calendar_header_dropdown\000"
+ 643      616C656E 
+ 643      6461725F 
+ 643      68656164 
+ 643      65725F64 
+ 644              		.section	.rodata.lv_calendar_header_dropdown_class,"a"
+ 645              		.align	2
+ 648              	lv_calendar_header_dropdown_class:
+ 649 0000 00000000 		.word	lv_obj_class
+ 650 0004 00000000 		.word	my_constructor
+ 651 0008 00000000 		.space	12
+ 651      00000000 
+ 651      00000000 
+ 652 0014 00000000 		.word	.LC2
+ 653 0018 64000020 		.word	536871012
+ 654 001c FFFFFF3F 		.word	1073741823
+ 655 0020 00000000 		.space	4
+ 656              		.text
+ 657              	.Letext0:
+ 658              		.file 2 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/arm-none-eabi/include/machine/_defa
+ 659              		.file 3 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/arm-none-eabi/include/sys/_stdint.h
+ 660              		.file 4 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/lib/gcc/arm-none-eabi/14.3.1/includ
+ 661              		.file 5 "Drivers/lvgl/src/widgets/calendar/../../core/../misc/lv_types.h"
+ 662              		.file 6 "Drivers/lvgl/src/widgets/calendar/../../core/lv_obj_class_private.h"
+ 663              		.file 7 "Drivers/lvgl/src/widgets/calendar/../../core/../misc/../layouts/flex/lv_flex.h"
+ 664              		.file 8 "Drivers/lvgl/src/widgets/calendar/../../core/../display/../misc/lv_event.h"
+ 665              		.file 9 "Drivers/lvgl/src/widgets/calendar/../../core/../indev/lv_indev.h"
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s 			page 19
+
+
+ 666              		.file 10 "Drivers/lvgl/src/widgets/calendar/../../core/lv_obj.h"
+ 667              		.file 11 "Drivers/lvgl/src/widgets/calendar/lv_calendar_header_dropdown.h"
+ 668              		.file 12 "Drivers/lvgl/src/widgets/calendar/lv_calendar.h"
+ 669              		.file 13 "Drivers/lvgl/src/widgets/calendar/../dropdown/lv_dropdown.h"
+ 670              		.file 14 "Drivers/lvgl/src/widgets/calendar/../../core/lv_obj_pos.h"
+ 671              		.file 15 "Drivers/lvgl/src/widgets/calendar/../../core/lv_obj_tree.h"
+ 672              		.file 16 "Drivers/lvgl/src/widgets/calendar/../../core/lv_obj_class.h"
+ 673              		.file 17 "Drivers/lvgl/src/widgets/calendar/../../core/../misc/../font/../draw/../misc/../stdlib/l
+ 674              		.file 18 "Drivers/lvgl/src/widgets/calendar/../../core/lv_obj_event.h"
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s 			page 20
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 lv_calendar_header_dropdown.c
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s:21     .rodata.my_constructor.str1.4:00000000 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s:48     .text.my_constructor:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s:53     .text.my_constructor:00000000 my_constructor
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s:159    .text.my_constructor:00000078 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s:381    .text.year_event_cb:00000000 year_event_cb
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s:297    .text.month_event_cb:00000000 month_event_cb
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s:173    .text.value_changed_event_cb:00000000 value_changed_event_cb
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s:168    .text.value_changed_event_cb:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s:292    .text.month_event_cb:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s:376    .text.year_event_cb:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s:521    .text.lv_calendar_add_header_dropdown:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s:527    .text.lv_calendar_add_header_dropdown:00000000 lv_calendar_add_header_dropdown
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s:563    .text.lv_calendar_add_header_dropdown:00000014 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s:648    .rodata.lv_calendar_header_dropdown_class:00000000 lv_calendar_header_dropdown_class
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s:568    .text.lv_calendar_header_dropdown_set_year_list:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s:574    .text.lv_calendar_header_dropdown_set_year_list:00000000 lv_calendar_header_dropdown_set_year_list
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s:634    .text.lv_calendar_header_dropdown_set_year_list:00000030 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s:641    .rodata.str1.4:00000000 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccioefQB.s:645    .rodata.lv_calendar_header_dropdown_class:00000000 $d
+
+UNDEFINED SYMBOLS
+lv_obj_get_parent
+lv_obj_move_to_index
+lv_obj_set_flex_flow
+lv_dropdown_create
+lv_dropdown_set_options
+lv_obj_add_event_cb
+lv_obj_set_flex_grow
+lv_obj_send_event
+lv_event_get_current_target
+lv_calendar_get_showed_date
+lv_obj_get_child
+lv_dropdown_get_options
+lv_dropdown_set_selected
+lv_event_get_user_data
+lv_dropdown_get_selected
+lv_calendar_set_month_shown
+lv_strlen
+lv_obj_class_create_obj
+lv_obj_class_init_obj
+lv_obj_get_child_by_type
+lv_dropdown_clear_options
+lv_obj_invalidate
+lv_dropdown_class
+lv_obj_class

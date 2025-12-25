@@ -1,0 +1,653 @@
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"lv_win.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Drivers/lvgl/src/widgets/win/lv_win.c"
+  20              		.section	.text.lv_win_constructor,"ax",%progbits
+  21              		.align	1
+  22              		.syntax unified
+  23              		.thumb
+  24              		.thumb_func
+  26              	lv_win_constructor:
+  27              	.LVL0:
+  28              	.LFB195:
+   1:Drivers/lvgl/src/widgets/win/lv_win.c **** /**
+   2:Drivers/lvgl/src/widgets/win/lv_win.c ****  * @file lv_win.c
+   3:Drivers/lvgl/src/widgets/win/lv_win.c ****  *
+   4:Drivers/lvgl/src/widgets/win/lv_win.c ****  */
+   5:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+   6:Drivers/lvgl/src/widgets/win/lv_win.c **** /*********************
+   7:Drivers/lvgl/src/widgets/win/lv_win.c ****  *      INCLUDES
+   8:Drivers/lvgl/src/widgets/win/lv_win.c ****  *********************/
+   9:Drivers/lvgl/src/widgets/win/lv_win.c **** #include "lv_win_private.h"
+  10:Drivers/lvgl/src/widgets/win/lv_win.c **** #include "../../core/lv_obj_class_private.h"
+  11:Drivers/lvgl/src/widgets/win/lv_win.c **** #include "../../lvgl.h"
+  12:Drivers/lvgl/src/widgets/win/lv_win.c **** #if LV_USE_WIN
+  13:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+  14:Drivers/lvgl/src/widgets/win/lv_win.c **** /*********************
+  15:Drivers/lvgl/src/widgets/win/lv_win.c ****  *      DEFINES
+  16:Drivers/lvgl/src/widgets/win/lv_win.c ****  *********************/
+  17:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+  18:Drivers/lvgl/src/widgets/win/lv_win.c **** /**********************
+  19:Drivers/lvgl/src/widgets/win/lv_win.c ****  *      TYPEDEFS
+  20:Drivers/lvgl/src/widgets/win/lv_win.c ****  **********************/
+  21:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+  22:Drivers/lvgl/src/widgets/win/lv_win.c **** /**********************
+  23:Drivers/lvgl/src/widgets/win/lv_win.c ****  *  STATIC PROTOTYPES
+  24:Drivers/lvgl/src/widgets/win/lv_win.c ****  **********************/
+  25:Drivers/lvgl/src/widgets/win/lv_win.c **** static void lv_win_constructor(const lv_obj_class_t * class_p, lv_obj_t * obj);
+  26:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+  27:Drivers/lvgl/src/widgets/win/lv_win.c **** /**********************
+  28:Drivers/lvgl/src/widgets/win/lv_win.c ****  *  STATIC VARIABLES
+  29:Drivers/lvgl/src/widgets/win/lv_win.c ****  **********************/
+  30:Drivers/lvgl/src/widgets/win/lv_win.c **** const lv_obj_class_t lv_win_class = {
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s 			page 2
+
+
+  31:Drivers/lvgl/src/widgets/win/lv_win.c ****     .constructor_cb = lv_win_constructor,
+  32:Drivers/lvgl/src/widgets/win/lv_win.c ****     .width_def = LV_PCT(100),
+  33:Drivers/lvgl/src/widgets/win/lv_win.c ****     .height_def = LV_PCT(100),
+  34:Drivers/lvgl/src/widgets/win/lv_win.c ****     .base_class = &lv_obj_class,
+  35:Drivers/lvgl/src/widgets/win/lv_win.c ****     .instance_size = sizeof(lv_win_t),
+  36:Drivers/lvgl/src/widgets/win/lv_win.c ****     .name = "lv_win",
+  37:Drivers/lvgl/src/widgets/win/lv_win.c **** };
+  38:Drivers/lvgl/src/widgets/win/lv_win.c **** /**********************
+  39:Drivers/lvgl/src/widgets/win/lv_win.c ****  *      MACROS
+  40:Drivers/lvgl/src/widgets/win/lv_win.c ****  **********************/
+  41:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+  42:Drivers/lvgl/src/widgets/win/lv_win.c **** /**********************
+  43:Drivers/lvgl/src/widgets/win/lv_win.c ****  *   GLOBAL FUNCTIONS
+  44:Drivers/lvgl/src/widgets/win/lv_win.c ****  **********************/
+  45:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+  46:Drivers/lvgl/src/widgets/win/lv_win.c **** lv_obj_t * lv_win_create(lv_obj_t * parent)
+  47:Drivers/lvgl/src/widgets/win/lv_win.c **** {
+  48:Drivers/lvgl/src/widgets/win/lv_win.c ****     LV_LOG_INFO("begin");
+  49:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_t * obj = lv_obj_class_create_obj(&lv_win_class, parent);
+  50:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_class_init_obj(obj);
+  51:Drivers/lvgl/src/widgets/win/lv_win.c ****     return obj;
+  52:Drivers/lvgl/src/widgets/win/lv_win.c **** }
+  53:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+  54:Drivers/lvgl/src/widgets/win/lv_win.c **** lv_obj_t * lv_win_add_title(lv_obj_t * win, const char * txt)
+  55:Drivers/lvgl/src/widgets/win/lv_win.c **** {
+  56:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_t * header = lv_win_get_header(win);
+  57:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_t * title = lv_label_create(header);
+  58:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_label_set_long_mode(title, LV_LABEL_LONG_MODE_DOTS);
+  59:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_label_set_text(title, txt);
+  60:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_set_flex_grow(title, 1);
+  61:Drivers/lvgl/src/widgets/win/lv_win.c ****     return title;
+  62:Drivers/lvgl/src/widgets/win/lv_win.c **** }
+  63:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+  64:Drivers/lvgl/src/widgets/win/lv_win.c **** lv_obj_t * lv_win_add_button(lv_obj_t * win, const void * icon, int32_t btn_w)
+  65:Drivers/lvgl/src/widgets/win/lv_win.c **** {
+  66:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_t * header = lv_win_get_header(win);
+  67:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_t * btn = lv_button_create(header);
+  68:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_set_size(btn, btn_w, LV_PCT(100));
+  69:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+  70:Drivers/lvgl/src/widgets/win/lv_win.c ****     if(icon) {
+  71:Drivers/lvgl/src/widgets/win/lv_win.c ****         lv_obj_t * img = lv_image_create(btn);
+  72:Drivers/lvgl/src/widgets/win/lv_win.c ****         lv_image_set_src(img, icon);
+  73:Drivers/lvgl/src/widgets/win/lv_win.c ****         lv_obj_align(img, LV_ALIGN_CENTER, 0, 0);
+  74:Drivers/lvgl/src/widgets/win/lv_win.c ****     }
+  75:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+  76:Drivers/lvgl/src/widgets/win/lv_win.c ****     return btn;
+  77:Drivers/lvgl/src/widgets/win/lv_win.c **** }
+  78:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+  79:Drivers/lvgl/src/widgets/win/lv_win.c **** lv_obj_t * lv_win_get_header(lv_obj_t * win)
+  80:Drivers/lvgl/src/widgets/win/lv_win.c **** {
+  81:Drivers/lvgl/src/widgets/win/lv_win.c ****     return lv_obj_get_child(win, 0);
+  82:Drivers/lvgl/src/widgets/win/lv_win.c **** }
+  83:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+  84:Drivers/lvgl/src/widgets/win/lv_win.c **** lv_obj_t * lv_win_get_content(lv_obj_t * win)
+  85:Drivers/lvgl/src/widgets/win/lv_win.c **** {
+  86:Drivers/lvgl/src/widgets/win/lv_win.c ****     return lv_obj_get_child(win, 1);
+  87:Drivers/lvgl/src/widgets/win/lv_win.c **** }
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s 			page 3
+
+
+  88:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+  89:Drivers/lvgl/src/widgets/win/lv_win.c **** /**********************
+  90:Drivers/lvgl/src/widgets/win/lv_win.c ****  *   STATIC FUNCTIONS
+  91:Drivers/lvgl/src/widgets/win/lv_win.c ****  **********************/
+  92:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+  93:Drivers/lvgl/src/widgets/win/lv_win.c **** static void lv_win_constructor(const lv_obj_class_t * class_p, lv_obj_t * obj)
+  94:Drivers/lvgl/src/widgets/win/lv_win.c **** {
+  29              		.loc 1 94 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		.loc 1 94 1 is_stmt 0 view .LVU1
+  34 0000 70B5     		push	{r4, r5, r6, lr}
+  35              	.LCFI0:
+  36              		.cfi_def_cfa_offset 16
+  37              		.cfi_offset 4, -16
+  38              		.cfi_offset 5, -12
+  39              		.cfi_offset 6, -8
+  40              		.cfi_offset 14, -4
+  41 0002 0C46     		mov	r4, r1
+  95:Drivers/lvgl/src/widgets/win/lv_win.c ****     LV_UNUSED(class_p);
+  42              		.loc 1 95 5 is_stmt 1 view .LVU2
+  96:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_t * parent = lv_obj_get_parent(obj);
+  43              		.loc 1 96 5 view .LVU3
+  44              		.loc 1 96 25 is_stmt 0 view .LVU4
+  45 0004 0846     		mov	r0, r1
+  46              	.LVL1:
+  47              		.loc 1 96 25 view .LVU5
+  48 0006 FFF7FEFF 		bl	lv_obj_get_parent
+  49              	.LVL2:
+  50              		.loc 1 96 25 view .LVU6
+  51 000a 0646     		mov	r6, r0
+  52              	.LVL3:
+  97:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_set_size(obj, lv_obj_get_width(parent), lv_obj_get_height(parent));
+  53              		.loc 1 97 5 is_stmt 1 view .LVU7
+  54 000c FFF7FEFF 		bl	lv_obj_get_width
+  55              	.LVL4:
+  56              		.loc 1 97 5 is_stmt 0 view .LVU8
+  57 0010 0546     		mov	r5, r0
+  58              		.loc 1 97 5 discriminator 1 view .LVU9
+  59 0012 3046     		mov	r0, r6
+  60 0014 FFF7FEFF 		bl	lv_obj_get_height
+  61              	.LVL5:
+  62 0018 0246     		mov	r2, r0
+  63              		.loc 1 97 5 discriminator 2 view .LVU10
+  64 001a 2946     		mov	r1, r5
+  65 001c 2046     		mov	r0, r4
+  66 001e FFF7FEFF 		bl	lv_obj_set_size
+  67              	.LVL6:
+  98:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_COLUMN);
+  68              		.loc 1 98 5 is_stmt 1 view .LVU11
+  69 0022 0121     		movs	r1, #1
+  70 0024 2046     		mov	r0, r4
+  71 0026 FFF7FEFF 		bl	lv_obj_set_flex_flow
+  72              	.LVL7:
+  99:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+ 100:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_t * header = lv_obj_create(obj);
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s 			page 4
+
+
+  73              		.loc 1 100 5 view .LVU12
+  74              		.loc 1 100 25 is_stmt 0 view .LVU13
+  75 002a 2046     		mov	r0, r4
+  76 002c FFF7FEFF 		bl	lv_obj_create
+  77              	.LVL8:
+  78 0030 0546     		mov	r5, r0
+  79              	.LVL9:
+ 101:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_set_size(header, LV_PCT(100), lv_display_get_dpi(lv_obj_get_display(obj)) / 2);
+  80              		.loc 1 101 5 is_stmt 1 view .LVU14
+  81              		.loc 1 101 61 is_stmt 0 view .LVU15
+  82 0032 2046     		mov	r0, r4
+  83              	.LVL10:
+  84              		.loc 1 101 61 view .LVU16
+  85 0034 FFF7FEFF 		bl	lv_obj_get_display
+  86              	.LVL11:
+  87              		.loc 1 101 42 discriminator 1 view .LVU17
+  88 0038 FFF7FEFF 		bl	lv_display_get_dpi
+  89              	.LVL12:
+  90              		.loc 1 101 5 discriminator 2 view .LVU18
+  91 003c 00EBD070 		add	r0, r0, r0, lsr #31
+  92 0040 0D4E     		ldr	r6, .L3
+  93              	.LVL13:
+  94              		.loc 1 101 5 discriminator 2 view .LVU19
+  95 0042 4210     		asrs	r2, r0, #1
+  96 0044 3146     		mov	r1, r6
+  97 0046 2846     		mov	r0, r5
+  98 0048 FFF7FEFF 		bl	lv_obj_set_size
+  99              	.LVL14:
+ 102:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_set_flex_flow(header, LV_FLEX_FLOW_ROW);
+ 100              		.loc 1 102 5 is_stmt 1 view .LVU20
+ 101 004c 0021     		movs	r1, #0
+ 102 004e 2846     		mov	r0, r5
+ 103 0050 FFF7FEFF 		bl	lv_obj_set_flex_flow
+ 104              	.LVL15:
+ 103:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_set_flex_align(header, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+ 105              		.loc 1 103 5 view .LVU21
+ 106 0054 0223     		movs	r3, #2
+ 107 0056 1A46     		mov	r2, r3
+ 108 0058 0021     		movs	r1, #0
+ 109 005a 2846     		mov	r0, r5
+ 110 005c FFF7FEFF 		bl	lv_obj_set_flex_align
+ 111              	.LVL16:
+ 104:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+ 105:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_t * cont = lv_obj_create(obj);
+ 112              		.loc 1 105 5 view .LVU22
+ 113              		.loc 1 105 23 is_stmt 0 view .LVU23
+ 114 0060 2046     		mov	r0, r4
+ 115 0062 FFF7FEFF 		bl	lv_obj_create
+ 116              	.LVL17:
+ 117 0066 0446     		mov	r4, r0
+ 118              	.LVL18:
+ 106:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_set_flex_grow(cont, 1);
+ 119              		.loc 1 106 5 is_stmt 1 view .LVU24
+ 120 0068 0121     		movs	r1, #1
+ 121 006a FFF7FEFF 		bl	lv_obj_set_flex_grow
+ 122              	.LVL19:
+ 107:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_set_width(cont, LV_PCT(100));
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s 			page 5
+
+
+ 123              		.loc 1 107 5 view .LVU25
+ 124 006e 3146     		mov	r1, r6
+ 125 0070 2046     		mov	r0, r4
+ 126 0072 FFF7FEFF 		bl	lv_obj_set_width
+ 127              	.LVL20:
+ 108:Drivers/lvgl/src/widgets/win/lv_win.c **** }
+ 128              		.loc 1 108 1 is_stmt 0 view .LVU26
+ 129 0076 70BD     		pop	{r4, r5, r6, pc}
+ 130              	.LVL21:
+ 131              	.L4:
+ 132              		.loc 1 108 1 view .LVU27
+ 133              		.align	2
+ 134              	.L3:
+ 135 0078 64000020 		.word	536871012
+ 136              		.cfi_endproc
+ 137              	.LFE195:
+ 139              		.section	.text.lv_win_create,"ax",%progbits
+ 140              		.align	1
+ 141              		.global	lv_win_create
+ 142              		.syntax unified
+ 143              		.thumb
+ 144              		.thumb_func
+ 146              	lv_win_create:
+ 147              	.LVL22:
+ 148              	.LFB190:
+  47:Drivers/lvgl/src/widgets/win/lv_win.c ****     LV_LOG_INFO("begin");
+ 149              		.loc 1 47 1 is_stmt 1 view -0
+ 150              		.cfi_startproc
+ 151              		@ args = 0, pretend = 0, frame = 0
+ 152              		@ frame_needed = 0, uses_anonymous_args = 0
+  47:Drivers/lvgl/src/widgets/win/lv_win.c ****     LV_LOG_INFO("begin");
+ 153              		.loc 1 47 1 is_stmt 0 view .LVU29
+ 154 0000 10B5     		push	{r4, lr}
+ 155              	.LCFI1:
+ 156              		.cfi_def_cfa_offset 8
+ 157              		.cfi_offset 4, -8
+ 158              		.cfi_offset 14, -4
+ 159 0002 0146     		mov	r1, r0
+  48:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_t * obj = lv_obj_class_create_obj(&lv_win_class, parent);
+ 160              		.loc 1 48 5 is_stmt 1 view .LVU30
+  48:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_t * obj = lv_obj_class_create_obj(&lv_win_class, parent);
+ 161              		.loc 1 48 5 view .LVU31
+  48:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_t * obj = lv_obj_class_create_obj(&lv_win_class, parent);
+ 162              		.loc 1 48 5 view .LVU32
+  49:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_class_init_obj(obj);
+ 163              		.loc 1 49 5 view .LVU33
+  49:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_class_init_obj(obj);
+ 164              		.loc 1 49 22 is_stmt 0 view .LVU34
+ 165 0004 0348     		ldr	r0, .L7
+ 166              	.LVL23:
+  49:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_class_init_obj(obj);
+ 167              		.loc 1 49 22 view .LVU35
+ 168 0006 FFF7FEFF 		bl	lv_obj_class_create_obj
+ 169              	.LVL24:
+  49:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_class_init_obj(obj);
+ 170              		.loc 1 49 22 view .LVU36
+ 171 000a 0446     		mov	r4, r0
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s 			page 6
+
+
+ 172              	.LVL25:
+  50:Drivers/lvgl/src/widgets/win/lv_win.c ****     return obj;
+ 173              		.loc 1 50 5 is_stmt 1 view .LVU37
+ 174 000c FFF7FEFF 		bl	lv_obj_class_init_obj
+ 175              	.LVL26:
+  51:Drivers/lvgl/src/widgets/win/lv_win.c **** }
+ 176              		.loc 1 51 5 view .LVU38
+  52:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+ 177              		.loc 1 52 1 is_stmt 0 view .LVU39
+ 178 0010 2046     		mov	r0, r4
+ 179 0012 10BD     		pop	{r4, pc}
+ 180              	.LVL27:
+ 181              	.L8:
+  52:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+ 182              		.loc 1 52 1 view .LVU40
+ 183              		.align	2
+ 184              	.L7:
+ 185 0014 00000000 		.word	lv_win_class
+ 186              		.cfi_endproc
+ 187              	.LFE190:
+ 189              		.section	.text.lv_win_get_header,"ax",%progbits
+ 190              		.align	1
+ 191              		.global	lv_win_get_header
+ 192              		.syntax unified
+ 193              		.thumb
+ 194              		.thumb_func
+ 196              	lv_win_get_header:
+ 197              	.LVL28:
+ 198              	.LFB193:
+  80:Drivers/lvgl/src/widgets/win/lv_win.c ****     return lv_obj_get_child(win, 0);
+ 199              		.loc 1 80 1 is_stmt 1 view -0
+ 200              		.cfi_startproc
+ 201              		@ args = 0, pretend = 0, frame = 0
+ 202              		@ frame_needed = 0, uses_anonymous_args = 0
+  80:Drivers/lvgl/src/widgets/win/lv_win.c ****     return lv_obj_get_child(win, 0);
+ 203              		.loc 1 80 1 is_stmt 0 view .LVU42
+ 204 0000 08B5     		push	{r3, lr}
+ 205              	.LCFI2:
+ 206              		.cfi_def_cfa_offset 8
+ 207              		.cfi_offset 3, -8
+ 208              		.cfi_offset 14, -4
+  81:Drivers/lvgl/src/widgets/win/lv_win.c **** }
+ 209              		.loc 1 81 5 is_stmt 1 view .LVU43
+  81:Drivers/lvgl/src/widgets/win/lv_win.c **** }
+ 210              		.loc 1 81 12 is_stmt 0 view .LVU44
+ 211 0002 0021     		movs	r1, #0
+ 212 0004 FFF7FEFF 		bl	lv_obj_get_child
+ 213              	.LVL29:
+  82:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+ 214              		.loc 1 82 1 view .LVU45
+ 215 0008 08BD     		pop	{r3, pc}
+ 216              		.cfi_endproc
+ 217              	.LFE193:
+ 219              		.section	.text.lv_win_add_title,"ax",%progbits
+ 220              		.align	1
+ 221              		.global	lv_win_add_title
+ 222              		.syntax unified
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s 			page 7
+
+
+ 223              		.thumb
+ 224              		.thumb_func
+ 226              	lv_win_add_title:
+ 227              	.LVL30:
+ 228              	.LFB191:
+  55:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_t * header = lv_win_get_header(win);
+ 229              		.loc 1 55 1 is_stmt 1 view -0
+ 230              		.cfi_startproc
+ 231              		@ args = 0, pretend = 0, frame = 0
+ 232              		@ frame_needed = 0, uses_anonymous_args = 0
+  55:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_t * header = lv_win_get_header(win);
+ 233              		.loc 1 55 1 is_stmt 0 view .LVU47
+ 234 0000 38B5     		push	{r3, r4, r5, lr}
+ 235              	.LCFI3:
+ 236              		.cfi_def_cfa_offset 16
+ 237              		.cfi_offset 3, -16
+ 238              		.cfi_offset 4, -12
+ 239              		.cfi_offset 5, -8
+ 240              		.cfi_offset 14, -4
+ 241 0002 0D46     		mov	r5, r1
+  56:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_t * title = lv_label_create(header);
+ 242              		.loc 1 56 5 is_stmt 1 view .LVU48
+  56:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_t * title = lv_label_create(header);
+ 243              		.loc 1 56 25 is_stmt 0 view .LVU49
+ 244 0004 FFF7FEFF 		bl	lv_win_get_header
+ 245              	.LVL31:
+  57:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_label_set_long_mode(title, LV_LABEL_LONG_MODE_DOTS);
+ 246              		.loc 1 57 5 is_stmt 1 view .LVU50
+  57:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_label_set_long_mode(title, LV_LABEL_LONG_MODE_DOTS);
+ 247              		.loc 1 57 24 is_stmt 0 view .LVU51
+ 248 0008 FFF7FEFF 		bl	lv_label_create
+ 249              	.LVL32:
+  57:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_label_set_long_mode(title, LV_LABEL_LONG_MODE_DOTS);
+ 250              		.loc 1 57 24 view .LVU52
+ 251 000c 0446     		mov	r4, r0
+ 252              	.LVL33:
+  58:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_label_set_text(title, txt);
+ 253              		.loc 1 58 5 is_stmt 1 view .LVU53
+ 254 000e 0121     		movs	r1, #1
+ 255 0010 FFF7FEFF 		bl	lv_label_set_long_mode
+ 256              	.LVL34:
+  59:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_set_flex_grow(title, 1);
+ 257              		.loc 1 59 5 view .LVU54
+ 258 0014 2946     		mov	r1, r5
+ 259 0016 2046     		mov	r0, r4
+ 260 0018 FFF7FEFF 		bl	lv_label_set_text
+ 261              	.LVL35:
+  60:Drivers/lvgl/src/widgets/win/lv_win.c ****     return title;
+ 262              		.loc 1 60 5 view .LVU55
+ 263 001c 0121     		movs	r1, #1
+ 264 001e 2046     		mov	r0, r4
+ 265 0020 FFF7FEFF 		bl	lv_obj_set_flex_grow
+ 266              	.LVL36:
+  61:Drivers/lvgl/src/widgets/win/lv_win.c **** }
+ 267              		.loc 1 61 5 view .LVU56
+  62:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+ 268              		.loc 1 62 1 is_stmt 0 view .LVU57
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s 			page 8
+
+
+ 269 0024 2046     		mov	r0, r4
+ 270 0026 38BD     		pop	{r3, r4, r5, pc}
+  62:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+ 271              		.loc 1 62 1 view .LVU58
+ 272              		.cfi_endproc
+ 273              	.LFE191:
+ 275              		.section	.text.lv_win_add_button,"ax",%progbits
+ 276              		.align	1
+ 277              		.global	lv_win_add_button
+ 278              		.syntax unified
+ 279              		.thumb
+ 280              		.thumb_func
+ 282              	lv_win_add_button:
+ 283              	.LVL37:
+ 284              	.LFB192:
+  65:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_t * header = lv_win_get_header(win);
+ 285              		.loc 1 65 1 is_stmt 1 view -0
+ 286              		.cfi_startproc
+ 287              		@ args = 0, pretend = 0, frame = 0
+ 288              		@ frame_needed = 0, uses_anonymous_args = 0
+  65:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_t * header = lv_win_get_header(win);
+ 289              		.loc 1 65 1 is_stmt 0 view .LVU60
+ 290 0000 70B5     		push	{r4, r5, r6, lr}
+ 291              	.LCFI4:
+ 292              		.cfi_def_cfa_offset 16
+ 293              		.cfi_offset 4, -16
+ 294              		.cfi_offset 5, -12
+ 295              		.cfi_offset 6, -8
+ 296              		.cfi_offset 14, -4
+ 297 0002 0D46     		mov	r5, r1
+ 298 0004 1646     		mov	r6, r2
+  66:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_t * btn = lv_button_create(header);
+ 299              		.loc 1 66 5 is_stmt 1 view .LVU61
+  66:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_t * btn = lv_button_create(header);
+ 300              		.loc 1 66 25 is_stmt 0 view .LVU62
+ 301 0006 FFF7FEFF 		bl	lv_win_get_header
+ 302              	.LVL38:
+  67:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_set_size(btn, btn_w, LV_PCT(100));
+ 303              		.loc 1 67 5 is_stmt 1 view .LVU63
+  67:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_set_size(btn, btn_w, LV_PCT(100));
+ 304              		.loc 1 67 22 is_stmt 0 view .LVU64
+ 305 000a FFF7FEFF 		bl	lv_button_create
+ 306              	.LVL39:
+  67:Drivers/lvgl/src/widgets/win/lv_win.c ****     lv_obj_set_size(btn, btn_w, LV_PCT(100));
+ 307              		.loc 1 67 22 view .LVU65
+ 308 000e 0446     		mov	r4, r0
+ 309              	.LVL40:
+  68:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+ 310              		.loc 1 68 5 is_stmt 1 view .LVU66
+ 311 0010 094A     		ldr	r2, .L16
+ 312 0012 3146     		mov	r1, r6
+ 313 0014 FFF7FEFF 		bl	lv_obj_set_size
+ 314              	.LVL41:
+  70:Drivers/lvgl/src/widgets/win/lv_win.c ****         lv_obj_t * img = lv_image_create(btn);
+ 315              		.loc 1 70 5 view .LVU67
+  70:Drivers/lvgl/src/widgets/win/lv_win.c ****         lv_obj_t * img = lv_image_create(btn);
+ 316              		.loc 1 70 7 is_stmt 0 view .LVU68
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s 			page 9
+
+
+ 317 0018 65B1     		cbz	r5, .L13
+ 318              	.LBB2:
+  71:Drivers/lvgl/src/widgets/win/lv_win.c ****         lv_image_set_src(img, icon);
+ 319              		.loc 1 71 9 is_stmt 1 view .LVU69
+  71:Drivers/lvgl/src/widgets/win/lv_win.c ****         lv_image_set_src(img, icon);
+ 320              		.loc 1 71 26 is_stmt 0 view .LVU70
+ 321 001a 2046     		mov	r0, r4
+ 322 001c FFF7FEFF 		bl	lv_image_create
+ 323              	.LVL42:
+ 324 0020 0646     		mov	r6, r0
+ 325              	.LVL43:
+  72:Drivers/lvgl/src/widgets/win/lv_win.c ****         lv_obj_align(img, LV_ALIGN_CENTER, 0, 0);
+ 326              		.loc 1 72 9 is_stmt 1 view .LVU71
+ 327 0022 2946     		mov	r1, r5
+ 328 0024 FFF7FEFF 		bl	lv_image_set_src
+ 329              	.LVL44:
+  73:Drivers/lvgl/src/widgets/win/lv_win.c ****     }
+ 330              		.loc 1 73 9 view .LVU72
+ 331 0028 0023     		movs	r3, #0
+ 332 002a 1A46     		mov	r2, r3
+ 333 002c 0921     		movs	r1, #9
+ 334 002e 3046     		mov	r0, r6
+ 335 0030 FFF7FEFF 		bl	lv_obj_align
+ 336              	.LVL45:
+ 337              	.LBE2:
+  76:Drivers/lvgl/src/widgets/win/lv_win.c **** }
+ 338              		.loc 1 76 5 view .LVU73
+ 339              	.L13:
+  77:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+ 340              		.loc 1 77 1 is_stmt 0 view .LVU74
+ 341 0034 2046     		mov	r0, r4
+ 342 0036 70BD     		pop	{r4, r5, r6, pc}
+ 343              	.LVL46:
+ 344              	.L17:
+  77:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+ 345              		.loc 1 77 1 view .LVU75
+ 346              		.align	2
+ 347              	.L16:
+ 348 0038 64000020 		.word	536871012
+ 349              		.cfi_endproc
+ 350              	.LFE192:
+ 352              		.section	.text.lv_win_get_content,"ax",%progbits
+ 353              		.align	1
+ 354              		.global	lv_win_get_content
+ 355              		.syntax unified
+ 356              		.thumb
+ 357              		.thumb_func
+ 359              	lv_win_get_content:
+ 360              	.LVL47:
+ 361              	.LFB194:
+  85:Drivers/lvgl/src/widgets/win/lv_win.c ****     return lv_obj_get_child(win, 1);
+ 362              		.loc 1 85 1 is_stmt 1 view -0
+ 363              		.cfi_startproc
+ 364              		@ args = 0, pretend = 0, frame = 0
+ 365              		@ frame_needed = 0, uses_anonymous_args = 0
+  85:Drivers/lvgl/src/widgets/win/lv_win.c ****     return lv_obj_get_child(win, 1);
+ 366              		.loc 1 85 1 is_stmt 0 view .LVU77
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s 			page 10
+
+
+ 367 0000 08B5     		push	{r3, lr}
+ 368              	.LCFI5:
+ 369              		.cfi_def_cfa_offset 8
+ 370              		.cfi_offset 3, -8
+ 371              		.cfi_offset 14, -4
+  86:Drivers/lvgl/src/widgets/win/lv_win.c **** }
+ 372              		.loc 1 86 5 is_stmt 1 view .LVU78
+  86:Drivers/lvgl/src/widgets/win/lv_win.c **** }
+ 373              		.loc 1 86 12 is_stmt 0 view .LVU79
+ 374 0002 0121     		movs	r1, #1
+ 375 0004 FFF7FEFF 		bl	lv_obj_get_child
+ 376              	.LVL48:
+  87:Drivers/lvgl/src/widgets/win/lv_win.c **** 
+ 377              		.loc 1 87 1 view .LVU80
+ 378 0008 08BD     		pop	{r3, pc}
+ 379              		.cfi_endproc
+ 380              	.LFE194:
+ 382              		.global	lv_win_class
+ 383              		.section	.rodata.str1.4,"aMS",%progbits,1
+ 384              		.align	2
+ 385              	.LC0:
+ 386 0000 6C765F77 		.ascii	"lv_win\000"
+ 386      696E00
+ 387              		.section	.rodata.lv_win_class,"a"
+ 388              		.align	2
+ 391              	lv_win_class:
+ 392 0000 00000000 		.word	lv_obj_class
+ 393 0004 00000000 		.word	lv_win_constructor
+ 394 0008 00000000 		.space	12
+ 394      00000000 
+ 394      00000000 
+ 395 0014 00000000 		.word	.LC0
+ 396 0018 64000020 		.word	536871012
+ 397 001c 64000020 		.word	536871012
+ 398 0020 C0       		.byte	192
+ 399 0021 02       		.byte	2
+ 400 0022 00       		.byte	0
+ 401 0023 00       		.space	1
+ 402              		.text
+ 403              	.Letext0:
+ 404              		.file 2 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/arm-none-eabi/include/machine/_defa
+ 405              		.file 3 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/arm-none-eabi/include/sys/_stdint.h
+ 406              		.file 4 "Drivers/lvgl/src/widgets/win/../../core/../misc/lv_types.h"
+ 407              		.file 5 "Drivers/lvgl/src/widgets/win/../../core/lv_obj_private.h"
+ 408              		.file 6 "Drivers/lvgl/src/widgets/win/../../core/lv_obj_class_private.h"
+ 409              		.file 7 "Drivers/lvgl/src/widgets/win/../../core/../display/../misc/lv_array.h"
+ 410              		.file 8 "Drivers/lvgl/src/widgets/win/../../core/../misc/../font/../draw/../misc/lv_area.h"
+ 411              		.file 9 "Drivers/lvgl/src/widgets/win/../../core/../misc/../layouts/flex/lv_flex.h"
+ 412              		.file 10 "Drivers/lvgl/src/widgets/win/../../core/../display/../misc/lv_event.h"
+ 413              		.file 11 "Drivers/lvgl/src/widgets/win/../../core/../indev/lv_indev.h"
+ 414              		.file 12 "Drivers/lvgl/src/widgets/win/../../core/lv_obj.h"
+ 415              		.file 13 "Drivers/lvgl/src/widgets/win/lv_win.h"
+ 416              		.file 14 "Drivers/lvgl/src/widgets/win/../../../src/widgets/bar/../label/lv_label.h"
+ 417              		.file 15 "Drivers/lvgl/src/widgets/win/../../../src/widgets/bar/lv_bar.h"
+ 418              		.file 16 "Drivers/lvgl/src/widgets/win/../../core/lv_obj_pos.h"
+ 419              		.file 17 "Drivers/lvgl/src/widgets/win/../../../src/widgets/animimage/../image/lv_image.h"
+ 420              		.file 18 "Drivers/lvgl/src/widgets/win/../../core/lv_obj_tree.h"
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s 			page 11
+
+
+ 421              		.file 19 "Drivers/lvgl/src/widgets/win/../../../src/widgets/button/lv_button.h"
+ 422              		.file 20 "Drivers/lvgl/src/widgets/win/../../core/lv_obj_class.h"
+ 423              		.file 21 "Drivers/lvgl/src/widgets/win/../../core/../display/lv_display.h"
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s 			page 12
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 lv_win.c
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s:21     .text.lv_win_constructor:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s:26     .text.lv_win_constructor:00000000 lv_win_constructor
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s:135    .text.lv_win_constructor:00000078 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s:140    .text.lv_win_create:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s:146    .text.lv_win_create:00000000 lv_win_create
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s:185    .text.lv_win_create:00000014 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s:391    .rodata.lv_win_class:00000000 lv_win_class
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s:190    .text.lv_win_get_header:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s:196    .text.lv_win_get_header:00000000 lv_win_get_header
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s:220    .text.lv_win_add_title:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s:226    .text.lv_win_add_title:00000000 lv_win_add_title
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s:276    .text.lv_win_add_button:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s:282    .text.lv_win_add_button:00000000 lv_win_add_button
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s:348    .text.lv_win_add_button:00000038 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s:353    .text.lv_win_get_content:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s:359    .text.lv_win_get_content:00000000 lv_win_get_content
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s:384    .rodata.str1.4:00000000 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLyzkt0.s:388    .rodata.lv_win_class:00000000 $d
+
+UNDEFINED SYMBOLS
+lv_obj_get_parent
+lv_obj_get_width
+lv_obj_get_height
+lv_obj_set_size
+lv_obj_set_flex_flow
+lv_obj_create
+lv_obj_get_display
+lv_display_get_dpi
+lv_obj_set_flex_align
+lv_obj_set_flex_grow
+lv_obj_set_width
+lv_obj_class_create_obj
+lv_obj_class_init_obj
+lv_obj_get_child
+lv_label_create
+lv_label_set_long_mode
+lv_label_set_text
+lv_button_create
+lv_image_create
+lv_image_set_src
+lv_obj_align
+lv_obj_class

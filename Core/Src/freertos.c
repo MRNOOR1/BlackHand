@@ -28,6 +28,7 @@
 #include <string.h>
 #include "usart.h"
 #include <stdio.h>
+#include "lvgl.h"
 
 #define BUTTON_PORT A0_GPIO_Port
 #define BUTTON_PIN  A0_Pin
@@ -47,7 +48,7 @@ osThreadId lvglTaskHandle;
 void StartLedTask(void const * argument);
 void StartUartTask(void const * argument);
 void StartButtonTask(void const * argument);
-void LVGL_Task(void const *argument);
+void LVGL_Task(void const * argument);
 
 
 /* USER CODE END Includes */
@@ -151,54 +152,29 @@ void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackTy
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-    // LED task: normal priority, 128 words stack
+  
+  // LED task
   osThreadDef(ledTask, StartLedTask, osPriorityAboveNormal, 0, 128);
   ledTaskHandle = osThreadCreate(osThread(ledTask), NULL);
 
-  // UART task: low priority, 128 words stack
+  // UART task
   osThreadDef(uartTask, StartUartTask, osPriorityAboveNormal, 0, 128);
   uartTaskHandle = osThreadCreate(osThread(uartTask), NULL);
 
-  osThreadDef(lvglTask, LVGL_Task, osPriorityNormal, 0, 512);
+  // LVGL task (increased stack to 1024 words/4KB)
+  osThreadDef(lvglTask, LVGL_Task, osPriorityHigh, 0, 1024);
   lvglTaskHandle = osThreadCreate(osThread(lvglTask), NULL);
 
-  /* USER CODE BEGIN RTOS_TIMERS */
-  /* USER CODE END Init */
-const osThreadAttr_t lvglTask_attributes = {
-  .name = "lvglTask",
-  .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 4096
-};
+  // Button task
+  osThreadDef(buttonTask, StartButtonTask, osPriorityAboveNormal, 0, 128);
+  buttonTaskHandle = osThreadCreate(osThread(buttonTask), NULL);
 
-
-  /* USER CODE BEGIN RTOS_MUTEX */
-  /* add mutexes, ... */
-  /* USER CODE END RTOS_MUTEX */
-
-  /* USER CODE BEGIN RTOS_SEMAPHORES */
-  /* add semaphores, ... */
-  /* USER CODE END RTOS_SEMAPHORES */
-
-  /* USER CODE BEGIN RTOS_TIMERS */
-osThreadDef(buttonTask, StartButtonTask, osPriorityAboveNormal, 0, 128);
-buttonTaskHandle = osThreadCreate(osThread(buttonTask), NULL);
-  /* USER CODE END RTOS_TIMERS */
-
-  /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
-  /* USER CODE END RTOS_QUEUES */
-
-  /* Create the thread(s) */
-  /* definition and creation of defaultTask */
+  // Default task
   osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 4096);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
-  /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
-  /* USER CODE END RTOS_THREADS */
-
+  /* USER CODE END Init */
 }
-
 /* USER CODE BEGIN Header_StartDefaultTask */
 /**
   * @brief  Function implementing the defaultTask thread.
@@ -301,13 +277,14 @@ void StartButtonTask(void const * argument)
 
 void LVGL_Task(void const *argument)
 {
-    (void)argument;
-
-    for(;;)
-    {
-        lv_timer_handler();
-        osDelay(5);
-    }
+  /* USER CODE BEGIN LVGL_Task */
+  /* Infinite loop */
+  for(;;)
+  {
+    lv_timer_handler(); /* This is what makes the screen update! */
+    osDelay(5);
+  }
+  /* USER CODE END LVGL_Task */
 }
 
 

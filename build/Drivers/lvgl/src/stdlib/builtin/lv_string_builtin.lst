@@ -1,0 +1,2105 @@
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"lv_string_builtin.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c"
+  20              		.section	.text.lv_memcpy,"ax",%progbits
+  21              		.align	1
+  22              		.global	lv_memcpy
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	lv_memcpy:
+  28              	.LVL0:
+  29              	.LFB3:
+   1:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** /**
+   2:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****  * @file lv_string_builtin.c
+   3:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****  */
+   4:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+   5:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** /*********************
+   6:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****  *      INCLUDES
+   7:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****  *********************/
+   8:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** #include "../../lv_conf_internal.h"
+   9:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** #if LV_USE_STDLIB_STRING == LV_STDLIB_BUILTIN
+  10:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** #include "../../misc/lv_assert.h"
+  11:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** #include "../../misc/lv_log.h"
+  12:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** #include "../../misc/lv_math.h"
+  13:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** #include "../../stdlib/lv_string.h"
+  14:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** #include "../../stdlib/lv_mem.h"
+  15:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+  16:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** /*********************
+  17:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****  *      DEFINES
+  18:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****  *********************/
+  19:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** #ifdef LV_ARCH_64
+  20:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     #define MEM_UNIT         uint64_t
+  21:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     #define ALIGN_MASK       0x7
+  22:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** #else
+  23:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     #define MEM_UNIT         uint32_t
+  24:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     #define ALIGN_MASK       0x3
+  25:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** #endif
+  26:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+  27:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** /**********************
+  28:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****  *      TYPEDEFS
+  29:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****  **********************/
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 2
+
+
+  30:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+  31:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** /**********************
+  32:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****  *  STATIC PROTOTYPES
+  33:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****  **********************/
+  34:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+  35:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** /**********************
+  36:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****  *  STATIC VARIABLES
+  37:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****  **********************/
+  38:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+  39:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** /**********************
+  40:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****  *      MACROS
+  41:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****  **********************/
+  42:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** #if LV_USE_LOG && LV_LOG_TRACE_MEM
+  43:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     #define LV_TRACE_MEM(...) LV_LOG_TRACE(__VA_ARGS__)
+  44:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** #else
+  45:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     #define LV_TRACE_MEM(...)
+  46:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** #endif
+  47:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+  48:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** #define _COPY(d, s) *d = *s; d++; s++;
+  49:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** #define _SET(d, v) *d = v; d++;
+  50:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** #define _REPEAT8(expr) expr expr expr expr expr expr expr expr
+  51:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+  52:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** /**********************
+  53:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****  *   GLOBAL FUNCTIONS
+  54:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****  **********************/
+  55:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+  56:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** void * LV_ATTRIBUTE_FAST_MEM lv_memcpy(void * dst, const void * src, size_t len)
+  57:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** {
+  30              		.loc 1 57 1 view -0
+  31              		.cfi_startproc
+  32              		@ args = 0, pretend = 0, frame = 0
+  33              		@ frame_needed = 0, uses_anonymous_args = 0
+  34              		@ link register save eliminated.
+  35              		.loc 1 57 1 is_stmt 0 view .LVU1
+  36 0000 10B4     		push	{r4}
+  37              	.LCFI0:
+  38              		.cfi_def_cfa_offset 4
+  39              		.cfi_offset 4, -4
+  58:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     volatile uint8_t * d8 = dst;
+  40              		.loc 1 58 5 is_stmt 1 view .LVU2
+  41              	.LVL1:
+  59:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     const uint8_t * s8 = src;
+  42              		.loc 1 59 5 view .LVU3
+  60:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+  61:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     /*Simplify for small memories*/
+  62:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     if(len < 16) {
+  43              		.loc 1 62 5 view .LVU4
+  44              		.loc 1 62 7 is_stmt 0 view .LVU5
+  45 0002 0F2A     		cmp	r2, #15
+  46 0004 1FD9     		bls	.L24
+  63:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         while(len) {
+  64:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             *d8 = *s8;
+  65:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             d8++;
+  66:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             s8++;
+  67:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len--;
+  68:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         }
+  69:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         return dst;
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 3
+
+
+  70:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+  71:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+  72:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     lv_uintptr_t d_align = (lv_uintptr_t)d8 & ALIGN_MASK;
+  47              		.loc 1 72 5 is_stmt 1 view .LVU6
+  48              		.loc 1 72 18 is_stmt 0 view .LVU7
+  49 0006 00F00304 		and	r4, r0, #3
+  50              	.LVL2:
+  73:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     lv_uintptr_t s_align = (lv_uintptr_t)s8 & ALIGN_MASK;
+  51              		.loc 1 73 5 is_stmt 1 view .LVU8
+  52              		.loc 1 73 18 is_stmt 0 view .LVU9
+  53 000a 01F00303 		and	r3, r1, #3
+  54              	.LVL3:
+  74:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+  75:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     /*Byte copy for unaligned memories*/
+  76:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     if(s_align != d_align) {
+  55              		.loc 1 76 5 is_stmt 1 view .LVU10
+  56              		.loc 1 76 7 is_stmt 0 view .LVU11
+  57 000e 9C42     		cmp	r4, r3
+  58 0010 61D1     		bne	.L19
+  77:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         while(len > 32) {
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+  82:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+  83:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         }
+  84:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         while(len) {
+  85:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _COPY(d8, s8)
+  86:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len--;
+  87:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         }
+  88:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         return dst;
+  89:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+  90:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+  91:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     /*Make the memories aligned*/
+  92:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     if(d_align) {
+  59              		.loc 1 92 5 is_stmt 1 view .LVU12
+  60              		.loc 1 92 7 is_stmt 0 view .LVU13
+  61 0012 002C     		cmp	r4, #0
+  62 0014 69D0     		beq	.L20
+  93:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         d_align = ALIGN_MASK + 1 - d_align;
+  63              		.loc 1 93 9 is_stmt 1 view .LVU14
+  64              		.loc 1 93 17 is_stmt 0 view .LVU15
+  65 0016 C4F10404 		rsb	r4, r4, #4
+  66              	.LVL4:
+  94:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         while(d_align && len) {
+  67              		.loc 1 94 9 is_stmt 1 view .LVU16
+  58:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     const uint8_t * s8 = src;
+  68              		.loc 1 58 24 is_stmt 0 view .LVU17
+  69 001a 0346     		mov	r3, r0
+  70              	.LVL5:
+  71              	.L12:
+  72              		.loc 1 94 23 is_stmt 1 view .LVU18
+  73 001c 002C     		cmp	r4, #0
+  74 001e 65D0     		beq	.L14
+  75              		.loc 1 94 23 is_stmt 0 discriminator 1 view .LVU19
+  76 0020 002A     		cmp	r2, #0
+  77 0022 63D0     		beq	.L14
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 4
+
+
+  95:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _COPY(d8, s8);
+  78              		.loc 1 95 13 is_stmt 1 view .LVU20
+  79 0024 11F801CB 		ldrb	ip, [r1], #1	@ zero_extendqisi2
+  80              	.LVL6:
+  81              		.loc 1 95 13 is_stmt 0 view .LVU21
+  82 0028 03F801CB 		strb	ip, [r3], #1
+  83              	.LVL7:
+  84              		.loc 1 95 13 is_stmt 1 view .LVU22
+  85              		.loc 1 95 13 view .LVU23
+  86              		.loc 1 95 26 view .LVU24
+  96:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             d_align--;
+  87              		.loc 1 96 13 view .LVU25
+  88              		.loc 1 96 20 is_stmt 0 view .LVU26
+  89 002c 013C     		subs	r4, r4, #1
+  90              	.LVL8:
+  97:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len--;
+  91              		.loc 1 97 13 is_stmt 1 view .LVU27
+  92              		.loc 1 97 16 is_stmt 0 view .LVU28
+  93 002e 013A     		subs	r2, r2, #1
+  94              	.LVL9:
+  95              		.loc 1 97 16 view .LVU29
+  96 0030 F4E7     		b	.L12
+  97              	.LVL10:
+  98              	.L4:
+  64:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             d8++;
+  99              		.loc 1 64 13 is_stmt 1 view .LVU30
+  64:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             d8++;
+ 100              		.loc 1 64 19 is_stmt 0 view .LVU31
+ 101 0032 11F8014B 		ldrb	r4, [r1], #1	@ zero_extendqisi2
+ 102              	.LVL11:
+  64:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             d8++;
+ 103              		.loc 1 64 17 view .LVU32
+ 104 0036 03F8014B 		strb	r4, [r3], #1
+ 105              	.LVL12:
+  65:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             s8++;
+ 106              		.loc 1 65 13 is_stmt 1 view .LVU33
+  66:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len--;
+ 107              		.loc 1 66 13 view .LVU34
+  67:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         }
+ 108              		.loc 1 67 13 view .LVU35
+  67:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         }
+ 109              		.loc 1 67 16 is_stmt 0 view .LVU36
+ 110 003a 013A     		subs	r2, r2, #1
+ 111              	.LVL13:
+ 112              	.L2:
+  63:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             *d8 = *s8;
+ 113              		.loc 1 63 15 is_stmt 1 view .LVU37
+ 114 003c 002A     		cmp	r2, #0
+ 115 003e F8D1     		bne	.L4
+ 116              	.L5:
+  98:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         }
+  99:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 100:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 101:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     uint32_t * d32 = (uint32_t *)d8;
+ 102:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     const uint32_t * s32 = (uint32_t *)s8;
+ 103:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(len > 32) {
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         _REPEAT8(_COPY(d32, s32))
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 5
+
+
+ 105:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 106:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 107:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 108:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     d8 = (uint8_t *)d32;
+ 109:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     s8 = (const uint8_t *)s32;
+ 110:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(len) {
+ 111:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         _COPY(d8, s8)
+ 112:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len--;
+ 113:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 114:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 115:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     return dst;
+ 116:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** }
+ 117              		.loc 1 116 1 is_stmt 0 view .LVU38
+ 118 0040 5DF8044B 		ldr	r4, [sp], #4
+ 119              	.LCFI1:
+ 120              		.cfi_remember_state
+ 121              		.cfi_restore 4
+ 122              		.cfi_def_cfa_offset 0
+ 123 0044 7047     		bx	lr
+ 124              	.LVL14:
+ 125              	.L24:
+ 126              	.LCFI2:
+ 127              		.cfi_restore_state
+  58:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     const uint8_t * s8 = src;
+ 128              		.loc 1 58 24 view .LVU39
+ 129 0046 0346     		mov	r3, r0
+ 130 0048 F8E7     		b	.L2
+ 131              	.LVL15:
+ 132              	.L8:
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 133              		.loc 1 78 13 is_stmt 1 view .LVU40
+ 134 004a 0C78     		ldrb	r4, [r1]	@ zero_extendqisi2
+ 135 004c 1C70     		strb	r4, [r3]
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 136              		.loc 1 78 13 view .LVU41
+ 137              	.LVL16:
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 138              		.loc 1 78 13 view .LVU42
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 139              		.loc 1 78 13 view .LVU43
+ 140 004e 4C78     		ldrb	r4, [r1, #1]	@ zero_extendqisi2
+ 141 0050 5C70     		strb	r4, [r3, #1]
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 142              		.loc 1 78 13 view .LVU44
+ 143              	.LVL17:
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 144              		.loc 1 78 13 view .LVU45
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 145              		.loc 1 78 13 view .LVU46
+ 146 0052 8C78     		ldrb	r4, [r1, #2]	@ zero_extendqisi2
+ 147 0054 9C70     		strb	r4, [r3, #2]
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 148              		.loc 1 78 13 view .LVU47
+ 149              	.LVL18:
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 150              		.loc 1 78 13 view .LVU48
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 6
+
+
+ 151              		.loc 1 78 13 view .LVU49
+ 152 0056 CC78     		ldrb	r4, [r1, #3]	@ zero_extendqisi2
+ 153 0058 DC70     		strb	r4, [r3, #3]
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 154              		.loc 1 78 13 view .LVU50
+ 155              	.LVL19:
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 156              		.loc 1 78 13 view .LVU51
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 157              		.loc 1 78 13 view .LVU52
+ 158 005a 0C79     		ldrb	r4, [r1, #4]	@ zero_extendqisi2
+ 159 005c 1C71     		strb	r4, [r3, #4]
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 160              		.loc 1 78 13 view .LVU53
+ 161              	.LVL20:
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 162              		.loc 1 78 13 view .LVU54
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 163              		.loc 1 78 13 view .LVU55
+ 164 005e 4C79     		ldrb	r4, [r1, #5]	@ zero_extendqisi2
+ 165 0060 5C71     		strb	r4, [r3, #5]
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 166              		.loc 1 78 13 view .LVU56
+ 167              	.LVL21:
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 168              		.loc 1 78 13 view .LVU57
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 169              		.loc 1 78 13 view .LVU58
+ 170 0062 8C79     		ldrb	r4, [r1, #6]	@ zero_extendqisi2
+ 171 0064 9C71     		strb	r4, [r3, #6]
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 172              		.loc 1 78 13 view .LVU59
+ 173              	.LVL22:
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 174              		.loc 1 78 13 view .LVU60
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 175              		.loc 1 78 13 view .LVU61
+ 176 0066 CC79     		ldrb	r4, [r1, #7]	@ zero_extendqisi2
+ 177 0068 DC71     		strb	r4, [r3, #7]
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 178              		.loc 1 78 13 view .LVU62
+ 179              	.LVL23:
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 180              		.loc 1 78 13 view .LVU63
+  78:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 181              		.loc 1 78 36 view .LVU64
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 182              		.loc 1 79 13 view .LVU65
+ 183 006a 0C7A     		ldrb	r4, [r1, #8]	@ zero_extendqisi2
+ 184 006c 1C72     		strb	r4, [r3, #8]
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 185              		.loc 1 79 13 view .LVU66
+ 186              	.LVL24:
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 187              		.loc 1 79 13 view .LVU67
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 188              		.loc 1 79 13 view .LVU68
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 7
+
+
+ 189 006e 4C7A     		ldrb	r4, [r1, #9]	@ zero_extendqisi2
+ 190 0070 5C72     		strb	r4, [r3, #9]
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 191              		.loc 1 79 13 view .LVU69
+ 192              	.LVL25:
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 193              		.loc 1 79 13 view .LVU70
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 194              		.loc 1 79 13 view .LVU71
+ 195 0072 8C7A     		ldrb	r4, [r1, #10]	@ zero_extendqisi2
+ 196 0074 9C72     		strb	r4, [r3, #10]
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 197              		.loc 1 79 13 view .LVU72
+ 198              	.LVL26:
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 199              		.loc 1 79 13 view .LVU73
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 200              		.loc 1 79 13 view .LVU74
+ 201 0076 CC7A     		ldrb	r4, [r1, #11]	@ zero_extendqisi2
+ 202 0078 DC72     		strb	r4, [r3, #11]
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 203              		.loc 1 79 13 view .LVU75
+ 204              	.LVL27:
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 205              		.loc 1 79 13 view .LVU76
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 206              		.loc 1 79 13 view .LVU77
+ 207 007a 0C7B     		ldrb	r4, [r1, #12]	@ zero_extendqisi2
+ 208 007c 1C73     		strb	r4, [r3, #12]
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 209              		.loc 1 79 13 view .LVU78
+ 210              	.LVL28:
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 211              		.loc 1 79 13 view .LVU79
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 212              		.loc 1 79 13 view .LVU80
+ 213 007e 4C7B     		ldrb	r4, [r1, #13]	@ zero_extendqisi2
+ 214 0080 5C73     		strb	r4, [r3, #13]
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 215              		.loc 1 79 13 view .LVU81
+ 216              	.LVL29:
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 217              		.loc 1 79 13 view .LVU82
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 218              		.loc 1 79 13 view .LVU83
+ 219 0082 8C7B     		ldrb	r4, [r1, #14]	@ zero_extendqisi2
+ 220 0084 9C73     		strb	r4, [r3, #14]
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 221              		.loc 1 79 13 view .LVU84
+ 222              	.LVL30:
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 223              		.loc 1 79 13 view .LVU85
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 224              		.loc 1 79 13 view .LVU86
+ 225 0086 CC7B     		ldrb	r4, [r1, #15]	@ zero_extendqisi2
+ 226 0088 DC73     		strb	r4, [r3, #15]
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 8
+
+
+ 227              		.loc 1 79 13 view .LVU87
+ 228              	.LVL31:
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 229              		.loc 1 79 13 view .LVU88
+  79:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 230              		.loc 1 79 36 view .LVU89
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 231              		.loc 1 80 13 view .LVU90
+ 232 008a 0C7C     		ldrb	r4, [r1, #16]	@ zero_extendqisi2
+ 233 008c 1C74     		strb	r4, [r3, #16]
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 234              		.loc 1 80 13 view .LVU91
+ 235              	.LVL32:
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 236              		.loc 1 80 13 view .LVU92
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 237              		.loc 1 80 13 view .LVU93
+ 238 008e 4C7C     		ldrb	r4, [r1, #17]	@ zero_extendqisi2
+ 239 0090 5C74     		strb	r4, [r3, #17]
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 240              		.loc 1 80 13 view .LVU94
+ 241              	.LVL33:
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 242              		.loc 1 80 13 view .LVU95
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 243              		.loc 1 80 13 view .LVU96
+ 244 0092 8C7C     		ldrb	r4, [r1, #18]	@ zero_extendqisi2
+ 245 0094 9C74     		strb	r4, [r3, #18]
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 246              		.loc 1 80 13 view .LVU97
+ 247              	.LVL34:
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 248              		.loc 1 80 13 view .LVU98
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 249              		.loc 1 80 13 view .LVU99
+ 250 0096 CC7C     		ldrb	r4, [r1, #19]	@ zero_extendqisi2
+ 251 0098 DC74     		strb	r4, [r3, #19]
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 252              		.loc 1 80 13 view .LVU100
+ 253              	.LVL35:
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 254              		.loc 1 80 13 view .LVU101
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 255              		.loc 1 80 13 view .LVU102
+ 256 009a 0C7D     		ldrb	r4, [r1, #20]	@ zero_extendqisi2
+ 257 009c 1C75     		strb	r4, [r3, #20]
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 258              		.loc 1 80 13 view .LVU103
+ 259              	.LVL36:
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 260              		.loc 1 80 13 view .LVU104
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 261              		.loc 1 80 13 view .LVU105
+ 262 009e 4C7D     		ldrb	r4, [r1, #21]	@ zero_extendqisi2
+ 263 00a0 5C75     		strb	r4, [r3, #21]
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 264              		.loc 1 80 13 view .LVU106
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 9
+
+
+ 265              	.LVL37:
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 266              		.loc 1 80 13 view .LVU107
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 267              		.loc 1 80 13 view .LVU108
+ 268 00a2 8C7D     		ldrb	r4, [r1, #22]	@ zero_extendqisi2
+ 269 00a4 9C75     		strb	r4, [r3, #22]
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 270              		.loc 1 80 13 view .LVU109
+ 271              	.LVL38:
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 272              		.loc 1 80 13 view .LVU110
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 273              		.loc 1 80 13 view .LVU111
+ 274 00a6 CC7D     		ldrb	r4, [r1, #23]	@ zero_extendqisi2
+ 275 00a8 DC75     		strb	r4, [r3, #23]
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 276              		.loc 1 80 13 view .LVU112
+ 277              	.LVL39:
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 278              		.loc 1 80 13 view .LVU113
+  80:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 279              		.loc 1 80 36 view .LVU114
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 280              		.loc 1 81 13 view .LVU115
+ 281 00aa 0C7E     		ldrb	r4, [r1, #24]	@ zero_extendqisi2
+ 282 00ac 1C76     		strb	r4, [r3, #24]
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 283              		.loc 1 81 13 view .LVU116
+ 284              	.LVL40:
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 285              		.loc 1 81 13 view .LVU117
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 286              		.loc 1 81 13 view .LVU118
+ 287 00ae 4C7E     		ldrb	r4, [r1, #25]	@ zero_extendqisi2
+ 288 00b0 5C76     		strb	r4, [r3, #25]
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 289              		.loc 1 81 13 view .LVU119
+ 290              	.LVL41:
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 291              		.loc 1 81 13 view .LVU120
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 292              		.loc 1 81 13 view .LVU121
+ 293 00b2 8C7E     		ldrb	r4, [r1, #26]	@ zero_extendqisi2
+ 294 00b4 9C76     		strb	r4, [r3, #26]
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 295              		.loc 1 81 13 view .LVU122
+ 296              	.LVL42:
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 297              		.loc 1 81 13 view .LVU123
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 298              		.loc 1 81 13 view .LVU124
+ 299 00b6 CC7E     		ldrb	r4, [r1, #27]	@ zero_extendqisi2
+ 300 00b8 DC76     		strb	r4, [r3, #27]
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 301              		.loc 1 81 13 view .LVU125
+ 302              	.LVL43:
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 10
+
+
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 303              		.loc 1 81 13 view .LVU126
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 304              		.loc 1 81 13 view .LVU127
+ 305 00ba 0C7F     		ldrb	r4, [r1, #28]	@ zero_extendqisi2
+ 306 00bc 1C77     		strb	r4, [r3, #28]
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 307              		.loc 1 81 13 view .LVU128
+ 308              	.LVL44:
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 309              		.loc 1 81 13 view .LVU129
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 310              		.loc 1 81 13 view .LVU130
+ 311 00be 4C7F     		ldrb	r4, [r1, #29]	@ zero_extendqisi2
+ 312 00c0 5C77     		strb	r4, [r3, #29]
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 313              		.loc 1 81 13 view .LVU131
+ 314              	.LVL45:
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 315              		.loc 1 81 13 view .LVU132
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 316              		.loc 1 81 13 view .LVU133
+ 317 00c2 8C7F     		ldrb	r4, [r1, #30]	@ zero_extendqisi2
+ 318 00c4 9C77     		strb	r4, [r3, #30]
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 319              		.loc 1 81 13 view .LVU134
+ 320              	.LVL46:
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 321              		.loc 1 81 13 view .LVU135
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 322              		.loc 1 81 13 view .LVU136
+ 323 00c6 CC7F     		ldrb	r4, [r1, #31]	@ zero_extendqisi2
+ 324 00c8 DC77     		strb	r4, [r3, #31]
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 325              		.loc 1 81 13 view .LVU137
+ 326 00ca 2033     		adds	r3, r3, #32
+ 327              	.LVL47:
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 328              		.loc 1 81 13 view .LVU138
+ 329 00cc 2031     		adds	r1, r1, #32
+ 330              	.LVL48:
+  81:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len -= 32;
+ 331              		.loc 1 81 36 view .LVU139
+  82:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         }
+ 332              		.loc 1 82 13 view .LVU140
+  82:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         }
+ 333              		.loc 1 82 17 is_stmt 0 view .LVU141
+ 334 00ce 203A     		subs	r2, r2, #32
+ 335              	.LVL49:
+ 336              	.L6:
+  77:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 337              		.loc 1 77 19 is_stmt 1 view .LVU142
+ 338 00d0 202A     		cmp	r2, #32
+ 339 00d2 BAD8     		bhi	.L8
+  77:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _REPEAT8(_COPY(d8, s8));
+ 340              		.loc 1 77 19 is_stmt 0 view .LVU143
+ 341 00d4 06E0     		b	.L9
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 11
+
+
+ 342              	.LVL50:
+ 343              	.L19:
+  58:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     const uint8_t * s8 = src;
+ 344              		.loc 1 58 24 view .LVU144
+ 345 00d6 0346     		mov	r3, r0
+ 346              	.LVL51:
+  58:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     const uint8_t * s8 = src;
+ 347              		.loc 1 58 24 view .LVU145
+ 348 00d8 FAE7     		b	.L6
+ 349              	.LVL52:
+ 350              	.L10:
+  85:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len--;
+ 351              		.loc 1 85 13 is_stmt 1 view .LVU146
+ 352 00da 11F8014B 		ldrb	r4, [r1], #1	@ zero_extendqisi2
+ 353              	.LVL53:
+  85:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len--;
+ 354              		.loc 1 85 13 is_stmt 0 view .LVU147
+ 355 00de 03F8014B 		strb	r4, [r3], #1
+ 356              	.LVL54:
+  85:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len--;
+ 357              		.loc 1 85 13 is_stmt 1 view .LVU148
+  85:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len--;
+ 358              		.loc 1 85 13 view .LVU149
+  86:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         }
+ 359              		.loc 1 86 13 view .LVU150
+  86:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         }
+ 360              		.loc 1 86 16 is_stmt 0 view .LVU151
+ 361 00e2 013A     		subs	r2, r2, #1
+ 362              	.LVL55:
+ 363              	.L9:
+  84:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _COPY(d8, s8)
+ 364              		.loc 1 84 15 is_stmt 1 view .LVU152
+ 365 00e4 002A     		cmp	r2, #0
+ 366 00e6 F8D1     		bne	.L10
+  84:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _COPY(d8, s8)
+ 367              		.loc 1 84 15 is_stmt 0 view .LVU153
+ 368 00e8 AAE7     		b	.L5
+ 369              	.LVL56:
+ 370              	.L20:
+  58:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     const uint8_t * s8 = src;
+ 371              		.loc 1 58 24 view .LVU154
+ 372 00ea 0346     		mov	r3, r0
+ 373              	.LVL57:
+ 374              	.L14:
+ 103:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         _REPEAT8(_COPY(d32, s32))
+ 375              		.loc 1 103 15 is_stmt 1 view .LVU155
+ 376 00ec 202A     		cmp	r2, #32
+ 377 00ee 13D9     		bls	.L16
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 378              		.loc 1 104 9 view .LVU156
+ 379 00f0 0C68     		ldr	r4, [r1]
+ 380 00f2 1C60     		str	r4, [r3]
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 381              		.loc 1 104 9 view .LVU157
+ 382              	.LVL58:
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 383              		.loc 1 104 9 view .LVU158
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 12
+
+
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 384              		.loc 1 104 9 view .LVU159
+ 385 00f4 4C68     		ldr	r4, [r1, #4]
+ 386 00f6 5C60     		str	r4, [r3, #4]
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 387              		.loc 1 104 9 view .LVU160
+ 388              	.LVL59:
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 389              		.loc 1 104 9 view .LVU161
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 390              		.loc 1 104 9 view .LVU162
+ 391 00f8 8C68     		ldr	r4, [r1, #8]
+ 392 00fa 9C60     		str	r4, [r3, #8]
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 393              		.loc 1 104 9 view .LVU163
+ 394              	.LVL60:
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 395              		.loc 1 104 9 view .LVU164
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 396              		.loc 1 104 9 view .LVU165
+ 397 00fc CC68     		ldr	r4, [r1, #12]
+ 398 00fe DC60     		str	r4, [r3, #12]
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 399              		.loc 1 104 9 view .LVU166
+ 400              	.LVL61:
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 401              		.loc 1 104 9 view .LVU167
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 402              		.loc 1 104 9 view .LVU168
+ 403 0100 0C69     		ldr	r4, [r1, #16]
+ 404 0102 1C61     		str	r4, [r3, #16]
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 405              		.loc 1 104 9 view .LVU169
+ 406              	.LVL62:
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 407              		.loc 1 104 9 view .LVU170
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 408              		.loc 1 104 9 view .LVU171
+ 409 0104 4C69     		ldr	r4, [r1, #20]
+ 410 0106 5C61     		str	r4, [r3, #20]
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 411              		.loc 1 104 9 view .LVU172
+ 412              	.LVL63:
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 413              		.loc 1 104 9 view .LVU173
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 414              		.loc 1 104 9 view .LVU174
+ 415 0108 8C69     		ldr	r4, [r1, #24]
+ 416 010a 9C61     		str	r4, [r3, #24]
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 417              		.loc 1 104 9 view .LVU175
+ 418              	.LVL64:
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 419              		.loc 1 104 9 view .LVU176
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 420              		.loc 1 104 9 view .LVU177
+ 421 010c CC69     		ldr	r4, [r1, #28]
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 13
+
+
+ 422 010e DC61     		str	r4, [r3, #28]
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 423              		.loc 1 104 9 view .LVU178
+ 424 0110 2033     		adds	r3, r3, #32
+ 425              	.LVL65:
+ 104:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ 426              		.loc 1 104 9 view .LVU179
+ 427 0112 2031     		adds	r1, r1, #32
+ 428              	.LVL66:
+ 105:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 429              		.loc 1 105 9 view .LVU180
+ 105:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 430              		.loc 1 105 13 is_stmt 0 view .LVU181
+ 431 0114 203A     		subs	r2, r2, #32
+ 432              	.LVL67:
+ 105:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 433              		.loc 1 105 13 view .LVU182
+ 434 0116 E9E7     		b	.L14
+ 435              	.LVL68:
+ 436              	.L16:
+ 110:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         _COPY(d8, s8)
+ 437              		.loc 1 110 11 is_stmt 1 view .LVU183
+ 438 0118 002A     		cmp	r2, #0
+ 439 011a 91D0     		beq	.L5
+ 111:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len--;
+ 440              		.loc 1 111 9 view .LVU184
+ 441 011c 11F8014B 		ldrb	r4, [r1], #1	@ zero_extendqisi2
+ 442              	.LVL69:
+ 111:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len--;
+ 443              		.loc 1 111 9 is_stmt 0 view .LVU185
+ 444 0120 03F8014B 		strb	r4, [r3], #1
+ 445              	.LVL70:
+ 111:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len--;
+ 446              		.loc 1 111 9 is_stmt 1 view .LVU186
+ 111:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len--;
+ 447              		.loc 1 111 9 view .LVU187
+ 112:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 448              		.loc 1 112 9 view .LVU188
+ 112:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 449              		.loc 1 112 12 is_stmt 0 view .LVU189
+ 450 0124 013A     		subs	r2, r2, #1
+ 451              	.LVL71:
+ 112:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 452              		.loc 1 112 12 view .LVU190
+ 453 0126 F7E7     		b	.L16
+ 454              		.cfi_endproc
+ 455              	.LFE3:
+ 457              		.section	.text.lv_memset,"ax",%progbits
+ 458              		.align	1
+ 459              		.global	lv_memset
+ 460              		.syntax unified
+ 461              		.thumb
+ 462              		.thumb_func
+ 464              	lv_memset:
+ 465              	.LVL72:
+ 466              	.LFB4:
+ 117:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 14
+
+
+ 118:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** void LV_ATTRIBUTE_FAST_MEM lv_memset(void * dst, uint8_t v, size_t len)
+ 119:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** {
+ 467              		.loc 1 119 1 is_stmt 1 view -0
+ 468              		.cfi_startproc
+ 469              		@ args = 0, pretend = 0, frame = 0
+ 470              		@ frame_needed = 0, uses_anonymous_args = 0
+ 471              		@ link register save eliminated.
+ 120:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     uint8_t * d8 = (uint8_t *)dst;
+ 472              		.loc 1 120 5 view .LVU192
+ 121:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     uintptr_t d_align = (lv_uintptr_t) d8 & ALIGN_MASK;
+ 473              		.loc 1 121 5 view .LVU193
+ 122:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 123:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     /*Make the address aligned*/
+ 124:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     if(d_align) {
+ 474              		.loc 1 124 5 view .LVU194
+ 475              		.loc 1 124 7 is_stmt 0 view .LVU195
+ 476 0000 10F00303 		ands	r3, r0, #3
+ 477              	.LVL73:
+ 478              		.loc 1 124 7 view .LVU196
+ 479 0004 09D0     		beq	.L26
+ 125:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         d_align = ALIGN_MASK + 1 - d_align;
+ 480              		.loc 1 125 9 is_stmt 1 view .LVU197
+ 481              		.loc 1 125 17 is_stmt 0 view .LVU198
+ 482 0006 C3F10403 		rsb	r3, r3, #4
+ 483              	.LVL74:
+ 126:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         while(d_align && len) {
+ 484              		.loc 1 126 9 is_stmt 1 view .LVU199
+ 485              		.loc 1 126 14 is_stmt 0 view .LVU200
+ 486 000a 03E0     		b	.L27
+ 487              	.LVL75:
+ 488              	.L28:
+ 127:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _SET(d8, v);
+ 489              		.loc 1 127 13 is_stmt 1 view .LVU201
+ 490 000c 00F8011B 		strb	r1, [r0], #1
+ 491              	.LVL76:
+ 492              		.loc 1 127 13 view .LVU202
+ 493              		.loc 1 127 24 view .LVU203
+ 128:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             len--;
+ 494              		.loc 1 128 13 view .LVU204
+ 495              		.loc 1 128 16 is_stmt 0 view .LVU205
+ 496 0010 013A     		subs	r2, r2, #1
+ 497              	.LVL77:
+ 129:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             d_align--;
+ 498              		.loc 1 129 13 is_stmt 1 view .LVU206
+ 499              		.loc 1 129 20 is_stmt 0 view .LVU207
+ 500 0012 013B     		subs	r3, r3, #1
+ 501              	.LVL78:
+ 502              	.L27:
+ 126:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _SET(d8, v);
+ 503              		.loc 1 126 23 is_stmt 1 view .LVU208
+ 504 0014 0BB1     		cbz	r3, .L26
+ 126:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             _SET(d8, v);
+ 505              		.loc 1 126 23 is_stmt 0 discriminator 1 view .LVU209
+ 506 0016 002A     		cmp	r2, #0
+ 507 0018 F8D1     		bne	.L28
+ 508              	.L26:
+ 130:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         }
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 15
+
+
+ 131:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 132:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 133:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     uint32_t v32 = (uint32_t)v + ((uint32_t)v << 8) + ((uint32_t)v << 16) + ((uint32_t)v << 24);
+ 509              		.loc 1 133 5 is_stmt 1 view .LVU210
+ 510              		.loc 1 133 32 is_stmt 0 view .LVU211
+ 511 001a 01EB0123 		add	r3, r1, r1, lsl #8
+ 512              	.LVL79:
+ 513              		.loc 1 133 53 view .LVU212
+ 514 001e 03EB0143 		add	r3, r3, r1, lsl #16
+ 515              		.loc 1 133 14 view .LVU213
+ 516 0022 03EB0163 		add	r3, r3, r1, lsl #24
+ 517              	.LVL80:
+ 134:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     uint32_t * d32 = (uint32_t *)d8;
+ 518              		.loc 1 134 5 is_stmt 1 view .LVU214
+ 135:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 136:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(len > 32) {
+ 519              		.loc 1 136 5 view .LVU215
+ 520              		.loc 1 136 10 is_stmt 0 view .LVU216
+ 521 0026 09E0     		b	.L29
+ 522              	.LVL81:
+ 523              	.L30:
+ 137:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         _REPEAT8(_SET(d32, v32));
+ 524              		.loc 1 137 9 is_stmt 1 view .LVU217
+ 525 0028 0360     		str	r3, [r0]
+ 526              		.loc 1 137 9 view .LVU218
+ 527              	.LVL82:
+ 528              		.loc 1 137 9 view .LVU219
+ 529 002a 4360     		str	r3, [r0, #4]
+ 530              		.loc 1 137 9 view .LVU220
+ 531              	.LVL83:
+ 532              		.loc 1 137 9 view .LVU221
+ 533 002c 8360     		str	r3, [r0, #8]
+ 534              		.loc 1 137 9 view .LVU222
+ 535              	.LVL84:
+ 536              		.loc 1 137 9 view .LVU223
+ 537 002e C360     		str	r3, [r0, #12]
+ 538              		.loc 1 137 9 view .LVU224
+ 539              	.LVL85:
+ 540              		.loc 1 137 9 view .LVU225
+ 541 0030 0361     		str	r3, [r0, #16]
+ 542              		.loc 1 137 9 view .LVU226
+ 543              	.LVL86:
+ 544              		.loc 1 137 9 view .LVU227
+ 545 0032 4361     		str	r3, [r0, #20]
+ 546              		.loc 1 137 9 view .LVU228
+ 547              	.LVL87:
+ 548              		.loc 1 137 9 view .LVU229
+ 549 0034 8361     		str	r3, [r0, #24]
+ 550              		.loc 1 137 9 view .LVU230
+ 551              	.LVL88:
+ 552              		.loc 1 137 9 view .LVU231
+ 553 0036 C361     		str	r3, [r0, #28]
+ 554              		.loc 1 137 9 view .LVU232
+ 555 0038 2030     		adds	r0, r0, #32
+ 556              	.LVL89:
+ 557              		.loc 1 137 33 view .LVU233
+ 138:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len -= 32;
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 16
+
+
+ 558              		.loc 1 138 9 view .LVU234
+ 559              		.loc 1 138 13 is_stmt 0 view .LVU235
+ 560 003a 203A     		subs	r2, r2, #32
+ 561              	.LVL90:
+ 562              	.L29:
+ 136:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         _REPEAT8(_SET(d32, v32));
+ 563              		.loc 1 136 15 is_stmt 1 view .LVU236
+ 564 003c 202A     		cmp	r2, #32
+ 565 003e F3D8     		bhi	.L30
+ 136:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         _REPEAT8(_SET(d32, v32));
+ 566              		.loc 1 136 15 is_stmt 0 view .LVU237
+ 567 0040 02E0     		b	.L31
+ 568              	.LVL91:
+ 569              	.L32:
+ 139:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 140:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 141:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     d8 = (uint8_t *)d32;
+ 142:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(len) {
+ 143:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         _SET(d8, v);
+ 570              		.loc 1 143 9 is_stmt 1 view .LVU238
+ 571 0042 00F8011B 		strb	r1, [r0], #1
+ 572              	.LVL92:
+ 573              		.loc 1 143 9 view .LVU239
+ 574              		.loc 1 143 20 view .LVU240
+ 144:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         len--;
+ 575              		.loc 1 144 9 view .LVU241
+ 576              		.loc 1 144 12 is_stmt 0 view .LVU242
+ 577 0046 013A     		subs	r2, r2, #1
+ 578              	.LVL93:
+ 579              	.L31:
+ 142:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         _SET(d8, v);
+ 580              		.loc 1 142 11 is_stmt 1 view .LVU243
+ 581 0048 002A     		cmp	r2, #0
+ 582 004a FAD1     		bne	.L32
+ 145:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 146:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** }
+ 583              		.loc 1 146 1 is_stmt 0 view .LVU244
+ 584 004c 7047     		bx	lr
+ 585              		.cfi_endproc
+ 586              	.LFE4:
+ 588              		.section	.text.lv_memmove,"ax",%progbits
+ 589              		.align	1
+ 590              		.global	lv_memmove
+ 591              		.syntax unified
+ 592              		.thumb
+ 593              		.thumb_func
+ 595              	lv_memmove:
+ 596              	.LVL94:
+ 597              	.LFB5:
+ 147:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 148:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** void * LV_ATTRIBUTE_FAST_MEM lv_memmove(void * dst, const void * src, size_t len)
+ 149:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** {
+ 598              		.loc 1 149 1 is_stmt 1 view -0
+ 599              		.cfi_startproc
+ 600              		@ args = 0, pretend = 0, frame = 0
+ 601              		@ frame_needed = 0, uses_anonymous_args = 0
+ 602              		.loc 1 149 1 is_stmt 0 view .LVU246
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 17
+
+
+ 603 0000 08B5     		push	{r3, lr}
+ 604              	.LCFI3:
+ 605              		.cfi_def_cfa_offset 8
+ 606              		.cfi_offset 3, -8
+ 607              		.cfi_offset 14, -4
+ 150:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     if(dst < src || (char *)dst > ((char *)src + len)) {
+ 608              		.loc 1 150 5 is_stmt 1 view .LVU247
+ 609              		.loc 1 150 7 is_stmt 0 view .LVU248
+ 610 0002 8842     		cmp	r0, r1
+ 611 0004 0AD3     		bcc	.L34
+ 612              		.loc 1 150 48 discriminator 1 view .LVU249
+ 613 0006 8B18     		adds	r3, r1, r2
+ 614              		.loc 1 150 18 discriminator 1 view .LVU250
+ 615 0008 8342     		cmp	r3, r0
+ 616 000a 07D3     		bcc	.L34
+ 151:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         return lv_memcpy(dst, src, len);
+ 152:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 153:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 154:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     if(dst > src) {
+ 617              		.loc 1 154 5 is_stmt 1 view .LVU251
+ 618              		.loc 1 154 7 is_stmt 0 view .LVU252
+ 619 000c 8842     		cmp	r0, r1
+ 620 000e 1CD9     		bls	.L41
+ 621              	.LBB2:
+ 155:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         char * tmp = (char *)dst + len - 1;
+ 622              		.loc 1 155 9 is_stmt 1 view .LVU253
+ 623              		.loc 1 155 40 is_stmt 0 view .LVU254
+ 624 0010 02F1FF3C 		add	ip, r2, #-1
+ 625              		.loc 1 155 16 view .LVU255
+ 626 0014 00EB0C03 		add	r3, r0, ip
+ 627              	.LVL95:
+ 156:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         char * s   = (char *)src + len - 1;
+ 628              		.loc 1 156 9 is_stmt 1 view .LVU256
+ 629              		.loc 1 156 16 is_stmt 0 view .LVU257
+ 630 0018 6144     		add	r1, r1, ip
+ 631              	.LVL96:
+ 157:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 158:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         while(len--) {
+ 632              		.loc 1 158 9 is_stmt 1 view .LVU258
+ 633              		.loc 1 158 14 is_stmt 0 view .LVU259
+ 634 001a 07E0     		b	.L38
+ 635              	.LVL97:
+ 636              	.L34:
+ 637              		.loc 1 158 14 view .LVU260
+ 638              	.LBE2:
+ 151:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 639              		.loc 1 151 9 is_stmt 1 view .LVU261
+ 151:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 640              		.loc 1 151 16 is_stmt 0 view .LVU262
+ 641 001c FFF7FEFF 		bl	lv_memcpy
+ 642              	.LVL98:
+ 643              	.L36:
+ 159:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             *tmp-- = *s--;
+ 160:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         }
+ 161:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 162:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     else {
+ 163:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         char * tmp = (char *)dst;
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 18
+
+
+ 164:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         char * s   = (char *)src;
+ 165:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 166:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         while(len--) {
+ 167:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             *tmp++ = *s++;
+ 168:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         }
+ 169:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 170:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 171:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     return dst;
+ 172:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** }
+ 644              		.loc 1 172 1 view .LVU263
+ 645 0020 08BD     		pop	{r3, pc}
+ 646              	.LVL99:
+ 647              	.L39:
+ 648              	.LBB3:
+ 159:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             *tmp-- = *s--;
+ 649              		.loc 1 159 13 is_stmt 1 view .LVU264
+ 159:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             *tmp-- = *s--;
+ 650              		.loc 1 159 22 is_stmt 0 view .LVU265
+ 651 0022 11F80129 		ldrb	r2, [r1], #-1	@ zero_extendqisi2
+ 652              	.LVL100:
+ 159:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             *tmp-- = *s--;
+ 653              		.loc 1 159 20 view .LVU266
+ 654 0026 03F80129 		strb	r2, [r3], #-1
+ 655              	.LVL101:
+ 158:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             *tmp-- = *s--;
+ 656              		.loc 1 158 18 view .LVU267
+ 657 002a 6246     		mov	r2, ip
+ 658              	.LVL102:
+ 659              	.L38:
+ 158:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             *tmp-- = *s--;
+ 660              		.loc 1 158 15 is_stmt 1 view .LVU268
+ 158:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             *tmp-- = *s--;
+ 661              		.loc 1 158 18 is_stmt 0 view .LVU269
+ 662 002c 02F1FF3C 		add	ip, r2, #-1
+ 663              	.LVL103:
+ 158:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             *tmp-- = *s--;
+ 664              		.loc 1 158 15 view .LVU270
+ 665 0030 002A     		cmp	r2, #0
+ 666 0032 F6D1     		bne	.L39
+ 158:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             *tmp-- = *s--;
+ 667              		.loc 1 158 15 view .LVU271
+ 668 0034 F4E7     		b	.L36
+ 669              	.LVL104:
+ 670              	.L40:
+ 158:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             *tmp-- = *s--;
+ 671              		.loc 1 158 15 view .LVU272
+ 672              	.LBE3:
+ 673              	.LBB4:
+ 167:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         }
+ 674              		.loc 1 167 13 is_stmt 1 view .LVU273
+ 167:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         }
+ 675              		.loc 1 167 22 is_stmt 0 view .LVU274
+ 676 0036 11F8012B 		ldrb	r2, [r1], #1	@ zero_extendqisi2
+ 677              	.LVL105:
+ 167:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         }
+ 678              		.loc 1 167 20 view .LVU275
+ 679 003a 03F8012B 		strb	r2, [r3], #1
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 19
+
+
+ 680              	.LVL106:
+ 166:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             *tmp++ = *s++;
+ 681              		.loc 1 166 18 view .LVU276
+ 682 003e 6246     		mov	r2, ip
+ 683              	.LVL107:
+ 684              	.L37:
+ 166:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             *tmp++ = *s++;
+ 685              		.loc 1 166 15 is_stmt 1 view .LVU277
+ 166:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             *tmp++ = *s++;
+ 686              		.loc 1 166 18 is_stmt 0 view .LVU278
+ 687 0040 02F1FF3C 		add	ip, r2, #-1
+ 688              	.LVL108:
+ 166:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             *tmp++ = *s++;
+ 689              		.loc 1 166 15 view .LVU279
+ 690 0044 002A     		cmp	r2, #0
+ 691 0046 F6D1     		bne	.L40
+ 692 0048 EAE7     		b	.L36
+ 693              	.LVL109:
+ 694              	.L41:
+ 163:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         char * s   = (char *)src;
+ 695              		.loc 1 163 16 view .LVU280
+ 696 004a 0346     		mov	r3, r0
+ 697 004c F8E7     		b	.L37
+ 698              	.LBE4:
+ 699              		.cfi_endproc
+ 700              	.LFE5:
+ 702              		.section	.text.lv_memcmp,"ax",%progbits
+ 703              		.align	1
+ 704              		.global	lv_memcmp
+ 705              		.syntax unified
+ 706              		.thumb
+ 707              		.thumb_func
+ 709              	lv_memcmp:
+ 710              	.LVL110:
+ 711              	.LFB6:
+ 173:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 174:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** int lv_memcmp(const void * p1, const void * p2, size_t len)
+ 175:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** {
+ 712              		.loc 1 175 1 is_stmt 1 view -0
+ 713              		.cfi_startproc
+ 714              		@ args = 0, pretend = 0, frame = 0
+ 715              		@ frame_needed = 0, uses_anonymous_args = 0
+ 716              		@ link register save eliminated.
+ 176:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     const char * s1 = (const char *) p1;
+ 717              		.loc 1 176 5 view .LVU282
+ 177:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     const char * s2 = (const char *) p2;
+ 718              		.loc 1 177 5 view .LVU283
+ 178:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(--len > 0 && (*s1 == *s2)) {
+ 719              		.loc 1 178 5 view .LVU284
+ 720              		.loc 1 178 10 is_stmt 0 view .LVU285
+ 721 0000 01E0     		b	.L44
+ 722              	.LVL111:
+ 723              	.L46:
+ 179:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         s1++;
+ 724              		.loc 1 179 9 is_stmt 1 view .LVU286
+ 725              		.loc 1 179 11 is_stmt 0 view .LVU287
+ 726 0002 0130     		adds	r0, r0, #1
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 20
+
+
+ 727              	.LVL112:
+ 180:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         s2++;
+ 728              		.loc 1 180 9 is_stmt 1 view .LVU288
+ 729              		.loc 1 180 11 is_stmt 0 view .LVU289
+ 730 0004 0131     		adds	r1, r1, #1
+ 731              	.LVL113:
+ 732              	.L44:
+ 178:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(--len > 0 && (*s1 == *s2)) {
+ 733              		.loc 1 178 21 is_stmt 1 view .LVU290
+ 178:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(--len > 0 && (*s1 == *s2)) {
+ 734              		.loc 1 178 21 is_stmt 0 view .LVU291
+ 735 0006 013A     		subs	r2, r2, #1
+ 736              	.LVL114:
+ 178:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(--len > 0 && (*s1 == *s2)) {
+ 737              		.loc 1 178 21 view .LVU292
+ 738 0008 04D0     		beq	.L45
+ 178:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(--len > 0 && (*s1 == *s2)) {
+ 739              		.loc 1 178 25 discriminator 1 view .LVU293
+ 740 000a 90F800C0 		ldrb	ip, [r0]	@ zero_extendqisi2
+ 178:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(--len > 0 && (*s1 == *s2)) {
+ 741              		.loc 1 178 32 discriminator 1 view .LVU294
+ 742 000e 0B78     		ldrb	r3, [r1]	@ zero_extendqisi2
+ 178:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(--len > 0 && (*s1 == *s2)) {
+ 743              		.loc 1 178 21 discriminator 1 view .LVU295
+ 744 0010 9C45     		cmp	ip, r3
+ 745 0012 F6D0     		beq	.L46
+ 746              	.L45:
+ 181:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 182:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     return *s1 - *s2;
+ 747              		.loc 1 182 5 is_stmt 1 view .LVU296
+ 748              		.loc 1 182 12 is_stmt 0 view .LVU297
+ 749 0014 0078     		ldrb	r0, [r0]	@ zero_extendqisi2
+ 750              	.LVL115:
+ 751              		.loc 1 182 18 view .LVU298
+ 752 0016 0B78     		ldrb	r3, [r1]	@ zero_extendqisi2
+ 183:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** }
+ 753              		.loc 1 183 1 view .LVU299
+ 754 0018 C01A     		subs	r0, r0, r3
+ 755 001a 7047     		bx	lr
+ 756              		.cfi_endproc
+ 757              	.LFE6:
+ 759              		.section	.text.lv_strlen,"ax",%progbits
+ 760              		.align	1
+ 761              		.global	lv_strlen
+ 762              		.syntax unified
+ 763              		.thumb
+ 764              		.thumb_func
+ 766              	lv_strlen:
+ 767              	.LVL116:
+ 768              	.LFB7:
+ 184:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 185:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** /* See https://en.cppreference.com/w/c/string/byte/strlen for reference */
+ 186:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** size_t lv_strlen(const char * str)
+ 187:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** {
+ 769              		.loc 1 187 1 is_stmt 1 view -0
+ 770              		.cfi_startproc
+ 771              		@ args = 0, pretend = 0, frame = 0
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 21
+
+
+ 772              		@ frame_needed = 0, uses_anonymous_args = 0
+ 773              		@ link register save eliminated.
+ 774              		.loc 1 187 1 is_stmt 0 view .LVU301
+ 775 0000 0246     		mov	r2, r0
+ 188:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     size_t i = 0;
+ 776              		.loc 1 188 5 is_stmt 1 view .LVU302
+ 777              	.LVL117:
+ 189:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(str[i]) i++;
+ 778              		.loc 1 189 5 view .LVU303
+ 188:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     size_t i = 0;
+ 779              		.loc 1 188 12 is_stmt 0 view .LVU304
+ 780 0002 0020     		movs	r0, #0
+ 781              	.LVL118:
+ 782              		.loc 1 189 10 view .LVU305
+ 783 0004 00E0     		b	.L48
+ 784              	.LVL119:
+ 785              	.L49:
+ 786              		.loc 1 189 19 is_stmt 1 discriminator 2 view .LVU306
+ 787              		.loc 1 189 20 is_stmt 0 discriminator 2 view .LVU307
+ 788 0006 0130     		adds	r0, r0, #1
+ 789              	.LVL120:
+ 790              	.L48:
+ 791              		.loc 1 189 11 is_stmt 1 discriminator 1 view .LVU308
+ 792              		.loc 1 189 14 is_stmt 0 discriminator 1 view .LVU309
+ 793 0008 135C     		ldrb	r3, [r2, r0]	@ zero_extendqisi2
+ 794              		.loc 1 189 11 discriminator 1 view .LVU310
+ 795 000a 002B     		cmp	r3, #0
+ 796 000c FBD1     		bne	.L49
+ 190:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 191:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     return i;
+ 797              		.loc 1 191 5 is_stmt 1 view .LVU311
+ 192:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** }
+ 798              		.loc 1 192 1 is_stmt 0 view .LVU312
+ 799 000e 7047     		bx	lr
+ 800              		.cfi_endproc
+ 801              	.LFE7:
+ 803              		.section	.text.lv_strnlen,"ax",%progbits
+ 804              		.align	1
+ 805              		.global	lv_strnlen
+ 806              		.syntax unified
+ 807              		.thumb
+ 808              		.thumb_func
+ 810              	lv_strnlen:
+ 811              	.LVL121:
+ 812              	.LFB8:
+ 193:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 194:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** size_t lv_strnlen(const char * str, size_t max_len)
+ 195:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** {
+ 813              		.loc 1 195 1 is_stmt 1 view -0
+ 814              		.cfi_startproc
+ 815              		@ args = 0, pretend = 0, frame = 0
+ 816              		@ frame_needed = 0, uses_anonymous_args = 0
+ 817              		@ link register save eliminated.
+ 818              		.loc 1 195 1 is_stmt 0 view .LVU314
+ 819 0000 0246     		mov	r2, r0
+ 196:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     size_t i = 0;
+ 820              		.loc 1 196 5 is_stmt 1 view .LVU315
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 22
+
+
+ 821              	.LVL122:
+ 197:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(i < max_len && str[i]) i++;
+ 822              		.loc 1 197 5 view .LVU316
+ 196:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     size_t i = 0;
+ 823              		.loc 1 196 12 is_stmt 0 view .LVU317
+ 824 0002 0020     		movs	r0, #0
+ 825              	.LVL123:
+ 826              		.loc 1 197 10 view .LVU318
+ 827 0004 00E0     		b	.L51
+ 828              	.LVL124:
+ 829              	.L53:
+ 830              		.loc 1 197 34 is_stmt 1 discriminator 3 view .LVU319
+ 831              		.loc 1 197 35 is_stmt 0 discriminator 3 view .LVU320
+ 832 0006 0130     		adds	r0, r0, #1
+ 833              	.LVL125:
+ 834              	.L51:
+ 835              		.loc 1 197 23 is_stmt 1 discriminator 1 view .LVU321
+ 836 0008 8842     		cmp	r0, r1
+ 837 000a 02D2     		bcs	.L50
+ 838              		.loc 1 197 29 is_stmt 0 discriminator 2 view .LVU322
+ 839 000c 135C     		ldrb	r3, [r2, r0]	@ zero_extendqisi2
+ 840              		.loc 1 197 23 discriminator 2 view .LVU323
+ 841 000e 002B     		cmp	r3, #0
+ 842 0010 F9D1     		bne	.L53
+ 843              	.L50:
+ 198:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 199:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     return i;
+ 200:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** }
+ 844              		.loc 1 200 1 view .LVU324
+ 845 0012 7047     		bx	lr
+ 846              		.cfi_endproc
+ 847              	.LFE8:
+ 849              		.section	.text.lv_strlcpy,"ax",%progbits
+ 850              		.align	1
+ 851              		.global	lv_strlcpy
+ 852              		.syntax unified
+ 853              		.thumb
+ 854              		.thumb_func
+ 856              	lv_strlcpy:
+ 857              	.LVL126:
+ 858              	.LFB9:
+ 201:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 202:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** size_t lv_strlcpy(char * dst, const char * src, size_t dst_size)
+ 203:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** {
+ 859              		.loc 1 203 1 is_stmt 1 view -0
+ 860              		.cfi_startproc
+ 861              		@ args = 0, pretend = 0, frame = 0
+ 862              		@ frame_needed = 0, uses_anonymous_args = 0
+ 863              		@ link register save eliminated.
+ 864              		.loc 1 203 1 is_stmt 0 view .LVU326
+ 865 0000 8446     		mov	ip, r0
+ 204:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     size_t i = 0;
+ 866              		.loc 1 204 5 is_stmt 1 view .LVU327
+ 867              	.LVL127:
+ 205:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     if(dst_size > 0) {
+ 868              		.loc 1 205 5 view .LVU328
+ 869              		.loc 1 205 7 is_stmt 0 view .LVU329
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 23
+
+
+ 870 0002 1046     		mov	r0, r2
+ 871              	.LVL128:
+ 872              		.loc 1 205 7 view .LVU330
+ 873 0004 82B1     		cbz	r2, .L59
+ 204:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     size_t i = 0;
+ 874              		.loc 1 204 12 view .LVU331
+ 875 0006 0023     		movs	r3, #0
+ 876 0008 02E0     		b	.L55
+ 877              	.LVL129:
+ 878              	.L58:
+ 206:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         for(; i < dst_size - 1 && src[i]; i++) {
+ 207:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             dst[i] = src[i];
+ 879              		.loc 1 207 13 is_stmt 1 view .LVU332
+ 880              		.loc 1 207 20 is_stmt 0 view .LVU333
+ 881 000a 0CF80320 		strb	r2, [ip, r3]
+ 206:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         for(; i < dst_size - 1 && src[i]; i++) {
+ 882              		.loc 1 206 44 is_stmt 1 discriminator 3 view .LVU334
+ 883 000e 0133     		adds	r3, r3, #1
+ 884              	.LVL130:
+ 885              	.L55:
+ 206:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         for(; i < dst_size - 1 && src[i]; i++) {
+ 886              		.loc 1 206 32 discriminator 1 view .LVU335
+ 206:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         for(; i < dst_size - 1 && src[i]; i++) {
+ 887              		.loc 1 206 28 is_stmt 0 discriminator 1 view .LVU336
+ 888 0010 421E     		subs	r2, r0, #1
+ 206:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         for(; i < dst_size - 1 && src[i]; i++) {
+ 889              		.loc 1 206 32 discriminator 1 view .LVU337
+ 890 0012 9A42     		cmp	r2, r3
+ 891 0014 02D9     		bls	.L57
+ 206:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         for(; i < dst_size - 1 && src[i]; i++) {
+ 892              		.loc 1 206 38 discriminator 2 view .LVU338
+ 893 0016 CA5C     		ldrb	r2, [r1, r3]	@ zero_extendqisi2
+ 206:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         for(; i < dst_size - 1 && src[i]; i++) {
+ 894              		.loc 1 206 32 discriminator 2 view .LVU339
+ 895 0018 002A     		cmp	r2, #0
+ 896 001a F6D1     		bne	.L58
+ 897              	.L57:
+ 208:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         }
+ 209:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         dst[i] = '\0';
+ 898              		.loc 1 209 9 is_stmt 1 view .LVU340
+ 899              		.loc 1 209 16 is_stmt 0 view .LVU341
+ 900 001c 0022     		movs	r2, #0
+ 901 001e 0CF80320 		strb	r2, [ip, r3]
+ 902 0022 1846     		mov	r0, r3
+ 903              	.LVL131:
+ 904              		.loc 1 209 16 view .LVU342
+ 905 0024 00E0     		b	.L59
+ 906              	.LVL132:
+ 907              	.L60:
+ 210:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 211:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(src[i]) i++;
+ 908              		.loc 1 211 19 is_stmt 1 discriminator 2 view .LVU343
+ 909              		.loc 1 211 20 is_stmt 0 discriminator 2 view .LVU344
+ 910 0026 0130     		adds	r0, r0, #1
+ 911              	.LVL133:
+ 912              	.L59:
+ 913              		.loc 1 211 11 is_stmt 1 discriminator 1 view .LVU345
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 24
+
+
+ 914              		.loc 1 211 14 is_stmt 0 discriminator 1 view .LVU346
+ 915 0028 0B5C     		ldrb	r3, [r1, r0]	@ zero_extendqisi2
+ 916              		.loc 1 211 11 discriminator 1 view .LVU347
+ 917 002a 002B     		cmp	r3, #0
+ 918 002c FBD1     		bne	.L60
+ 212:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     return i;
+ 919              		.loc 1 212 5 is_stmt 1 view .LVU348
+ 213:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** }
+ 920              		.loc 1 213 1 is_stmt 0 view .LVU349
+ 921 002e 7047     		bx	lr
+ 922              		.cfi_endproc
+ 923              	.LFE9:
+ 925              		.section	.text.lv_strncpy,"ax",%progbits
+ 926              		.align	1
+ 927              		.global	lv_strncpy
+ 928              		.syntax unified
+ 929              		.thumb
+ 930              		.thumb_func
+ 932              	lv_strncpy:
+ 933              	.LVL134:
+ 934              	.LFB10:
+ 214:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 215:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** char * lv_strncpy(char * dst, const char * src, size_t dst_size)
+ 216:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** {
+ 935              		.loc 1 216 1 is_stmt 1 view -0
+ 936              		.cfi_startproc
+ 937              		@ args = 0, pretend = 0, frame = 0
+ 938              		@ frame_needed = 0, uses_anonymous_args = 0
+ 939              		@ link register save eliminated.
+ 217:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     size_t i;
+ 940              		.loc 1 217 5 view .LVU351
+ 218:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     for(i = 0; i < dst_size && src[i]; i++) {
+ 941              		.loc 1 218 5 view .LVU352
+ 942              		.loc 1 218 11 is_stmt 0 view .LVU353
+ 943 0000 0023     		movs	r3, #0
+ 944              	.LVL135:
+ 945              		.loc 1 218 29 is_stmt 1 discriminator 1 view .LVU354
+ 946 0002 9342     		cmp	r3, r2
+ 947 0004 0FD2     		bcs	.L71
+ 216:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     size_t i;
+ 948              		.loc 1 216 1 is_stmt 0 view .LVU355
+ 949 0006 10B4     		push	{r4}
+ 950              	.LCFI4:
+ 951              		.cfi_def_cfa_offset 4
+ 952              		.cfi_offset 4, -4
+ 953              	.L70:
+ 954              		.loc 1 218 35 discriminator 3 view .LVU356
+ 955 0008 CC5C     		ldrb	r4, [r1, r3]	@ zero_extendqisi2
+ 956              		.loc 1 218 29 discriminator 3 view .LVU357
+ 957 000a 3CB1     		cbz	r4, .L66
+ 219:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         dst[i] = src[i];
+ 958              		.loc 1 219 9 is_stmt 1 view .LVU358
+ 959              		.loc 1 219 16 is_stmt 0 view .LVU359
+ 960 000c C454     		strb	r4, [r0, r3]
+ 218:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     for(i = 0; i < dst_size && src[i]; i++) {
+ 961              		.loc 1 218 41 is_stmt 1 discriminator 4 view .LVU360
+ 962 000e 0133     		adds	r3, r3, #1
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 25
+
+
+ 963              	.LVL136:
+ 218:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     for(i = 0; i < dst_size && src[i]; i++) {
+ 964              		.loc 1 218 29 discriminator 1 view .LVU361
+ 965 0010 9342     		cmp	r3, r2
+ 966 0012 F9D3     		bcc	.L70
+ 967 0014 02E0     		b	.L66
+ 968              	.LVL137:
+ 969              	.L67:
+ 220:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 221:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     for(; i < dst_size; i++) {
+ 222:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         dst[i] = '\0';
+ 970              		.loc 1 222 9 view .LVU362
+ 971              		.loc 1 222 16 is_stmt 0 view .LVU363
+ 972 0016 0021     		movs	r1, #0
+ 973 0018 C154     		strb	r1, [r0, r3]
+ 221:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         dst[i] = '\0';
+ 974              		.loc 1 221 26 is_stmt 1 discriminator 2 view .LVU364
+ 975 001a 0133     		adds	r3, r3, #1
+ 976              	.LVL138:
+ 977              	.L66:
+ 221:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         dst[i] = '\0';
+ 978              		.loc 1 221 13 discriminator 1 view .LVU365
+ 979 001c 9342     		cmp	r3, r2
+ 980 001e FAD3     		bcc	.L67
+ 223:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 224:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     return dst;
+ 981              		.loc 1 224 5 view .LVU366
+ 225:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** }
+ 982              		.loc 1 225 1 is_stmt 0 view .LVU367
+ 983 0020 5DF8044B 		ldr	r4, [sp], #4
+ 984              	.LCFI5:
+ 985              		.cfi_restore 4
+ 986              		.cfi_def_cfa_offset 0
+ 987 0024 7047     		bx	lr
+ 988              	.LVL139:
+ 989              	.L71:
+ 221:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         dst[i] = '\0';
+ 990              		.loc 1 221 13 is_stmt 1 discriminator 1 view .LVU368
+ 991 0026 9342     		cmp	r3, r2
+ 992 0028 03D2     		bcs	.L75
+ 222:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 993              		.loc 1 222 9 view .LVU369
+ 222:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 994              		.loc 1 222 16 is_stmt 0 view .LVU370
+ 995 002a 0021     		movs	r1, #0
+ 996 002c C154     		strb	r1, [r0, r3]
+ 221:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         dst[i] = '\0';
+ 997              		.loc 1 221 26 is_stmt 1 discriminator 2 view .LVU371
+ 998 002e 0133     		adds	r3, r3, #1
+ 999              	.LVL140:
+ 221:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         dst[i] = '\0';
+ 1000              		.loc 1 221 26 is_stmt 0 discriminator 2 view .LVU372
+ 1001 0030 F9E7     		b	.L71
+ 1002              	.LVL141:
+ 1003              	.L75:
+ 221:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         dst[i] = '\0';
+ 1004              		.loc 1 221 26 discriminator 2 view .LVU373
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 26
+
+
+ 1005 0032 7047     		bx	lr
+ 1006              		.cfi_endproc
+ 1007              	.LFE10:
+ 1009              		.section	.text.lv_strcpy,"ax",%progbits
+ 1010              		.align	1
+ 1011              		.global	lv_strcpy
+ 1012              		.syntax unified
+ 1013              		.thumb
+ 1014              		.thumb_func
+ 1016              	lv_strcpy:
+ 1017              	.LVL142:
+ 1018              	.LFB11:
+ 226:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 227:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** char * lv_strcpy(char * dst, const char * src)
+ 228:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** {
+ 1019              		.loc 1 228 1 is_stmt 1 view -0
+ 1020              		.cfi_startproc
+ 1021              		@ args = 0, pretend = 0, frame = 0
+ 1022              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1023              		@ link register save eliminated.
+ 229:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     char * tmp = dst;
+ 1024              		.loc 1 229 5 view .LVU375
+ 230:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while((*dst++ = *src++) != '\0');
+ 1025              		.loc 1 230 5 view .LVU376
+ 1026              		.loc 1 230 10 is_stmt 0 view .LVU377
+ 1027 0000 8446     		mov	ip, r0
+ 1028              	.LVL143:
+ 1029              	.L77:
+ 1030              		.loc 1 230 29 is_stmt 1 discriminator 1 view .LVU378
+ 1031              		.loc 1 230 21 is_stmt 0 discriminator 1 view .LVU379
+ 1032 0002 0A78     		ldrb	r2, [r1]	@ zero_extendqisi2
+ 1033 0004 0131     		adds	r1, r1, #1
+ 1034              	.LVL144:
+ 1035              		.loc 1 230 19 discriminator 1 view .LVU380
+ 1036 0006 8CF80020 		strb	r2, [ip]
+ 1037 000a 0CF1010C 		add	ip, ip, #1
+ 1038              	.LVL145:
+ 1039              		.loc 1 230 29 discriminator 1 view .LVU381
+ 1040 000e 002A     		cmp	r2, #0
+ 1041 0010 F7D1     		bne	.L77
+ 231:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     return tmp;
+ 1042              		.loc 1 231 5 is_stmt 1 view .LVU382
+ 232:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** }
+ 1043              		.loc 1 232 1 is_stmt 0 view .LVU383
+ 1044 0012 7047     		bx	lr
+ 1045              		.cfi_endproc
+ 1046              	.LFE11:
+ 1048              		.section	.text.lv_strcmp,"ax",%progbits
+ 1049              		.align	1
+ 1050              		.global	lv_strcmp
+ 1051              		.syntax unified
+ 1052              		.thumb
+ 1053              		.thumb_func
+ 1055              	lv_strcmp:
+ 1056              	.LVL146:
+ 1057              	.LFB12:
+ 233:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 27
+
+
+ 234:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** int lv_strcmp(const char * s1, const char * s2)
+ 235:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** {
+ 1058              		.loc 1 235 1 is_stmt 1 view -0
+ 1059              		.cfi_startproc
+ 1060              		@ args = 0, pretend = 0, frame = 0
+ 1061              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1062              		@ link register save eliminated.
+ 236:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(*s1 && (*s1 == *s2)) {
+ 1063              		.loc 1 236 5 view .LVU385
+ 1064              		.loc 1 236 10 is_stmt 0 view .LVU386
+ 1065 0000 01E0     		b	.L79
+ 1066              	.L81:
+ 237:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         s1++;
+ 1067              		.loc 1 237 9 is_stmt 1 view .LVU387
+ 1068              		.loc 1 237 11 is_stmt 0 view .LVU388
+ 1069 0002 0130     		adds	r0, r0, #1
+ 1070              	.LVL147:
+ 238:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         s2++;
+ 1071              		.loc 1 238 9 is_stmt 1 view .LVU389
+ 1072              		.loc 1 238 11 is_stmt 0 view .LVU390
+ 1073 0004 0131     		adds	r1, r1, #1
+ 1074              	.LVL148:
+ 1075              	.L79:
+ 236:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(*s1 && (*s1 == *s2)) {
+ 1076              		.loc 1 236 15 is_stmt 1 view .LVU391
+ 236:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(*s1 && (*s1 == *s2)) {
+ 1077              		.loc 1 236 11 is_stmt 0 view .LVU392
+ 1078 0006 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
+ 236:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(*s1 && (*s1 == *s2)) {
+ 1079              		.loc 1 236 15 view .LVU393
+ 1080 0008 13B1     		cbz	r3, .L80
+ 236:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(*s1 && (*s1 == *s2)) {
+ 1081              		.loc 1 236 26 discriminator 1 view .LVU394
+ 1082 000a 0A78     		ldrb	r2, [r1]	@ zero_extendqisi2
+ 236:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(*s1 && (*s1 == *s2)) {
+ 1083              		.loc 1 236 15 discriminator 1 view .LVU395
+ 1084 000c 9342     		cmp	r3, r2
+ 1085 000e F8D0     		beq	.L81
+ 1086              	.L80:
+ 239:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 240:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     return *(const unsigned char *)s1 - *(const unsigned char *)s2;
+ 1087              		.loc 1 240 5 is_stmt 1 view .LVU396
+ 1088              		.loc 1 240 41 is_stmt 0 view .LVU397
+ 1089 0010 0878     		ldrb	r0, [r1]	@ zero_extendqisi2
+ 1090              	.LVL149:
+ 241:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** }
+ 1091              		.loc 1 241 1 view .LVU398
+ 1092 0012 181A     		subs	r0, r3, r0
+ 1093 0014 7047     		bx	lr
+ 1094              		.cfi_endproc
+ 1095              	.LFE12:
+ 1097              		.section	.text.lv_strncmp,"ax",%progbits
+ 1098              		.align	1
+ 1099              		.global	lv_strncmp
+ 1100              		.syntax unified
+ 1101              		.thumb
+ 1102              		.thumb_func
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 28
+
+
+ 1104              	lv_strncmp:
+ 1105              	.LVL150:
+ 1106              	.LFB13:
+ 242:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 243:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** int lv_strncmp(const char * s1, const char * s2, size_t len)
+ 244:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** {
+ 1107              		.loc 1 244 1 is_stmt 1 view -0
+ 1108              		.cfi_startproc
+ 1109              		@ args = 0, pretend = 0, frame = 0
+ 1110              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1111              		@ link register save eliminated.
+ 245:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     if(len == 0) {
+ 1112              		.loc 1 245 5 view .LVU400
+ 1113              		.loc 1 245 7 is_stmt 0 view .LVU401
+ 1114 0000 1346     		mov	r3, r2
+ 1115 0002 7AB1     		cbz	r2, .L89
+ 1116              	.LVL151:
+ 1117              	.L84:
+ 246:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         return 0;
+ 247:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 248:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 249:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(len > 0 && *s1 && (*s1 == *s2)) {
+ 1118              		.loc 1 249 26 is_stmt 1 view .LVU402
+ 1119 0004 53B1     		cbz	r3, .L85
+ 1120              		.loc 1 249 22 is_stmt 0 discriminator 1 view .LVU403
+ 1121 0006 0278     		ldrb	r2, [r0]	@ zero_extendqisi2
+ 1122              		.loc 1 249 19 discriminator 1 view .LVU404
+ 1123 0008 42B1     		cbz	r2, .L85
+ 1124              		.loc 1 249 37 discriminator 2 view .LVU405
+ 1125 000a 91F800C0 		ldrb	ip, [r1]	@ zero_extendqisi2
+ 1126              		.loc 1 249 26 discriminator 2 view .LVU406
+ 1127 000e 6245     		cmp	r2, ip
+ 1128 0010 04D1     		bne	.L85
+ 250:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         if(--len == 0) {
+ 1129              		.loc 1 250 9 is_stmt 1 view .LVU407
+ 1130              	.LVL152:
+ 1131              		.loc 1 250 11 is_stmt 0 view .LVU408
+ 1132 0012 013B     		subs	r3, r3, #1
+ 1133              	.LVL153:
+ 1134              		.loc 1 250 11 view .LVU409
+ 1135 0014 08D0     		beq	.L88
+ 251:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             return 0;
+ 252:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         }
+ 253:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         s1++;
+ 1136              		.loc 1 253 9 is_stmt 1 view .LVU410
+ 1137              		.loc 1 253 11 is_stmt 0 view .LVU411
+ 1138 0016 0130     		adds	r0, r0, #1
+ 1139              	.LVL154:
+ 254:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         s2++;
+ 1140              		.loc 1 254 9 is_stmt 1 view .LVU412
+ 1141              		.loc 1 254 11 is_stmt 0 view .LVU413
+ 1142 0018 0131     		adds	r1, r1, #1
+ 1143              	.LVL155:
+ 1144              		.loc 1 254 11 view .LVU414
+ 1145 001a F3E7     		b	.L84
+ 1146              	.LVL156:
+ 1147              	.L85:
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 29
+
+
+ 255:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 256:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     return *(const unsigned char *)s1 - *(const unsigned char *)s2;
+ 1148              		.loc 1 256 5 is_stmt 1 view .LVU415
+ 1149              		.loc 1 256 12 is_stmt 0 view .LVU416
+ 1150 001c 0078     		ldrb	r0, [r0]	@ zero_extendqisi2
+ 1151              	.LVL157:
+ 1152              		.loc 1 256 41 view .LVU417
+ 1153 001e 0B78     		ldrb	r3, [r1]	@ zero_extendqisi2
+ 1154              	.LVL158:
+ 1155              		.loc 1 256 39 view .LVU418
+ 1156 0020 C01A     		subs	r0, r0, r3
+ 1157 0022 7047     		bx	lr
+ 1158              	.LVL159:
+ 1159              	.L89:
+ 246:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 1160              		.loc 1 246 16 view .LVU419
+ 1161 0024 0020     		movs	r0, #0
+ 1162              	.LVL160:
+ 246:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 1163              		.loc 1 246 16 view .LVU420
+ 1164 0026 7047     		bx	lr
+ 1165              	.LVL161:
+ 1166              	.L88:
+ 251:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         }
+ 1167              		.loc 1 251 20 view .LVU421
+ 1168 0028 0020     		movs	r0, #0
+ 1169              	.LVL162:
+ 257:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** }
+ 1170              		.loc 1 257 1 view .LVU422
+ 1171 002a 7047     		bx	lr
+ 1172              		.cfi_endproc
+ 1173              	.LFE13:
+ 1175              		.section	.text.lv_strdup,"ax",%progbits
+ 1176              		.align	1
+ 1177              		.global	lv_strdup
+ 1178              		.syntax unified
+ 1179              		.thumb
+ 1180              		.thumb_func
+ 1182              	lv_strdup:
+ 1183              	.LVL163:
+ 1184              	.LFB14:
+ 258:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 259:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** char * lv_strdup(const char * src)
+ 260:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** {
+ 1185              		.loc 1 260 1 is_stmt 1 view -0
+ 1186              		.cfi_startproc
+ 1187              		@ args = 0, pretend = 0, frame = 0
+ 1188              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1189              		.loc 1 260 1 is_stmt 0 view .LVU424
+ 1190 0000 70B5     		push	{r4, r5, r6, lr}
+ 1191              	.LCFI6:
+ 1192              		.cfi_def_cfa_offset 16
+ 1193              		.cfi_offset 4, -16
+ 1194              		.cfi_offset 5, -12
+ 1195              		.cfi_offset 6, -8
+ 1196              		.cfi_offset 14, -4
+ 1197 0002 0546     		mov	r5, r0
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 30
+
+
+ 261:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     size_t len = lv_strlen(src) + 1;
+ 1198              		.loc 1 261 5 is_stmt 1 view .LVU425
+ 1199              		.loc 1 261 18 is_stmt 0 view .LVU426
+ 1200 0004 FFF7FEFF 		bl	lv_strlen
+ 1201              	.LVL164:
+ 1202              		.loc 1 261 12 discriminator 1 view .LVU427
+ 1203 0008 441C     		adds	r4, r0, #1
+ 1204              	.LVL165:
+ 262:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     char * dst = lv_malloc(len);
+ 1205              		.loc 1 262 5 is_stmt 1 view .LVU428
+ 1206              		.loc 1 262 18 is_stmt 0 view .LVU429
+ 1207 000a 2046     		mov	r0, r4
+ 1208 000c FFF7FEFF 		bl	lv_malloc
+ 1209              	.LVL166:
+ 263:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     if(dst == NULL) return NULL;
+ 1210              		.loc 1 263 5 is_stmt 1 view .LVU430
+ 1211              		.loc 1 263 7 is_stmt 0 view .LVU431
+ 1212 0010 0646     		mov	r6, r0
+ 1213 0012 18B1     		cbz	r0, .L90
+ 264:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 265:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     lv_memcpy(dst, src, len); /*memcpy is faster than strncpy when length is known*/
+ 1214              		.loc 1 265 5 is_stmt 1 view .LVU432
+ 1215 0014 2246     		mov	r2, r4
+ 1216 0016 2946     		mov	r1, r5
+ 1217 0018 FFF7FEFF 		bl	lv_memcpy
+ 1218              	.LVL167:
+ 266:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     return dst;
+ 1219              		.loc 1 266 5 view .LVU433
+ 1220              	.L90:
+ 267:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** }
+ 1221              		.loc 1 267 1 is_stmt 0 view .LVU434
+ 1222 001c 3046     		mov	r0, r6
+ 1223 001e 70BD     		pop	{r4, r5, r6, pc}
+ 1224              		.loc 1 267 1 view .LVU435
+ 1225              		.cfi_endproc
+ 1226              	.LFE14:
+ 1228              		.section	.text.lv_strndup,"ax",%progbits
+ 1229              		.align	1
+ 1230              		.global	lv_strndup
+ 1231              		.syntax unified
+ 1232              		.thumb
+ 1233              		.thumb_func
+ 1235              	lv_strndup:
+ 1236              	.LVL168:
+ 1237              	.LFB15:
+ 268:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 269:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** char * lv_strndup(const char * src, size_t max_len)
+ 270:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** {
+ 1238              		.loc 1 270 1 is_stmt 1 view -0
+ 1239              		.cfi_startproc
+ 1240              		@ args = 0, pretend = 0, frame = 0
+ 1241              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1242              		.loc 1 270 1 is_stmt 0 view .LVU437
+ 1243 0000 70B5     		push	{r4, r5, r6, lr}
+ 1244              	.LCFI7:
+ 1245              		.cfi_def_cfa_offset 16
+ 1246              		.cfi_offset 4, -16
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 31
+
+
+ 1247              		.cfi_offset 5, -12
+ 1248              		.cfi_offset 6, -8
+ 1249              		.cfi_offset 14, -4
+ 1250 0002 0546     		mov	r5, r0
+ 271:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     size_t len = lv_strnlen(src, max_len);
+ 1251              		.loc 1 271 5 is_stmt 1 view .LVU438
+ 1252              		.loc 1 271 18 is_stmt 0 view .LVU439
+ 1253 0004 FFF7FEFF 		bl	lv_strnlen
+ 1254              	.LVL169:
+ 1255              		.loc 1 271 18 view .LVU440
+ 1256 0008 0446     		mov	r4, r0
+ 1257              	.LVL170:
+ 272:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     char * dst = lv_malloc(len + 1);
+ 1258              		.loc 1 272 5 is_stmt 1 view .LVU441
+ 1259              		.loc 1 272 18 is_stmt 0 view .LVU442
+ 1260 000a 0130     		adds	r0, r0, #1
+ 1261              	.LVL171:
+ 1262              		.loc 1 272 18 view .LVU443
+ 1263 000c FFF7FEFF 		bl	lv_malloc
+ 1264              	.LVL172:
+ 273:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     if(dst == NULL) return NULL;
+ 1265              		.loc 1 273 5 is_stmt 1 view .LVU444
+ 1266              		.loc 1 273 7 is_stmt 0 view .LVU445
+ 1267 0010 0646     		mov	r6, r0
+ 1268 0012 28B1     		cbz	r0, .L93
+ 274:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 275:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     lv_memcpy(dst, src, len);
+ 1269              		.loc 1 275 5 is_stmt 1 view .LVU446
+ 1270 0014 2246     		mov	r2, r4
+ 1271 0016 2946     		mov	r1, r5
+ 1272 0018 FFF7FEFF 		bl	lv_memcpy
+ 1273              	.LVL173:
+ 276:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     dst[len] = '\0';
+ 1274              		.loc 1 276 5 view .LVU447
+ 1275              		.loc 1 276 14 is_stmt 0 view .LVU448
+ 1276 001c 0023     		movs	r3, #0
+ 1277 001e 3355     		strb	r3, [r6, r4]
+ 277:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     return dst;
+ 1278              		.loc 1 277 5 is_stmt 1 view .LVU449
+ 1279              	.L93:
+ 278:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** }
+ 1280              		.loc 1 278 1 is_stmt 0 view .LVU450
+ 1281 0020 3046     		mov	r0, r6
+ 1282 0022 70BD     		pop	{r4, r5, r6, pc}
+ 1283              		.loc 1 278 1 view .LVU451
+ 1284              		.cfi_endproc
+ 1285              	.LFE15:
+ 1287              		.section	.text.lv_strcat,"ax",%progbits
+ 1288              		.align	1
+ 1289              		.global	lv_strcat
+ 1290              		.syntax unified
+ 1291              		.thumb
+ 1292              		.thumb_func
+ 1294              	lv_strcat:
+ 1295              	.LVL174:
+ 1296              	.LFB16:
+ 279:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 32
+
+
+ 280:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** char * lv_strcat(char * dst, const char * src)
+ 281:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** {
+ 1297              		.loc 1 281 1 is_stmt 1 view -0
+ 1298              		.cfi_startproc
+ 1299              		@ args = 0, pretend = 0, frame = 0
+ 1300              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1301              		.loc 1 281 1 is_stmt 0 view .LVU453
+ 1302 0000 38B5     		push	{r3, r4, r5, lr}
+ 1303              	.LCFI8:
+ 1304              		.cfi_def_cfa_offset 16
+ 1305              		.cfi_offset 3, -16
+ 1306              		.cfi_offset 4, -12
+ 1307              		.cfi_offset 5, -8
+ 1308              		.cfi_offset 14, -4
+ 1309 0002 0446     		mov	r4, r0
+ 1310 0004 0D46     		mov	r5, r1
+ 282:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     lv_strcpy(dst + lv_strlen(dst), src);
+ 1311              		.loc 1 282 5 is_stmt 1 view .LVU454
+ 1312              		.loc 1 282 21 is_stmt 0 view .LVU455
+ 1313 0006 FFF7FEFF 		bl	lv_strlen
+ 1314              	.LVL175:
+ 1315              		.loc 1 282 5 discriminator 1 view .LVU456
+ 1316 000a 2946     		mov	r1, r5
+ 1317 000c 2044     		add	r0, r0, r4
+ 1318 000e FFF7FEFF 		bl	lv_strcpy
+ 1319              	.LVL176:
+ 283:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     return dst;
+ 1320              		.loc 1 283 5 is_stmt 1 view .LVU457
+ 284:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** }
+ 1321              		.loc 1 284 1 is_stmt 0 view .LVU458
+ 1322 0012 2046     		mov	r0, r4
+ 1323 0014 38BD     		pop	{r3, r4, r5, pc}
+ 1324              		.loc 1 284 1 view .LVU459
+ 1325              		.cfi_endproc
+ 1326              	.LFE16:
+ 1328              		.section	.text.lv_strncat,"ax",%progbits
+ 1329              		.align	1
+ 1330              		.global	lv_strncat
+ 1331              		.syntax unified
+ 1332              		.thumb
+ 1333              		.thumb_func
+ 1335              	lv_strncat:
+ 1336              	.LVL177:
+ 1337              	.LFB17:
+ 285:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 286:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** char * lv_strncat(char * dst, const char * src, size_t src_len)
+ 287:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** {
+ 1338              		.loc 1 287 1 is_stmt 1 view -0
+ 1339              		.cfi_startproc
+ 1340              		@ args = 0, pretend = 0, frame = 0
+ 1341              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1342              		@ link register save eliminated.
+ 1343              		.loc 1 287 1 is_stmt 0 view .LVU461
+ 1344 0000 10B4     		push	{r4}
+ 1345              	.LCFI9:
+ 1346              		.cfi_def_cfa_offset 4
+ 1347              		.cfi_offset 4, -4
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 33
+
+
+ 288:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     char * tmp = dst;
+ 1348              		.loc 1 288 5 is_stmt 1 view .LVU462
+ 1349              	.LVL178:
+ 289:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(*dst != '\0') {
+ 1350              		.loc 1 289 5 view .LVU463
+ 1351              		.loc 1 289 10 is_stmt 0 view .LVU464
+ 1352 0002 0346     		mov	r3, r0
+ 1353 0004 00E0     		b	.L99
+ 1354              	.LVL179:
+ 1355              	.L100:
+ 290:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         dst++;
+ 1356              		.loc 1 290 9 is_stmt 1 view .LVU465
+ 1357              		.loc 1 290 12 is_stmt 0 view .LVU466
+ 1358 0006 0133     		adds	r3, r3, #1
+ 1359              	.LVL180:
+ 1360              	.L99:
+ 289:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(*dst != '\0') {
+ 1361              		.loc 1 289 16 is_stmt 1 view .LVU467
+ 289:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(*dst != '\0') {
+ 1362              		.loc 1 289 11 is_stmt 0 view .LVU468
+ 1363 0008 1C78     		ldrb	r4, [r3]	@ zero_extendqisi2
+ 289:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(*dst != '\0') {
+ 1364              		.loc 1 289 16 view .LVU469
+ 1365 000a 002C     		cmp	r4, #0
+ 1366 000c FBD1     		bne	.L100
+ 1367 000e 03E0     		b	.L101
+ 1368              	.L103:
+ 291:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 292:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     while(src_len != 0 && *src != '\0') {
+ 293:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         src_len--;
+ 1369              		.loc 1 293 9 is_stmt 1 view .LVU470
+ 1370              		.loc 1 293 16 is_stmt 0 view .LVU471
+ 1371 0010 013A     		subs	r2, r2, #1
+ 1372              	.LVL181:
+ 294:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         *dst++ = *src++;
+ 1373              		.loc 1 294 9 is_stmt 1 view .LVU472
+ 1374              		.loc 1 294 22 is_stmt 0 view .LVU473
+ 1375 0012 0131     		adds	r1, r1, #1
+ 1376              	.LVL182:
+ 1377              		.loc 1 294 16 view .LVU474
+ 1378 0014 03F8014B 		strb	r4, [r3], #1
+ 1379              	.LVL183:
+ 1380              	.L101:
+ 292:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         src_len--;
+ 1381              		.loc 1 292 24 is_stmt 1 view .LVU475
+ 1382 0018 12B1     		cbz	r2, .L102
+ 292:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         src_len--;
+ 1383              		.loc 1 292 27 is_stmt 0 discriminator 1 view .LVU476
+ 1384 001a 0C78     		ldrb	r4, [r1]	@ zero_extendqisi2
+ 292:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         src_len--;
+ 1385              		.loc 1 292 24 discriminator 1 view .LVU477
+ 1386 001c 002C     		cmp	r4, #0
+ 1387 001e F7D1     		bne	.L103
+ 1388              	.L102:
+ 295:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 296:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     *dst = '\0';
+ 1389              		.loc 1 296 5 is_stmt 1 view .LVU478
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 34
+
+
+ 1390              		.loc 1 296 10 is_stmt 0 view .LVU479
+ 1391 0020 0022     		movs	r2, #0
+ 1392              	.LVL184:
+ 1393              		.loc 1 296 10 view .LVU480
+ 1394 0022 1A70     		strb	r2, [r3]
+ 297:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     return tmp;
+ 1395              		.loc 1 297 5 is_stmt 1 view .LVU481
+ 298:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** }
+ 1396              		.loc 1 298 1 is_stmt 0 view .LVU482
+ 1397 0024 5DF8044B 		ldr	r4, [sp], #4
+ 1398              	.LCFI10:
+ 1399              		.cfi_restore 4
+ 1400              		.cfi_def_cfa_offset 0
+ 1401 0028 7047     		bx	lr
+ 1402              		.cfi_endproc
+ 1403              	.LFE17:
+ 1405              		.section	.text.lv_strchr,"ax",%progbits
+ 1406              		.align	1
+ 1407              		.global	lv_strchr
+ 1408              		.syntax unified
+ 1409              		.thumb
+ 1410              		.thumb_func
+ 1412              	lv_strchr:
+ 1413              	.LFB18:
+ 299:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 300:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** char * lv_strchr(const char * s, int c)
+ 301:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** {
+ 1414              		.loc 1 301 1 is_stmt 1 view -0
+ 1415              		.cfi_startproc
+ 1416              		@ args = 0, pretend = 0, frame = 0
+ 1417              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1418              		@ link register save eliminated.
+ 1419              	.LVL185:
+ 1420              		.loc 1 301 1 is_stmt 0 view .LVU484
+ 1421 0000 00E0     		b	.L107
+ 1422              	.L109:
+ 302:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     for(; ; s++) {
+ 1423              		.loc 1 302 14 is_stmt 1 view .LVU485
+ 1424 0002 0130     		adds	r0, r0, #1
+ 1425              	.LVL186:
+ 1426              		.loc 1 302 5 view .LVU486
+ 1427              	.L107:
+ 1428              		.loc 1 302 5 view .LVU487
+ 303:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         if(*s == c) {
+ 1429              		.loc 1 303 9 view .LVU488
+ 1430              		.loc 1 303 12 is_stmt 0 view .LVU489
+ 1431 0004 0378     		ldrb	r3, [r0]	@ zero_extendqisi2
+ 1432              		.loc 1 303 11 view .LVU490
+ 1433 0006 8B42     		cmp	r3, r1
+ 1434 0008 02D0     		beq	.L106
+ 304:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             return (char *)s;
+ 305:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         }
+ 306:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 307:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         if(*s == '\0') {
+ 1435              		.loc 1 307 9 is_stmt 1 view .LVU491
+ 1436              		.loc 1 307 11 is_stmt 0 view .LVU492
+ 1437 000a 002B     		cmp	r3, #0
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 35
+
+
+ 1438 000c F9D1     		bne	.L109
+ 308:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****             break;
+ 309:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****         }
+ 310:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     }
+ 311:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** 
+ 312:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c ****     return NULL;
+ 1439              		.loc 1 312 12 view .LVU493
+ 1440 000e 0020     		movs	r0, #0
+ 1441              	.LVL187:
+ 1442              	.L106:
+ 313:Drivers/lvgl/src/stdlib/builtin/lv_string_builtin.c **** }
+ 1443              		.loc 1 313 1 view .LVU494
+ 1444 0010 7047     		bx	lr
+ 1445              		.cfi_endproc
+ 1446              	.LFE18:
+ 1448              		.text
+ 1449              	.Letext0:
+ 1450              		.file 2 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/arm-none-eabi/include/machine/_defa
+ 1451              		.file 3 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/arm-none-eabi/include/sys/_stdint.h
+ 1452              		.file 4 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/lib/gcc/arm-none-eabi/14.3.1/includ
+ 1453              		.file 5 "Drivers/lvgl/src/stdlib/builtin/../../misc/lv_types.h"
+ 1454              		.file 6 "Drivers/lvgl/src/stdlib/builtin/../../misc/../stdlib/lv_mem.h"
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s 			page 36
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 lv_string_builtin.c
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:21     .text.lv_memcpy:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:27     .text.lv_memcpy:00000000 lv_memcpy
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:458    .text.lv_memset:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:464    .text.lv_memset:00000000 lv_memset
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:589    .text.lv_memmove:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:595    .text.lv_memmove:00000000 lv_memmove
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:703    .text.lv_memcmp:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:709    .text.lv_memcmp:00000000 lv_memcmp
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:760    .text.lv_strlen:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:766    .text.lv_strlen:00000000 lv_strlen
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:804    .text.lv_strnlen:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:810    .text.lv_strnlen:00000000 lv_strnlen
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:850    .text.lv_strlcpy:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:856    .text.lv_strlcpy:00000000 lv_strlcpy
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:926    .text.lv_strncpy:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:932    .text.lv_strncpy:00000000 lv_strncpy
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:1010   .text.lv_strcpy:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:1016   .text.lv_strcpy:00000000 lv_strcpy
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:1049   .text.lv_strcmp:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:1055   .text.lv_strcmp:00000000 lv_strcmp
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:1098   .text.lv_strncmp:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:1104   .text.lv_strncmp:00000000 lv_strncmp
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:1176   .text.lv_strdup:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:1182   .text.lv_strdup:00000000 lv_strdup
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:1229   .text.lv_strndup:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:1235   .text.lv_strndup:00000000 lv_strndup
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:1288   .text.lv_strcat:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:1294   .text.lv_strcat:00000000 lv_strcat
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:1329   .text.lv_strncat:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:1335   .text.lv_strncat:00000000 lv_strncat
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:1406   .text.lv_strchr:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp9rVoO.s:1412   .text.lv_strchr:00000000 lv_strchr
+
+UNDEFINED SYMBOLS
+lv_malloc

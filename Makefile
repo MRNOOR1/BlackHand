@@ -102,7 +102,12 @@ Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_ioreq.c \
 Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_pipes.c \
 Middlewares/ST/STM32_USB_Host_Library/Class/CDC/Src/usbh_cdc.c \
 Core/Src/sysmem.c \
-Core/Src/syscalls.c
+Core/Src/syscalls.c 
+# --- LVGL SOURCES ---
+LVGL_DIR_NAME = Drivers/lvgl
+# This finds all .c files in the lvgl directory and its subdirectories
+LVGL_SOURCES = $(shell find $(LVGL_DIR_NAME)/src -name "*.c")
+C_SOURCES += $(LVGL_SOURCES)
 
 # ASM sources
 ASM_SOURCES =  \
@@ -229,21 +234,20 @@ all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET
 #######################################
 # build the application
 #######################################
-# list of objects
-OBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.c=.o)))
-vpath %.c $(sort $(dir $(C_SOURCES)))
-# list of ASM program objects
+# List of objects - preserves folder structure
+OBJECTS = $(C_SOURCES:%.c=$(BUILD_DIR)/%.o)
+# Add ASM objects
 OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(ASM_SOURCES:.s=.o)))
-vpath %.s $(sort $(dir $(ASM_SOURCES)))
-OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(ASMM_SOURCES:.S=.o)))
-vpath %.S $(sort $(dir $(ASMM_SOURCES)))
 
+# Rule for C files (Handles subdirectories automatically)
 $(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR) 
-	$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
+	@mkdir -p $(dir $@)
+	$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(@:.o=.lst) $< -o $@
 
+# Rule for ASM files
+vpath %.s $(sort $(dir $(ASM_SOURCES)))
 $(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
-	$(AS) -c $(CFLAGS) $< -o $@
-$(BUILD_DIR)/%.o: %.S Makefile | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
 	$(AS) -c $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) Makefile
@@ -252,12 +256,12 @@ $(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) Makefile
 
 $(BUILD_DIR)/%.hex: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
 	$(HEX) $< $@
-	
+    
 $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
-	$(BIN) $< $@	
-	
+	$(BIN) $< $@    
+    
 $(BUILD_DIR):
-	mkdir $@		
+	mkdir $@
 
 #######################################
 # flashing helpers

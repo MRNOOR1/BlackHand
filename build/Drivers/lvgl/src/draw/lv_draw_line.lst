@@ -1,0 +1,471 @@
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccPwDQth.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"lv_draw_line.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Drivers/lvgl/src/draw/lv_draw_line.c"
+  20              		.section	.text.lv_draw_line_dsc_init,"ax",%progbits
+  21              		.align	1
+  22              		.global	lv_draw_line_dsc_init
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	lv_draw_line_dsc_init:
+  28              	.LVL0:
+  29              	.LFB193:
+   1:Drivers/lvgl/src/draw/lv_draw_line.c **** /**
+   2:Drivers/lvgl/src/draw/lv_draw_line.c ****  * @file lv_draw_line.c
+   3:Drivers/lvgl/src/draw/lv_draw_line.c ****  *
+   4:Drivers/lvgl/src/draw/lv_draw_line.c ****  */
+   5:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+   6:Drivers/lvgl/src/draw/lv_draw_line.c **** /*********************
+   7:Drivers/lvgl/src/draw/lv_draw_line.c ****  *      INCLUDES
+   8:Drivers/lvgl/src/draw/lv_draw_line.c ****  *********************/
+   9:Drivers/lvgl/src/draw/lv_draw_line.c **** #include "lv_draw_private.h"
+  10:Drivers/lvgl/src/draw/lv_draw_line.c **** #include "../core/lv_refr.h"
+  11:Drivers/lvgl/src/draw/lv_draw_line.c **** #include "../misc/lv_math.h"
+  12:Drivers/lvgl/src/draw/lv_draw_line.c **** #include "../misc/lv_types.h"
+  13:Drivers/lvgl/src/draw/lv_draw_line.c **** #include "../stdlib/lv_string.h"
+  14:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+  15:Drivers/lvgl/src/draw/lv_draw_line.c **** /*********************
+  16:Drivers/lvgl/src/draw/lv_draw_line.c ****  *      DEFINES
+  17:Drivers/lvgl/src/draw/lv_draw_line.c ****  *********************/
+  18:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+  19:Drivers/lvgl/src/draw/lv_draw_line.c **** /**********************
+  20:Drivers/lvgl/src/draw/lv_draw_line.c ****  *      TYPEDEFS
+  21:Drivers/lvgl/src/draw/lv_draw_line.c ****  **********************/
+  22:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+  23:Drivers/lvgl/src/draw/lv_draw_line.c **** /**********************
+  24:Drivers/lvgl/src/draw/lv_draw_line.c ****  *  STATIC PROTOTYPES
+  25:Drivers/lvgl/src/draw/lv_draw_line.c ****  **********************/
+  26:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+  27:Drivers/lvgl/src/draw/lv_draw_line.c **** /**********************
+  28:Drivers/lvgl/src/draw/lv_draw_line.c ****  *  STATIC VARIABLES
+  29:Drivers/lvgl/src/draw/lv_draw_line.c ****  **********************/
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccPwDQth.s 			page 2
+
+
+  30:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+  31:Drivers/lvgl/src/draw/lv_draw_line.c **** /**********************
+  32:Drivers/lvgl/src/draw/lv_draw_line.c ****  *      MACROS
+  33:Drivers/lvgl/src/draw/lv_draw_line.c ****  **********************/
+  34:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+  35:Drivers/lvgl/src/draw/lv_draw_line.c **** /**********************
+  36:Drivers/lvgl/src/draw/lv_draw_line.c ****  *   GLOBAL FUNCTIONS
+  37:Drivers/lvgl/src/draw/lv_draw_line.c ****  **********************/
+  38:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+  39:Drivers/lvgl/src/draw/lv_draw_line.c **** void LV_ATTRIBUTE_FAST_MEM lv_draw_line_dsc_init(lv_draw_line_dsc_t * dsc)
+  40:Drivers/lvgl/src/draw/lv_draw_line.c **** {
+  30              		.loc 1 40 1 view -0
+  31              		.cfi_startproc
+  32              		@ args = 0, pretend = 0, frame = 0
+  33              		@ frame_needed = 0, uses_anonymous_args = 0
+  34              		.loc 1 40 1 is_stmt 0 view .LVU1
+  35 0000 10B5     		push	{r4, lr}
+  36              	.LCFI0:
+  37              		.cfi_def_cfa_offset 8
+  38              		.cfi_offset 4, -8
+  39              		.cfi_offset 14, -4
+  40 0002 0446     		mov	r4, r0
+  41:Drivers/lvgl/src/draw/lv_draw_line.c ****     lv_memzero(dsc, sizeof(lv_draw_line_dsc_t));
+  41              		.loc 1 41 5 is_stmt 1 view .LVU2
+  42              	.LVL1:
+  43              	.LBB4:
+  44              	.LBI4:
+  45              		.file 2 "Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h"
+   1:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** /**
+   2:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @file lv_string.h
+   3:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  *
+   4:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  */
+   5:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** 
+   6:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** #ifndef LV_STRING_H
+   7:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** #define LV_STRING_H
+   8:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** 
+   9:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** #ifdef __cplusplus
+  10:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** extern "C" {
+  11:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** #endif
+  12:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** 
+  13:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** /*********************
+  14:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  *      INCLUDES
+  15:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  *********************/
+  16:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** #include "../lv_conf_internal.h"
+  17:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** #include "../misc/lv_types.h"
+  18:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** 
+  19:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** /*********************
+  20:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  *      DEFINES
+  21:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  *********************/
+  22:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** 
+  23:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** /**********************
+  24:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  *      TYPEDEFS
+  25:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  **********************/
+  26:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** 
+  27:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** /**********************
+  28:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * GLOBAL PROTOTYPES
+  29:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  **********************/
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccPwDQth.s 			page 3
+
+
+  30:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** 
+  31:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** /**
+  32:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @brief Copies a block of memory from a source address to a destination address.
+  33:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @param dst Pointer to the destination array where the content is to be copied.
+  34:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @param src Pointer to the source of data to be copied.
+  35:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @param len Number of bytes to copy.
+  36:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @return Pointer to the destination array.
+  37:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @note The function does not check for any overlapping of the source and destination memory block
+  38:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  */
+  39:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** void * lv_memcpy(void * dst, const void * src, size_t len);
+  40:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** 
+  41:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** /**
+  42:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @brief Fills a block of memory with a specified value.
+  43:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @param dst Pointer to the destination array to fill with the specified value.
+  44:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @param v Value to be set. The value is passed as an int, but the function fills
+  45:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  *          the block of memory using the unsigned char conversion of this value.
+  46:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @param len Number of bytes to be set to the value.
+  47:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  */
+  48:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** void lv_memset(void * dst, uint8_t v, size_t len);
+  49:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** 
+  50:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** /**
+  51:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @brief Move a block of memory from source to destination
+  52:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @param dst Pointer to the destination array where the content is to be copied.
+  53:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @param src Pointer to the source of data to be copied.
+  54:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @param len Number of bytes to copy
+  55:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @return Pointer to the destination array.
+  56:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  */
+  57:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** void * lv_memmove(void * dst, const void * src, size_t len);
+  58:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** 
+  59:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** /**
+  60:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @brief This function will compare two memory blocks
+  61:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @param p1 Pointer to the first memory block
+  62:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @param p2 Pointer to the second memory block
+  63:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @param len Number of bytes to compare
+  64:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @return The difference between the value of the first unmatching byte.
+  65:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  */
+  66:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** int lv_memcmp(const void * p1, const void * p2, size_t len);
+  67:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** 
+  68:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** /**
+  69:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * Same as `memset(dst, 0x00, len)`.
+  70:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @param dst pointer to the destination buffer
+  71:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  * @param len number of byte to set
+  72:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  */
+  73:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** static inline void lv_memzero(void * dst, size_t len)
+  46              		.loc 2 73 20 view .LVU3
+  47              	.LBB5:
+  74:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** {
+  75:Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****     lv_memset(dst, 0x00, len);
+  48              		.loc 2 75 5 view .LVU4
+  49 0004 4022     		movs	r2, #64
+  50 0006 0021     		movs	r1, #0
+  51 0008 FFF7FEFF 		bl	lv_memset
+  52              	.LVL2:
+  53              		.loc 2 75 5 is_stmt 0 view .LVU5
+  54              	.LBE5:
+  55              	.LBE4:
+  42:Drivers/lvgl/src/draw/lv_draw_line.c ****     dsc->width = 1;
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccPwDQth.s 			page 4
+
+
+  56              		.loc 1 42 5 is_stmt 1 view .LVU6
+  57              		.loc 1 42 16 is_stmt 0 view .LVU7
+  58 000c 0123     		movs	r3, #1
+  59 000e 2363     		str	r3, [r4, #48]
+  43:Drivers/lvgl/src/draw/lv_draw_line.c ****     dsc->opa = LV_OPA_COVER;
+  60              		.loc 1 43 5 is_stmt 1 view .LVU8
+  61              		.loc 1 43 14 is_stmt 0 view .LVU9
+  62 0010 FF23     		movs	r3, #255
+  63 0012 84F83C30 		strb	r3, [r4, #60]
+  44:Drivers/lvgl/src/draw/lv_draw_line.c ****     dsc->color = lv_color_black();
+  64              		.loc 1 44 5 is_stmt 1 view .LVU10
+  65              		.loc 1 44 18 is_stmt 0 view .LVU11
+  66 0016 FFF7FEFF 		bl	lv_color_black
+  67              	.LVL3:
+  68 001a 84F82C00 		strb	r0, [r4, #44]
+  69 001e C0F30723 		ubfx	r3, r0, #8, #8
+  70 0022 84F82D30 		strb	r3, [r4, #45]
+  71 0026 C0F30740 		ubfx	r0, r0, #16, #8
+  72 002a 84F82E00 		strb	r0, [r4, #46]
+  45:Drivers/lvgl/src/draw/lv_draw_line.c ****     dsc->base.dsc_size = sizeof(lv_draw_line_dsc_t);
+  73              		.loc 1 45 5 is_stmt 1 view .LVU12
+  74              		.loc 1 45 24 is_stmt 0 view .LVU13
+  75 002e 4023     		movs	r3, #64
+  76 0030 6361     		str	r3, [r4, #20]
+  46:Drivers/lvgl/src/draw/lv_draw_line.c **** }
+  77              		.loc 1 46 1 view .LVU14
+  78 0032 10BD     		pop	{r4, pc}
+  79              		.loc 1 46 1 view .LVU15
+  80              		.cfi_endproc
+  81              	.LFE193:
+  83              		.section	.text.lv_draw_task_get_line_dsc,"ax",%progbits
+  84              		.align	1
+  85              		.global	lv_draw_task_get_line_dsc
+  86              		.syntax unified
+  87              		.thumb
+  88              		.thumb_func
+  90              	lv_draw_task_get_line_dsc:
+  91              	.LVL4:
+  92              	.LFB194:
+  47:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+  48:Drivers/lvgl/src/draw/lv_draw_line.c **** lv_draw_line_dsc_t * lv_draw_task_get_line_dsc(lv_draw_task_t * task)
+  49:Drivers/lvgl/src/draw/lv_draw_line.c **** {
+  93              		.loc 1 49 1 is_stmt 1 view -0
+  94              		.cfi_startproc
+  95              		@ args = 0, pretend = 0, frame = 0
+  96              		@ frame_needed = 0, uses_anonymous_args = 0
+  97              		@ link register save eliminated.
+  50:Drivers/lvgl/src/draw/lv_draw_line.c ****     return task->type == LV_DRAW_TASK_TYPE_LINE ? (lv_draw_line_dsc_t *)task->draw_dsc : NULL;
+  98              		.loc 1 50 5 view .LVU17
+  99              		.loc 1 50 16 is_stmt 0 view .LVU18
+ 100 0000 0379     		ldrb	r3, [r0, #4]	@ zero_extendqisi2
+ 101              		.loc 1 50 88 view .LVU19
+ 102 0002 082B     		cmp	r3, #8
+ 103 0004 01D1     		bne	.L5
+ 104              		.loc 1 50 88 discriminator 1 view .LVU20
+ 105 0006 406D     		ldr	r0, [r0, #84]
+ 106              	.LVL5:
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccPwDQth.s 			page 5
+
+
+ 107              		.loc 1 50 88 discriminator 1 view .LVU21
+ 108 0008 7047     		bx	lr
+ 109              	.LVL6:
+ 110              	.L5:
+ 111              		.loc 1 50 88 discriminator 2 view .LVU22
+ 112 000a 0020     		movs	r0, #0
+ 113              	.LVL7:
+  51:Drivers/lvgl/src/draw/lv_draw_line.c **** }
+ 114              		.loc 1 51 1 view .LVU23
+ 115 000c 7047     		bx	lr
+ 116              		.cfi_endproc
+ 117              	.LFE194:
+ 119              		.section	.text.lv_draw_line,"ax",%progbits
+ 120              		.align	1
+ 121              		.global	lv_draw_line
+ 122              		.syntax unified
+ 123              		.thumb
+ 124              		.thumb_func
+ 126              	lv_draw_line:
+ 127              	.LVL8:
+ 128              	.LFB195:
+  52:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+  53:Drivers/lvgl/src/draw/lv_draw_line.c **** void LV_ATTRIBUTE_FAST_MEM lv_draw_line(lv_layer_t * layer, const lv_draw_line_dsc_t * dsc)
+  54:Drivers/lvgl/src/draw/lv_draw_line.c **** {
+ 129              		.loc 1 54 1 is_stmt 1 view -0
+ 130              		.cfi_startproc
+ 131              		@ args = 0, pretend = 0, frame = 16
+ 132              		@ frame_needed = 0, uses_anonymous_args = 0
+  55:Drivers/lvgl/src/draw/lv_draw_line.c ****     if(dsc->width == 0) return;
+ 133              		.loc 1 55 5 view .LVU25
+ 134              		.loc 1 55 11 is_stmt 0 view .LVU26
+ 135 0000 0B6B     		ldr	r3, [r1, #48]
+ 136              		.loc 1 55 7 view .LVU27
+ 137 0002 002B     		cmp	r3, #0
+ 138 0004 35D0     		beq	.L10
+  54:Drivers/lvgl/src/draw/lv_draw_line.c ****     if(dsc->width == 0) return;
+ 139              		.loc 1 54 1 view .LVU28
+ 140 0006 70B5     		push	{r4, r5, r6, lr}
+ 141              	.LCFI1:
+ 142              		.cfi_def_cfa_offset 16
+ 143              		.cfi_offset 4, -16
+ 144              		.cfi_offset 5, -12
+ 145              		.cfi_offset 6, -8
+ 146              		.cfi_offset 14, -4
+ 147 0008 84B0     		sub	sp, sp, #16
+ 148              	.LCFI2:
+ 149              		.cfi_def_cfa_offset 32
+ 150 000a 0546     		mov	r5, r0
+ 151 000c 0C46     		mov	r4, r1
+  56:Drivers/lvgl/src/draw/lv_draw_line.c ****     if(dsc->opa <= LV_OPA_MIN) return;
+ 152              		.loc 1 56 5 is_stmt 1 view .LVU29
+ 153              		.loc 1 56 11 is_stmt 0 view .LVU30
+ 154 000e 91F83C20 		ldrb	r2, [r1, #60]	@ zero_extendqisi2
+ 155              		.loc 1 56 7 view .LVU31
+ 156 0012 022A     		cmp	r2, #2
+ 157 0014 01D8     		bhi	.L13
+ 158              	.LVL9:
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccPwDQth.s 			page 6
+
+
+ 159              	.L6:
+  57:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+  58:Drivers/lvgl/src/draw/lv_draw_line.c ****     LV_PROFILER_DRAW_BEGIN;
+  59:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+  60:Drivers/lvgl/src/draw/lv_draw_line.c ****     lv_area_t a;
+  61:Drivers/lvgl/src/draw/lv_draw_line.c ****     a.x1 = (int32_t)LV_MIN(dsc->p1.x, dsc->p2.x) - dsc->width;
+  62:Drivers/lvgl/src/draw/lv_draw_line.c ****     a.x2 = (int32_t)LV_MAX(dsc->p1.x, dsc->p2.x) + dsc->width;
+  63:Drivers/lvgl/src/draw/lv_draw_line.c ****     a.y1 = (int32_t)LV_MIN(dsc->p1.y, dsc->p2.y) - dsc->width;
+  64:Drivers/lvgl/src/draw/lv_draw_line.c ****     a.y2 = (int32_t)LV_MAX(dsc->p1.y, dsc->p2.y) + dsc->width;
+  65:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+  66:Drivers/lvgl/src/draw/lv_draw_line.c ****     lv_draw_task_t * t = lv_draw_add_task(layer, &a, LV_DRAW_TASK_TYPE_LINE);
+  67:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+  68:Drivers/lvgl/src/draw/lv_draw_line.c ****     lv_memcpy(t->draw_dsc, dsc, sizeof(*dsc));
+  69:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+  70:Drivers/lvgl/src/draw/lv_draw_line.c ****     lv_draw_finalize_task_creation(layer, t);
+  71:Drivers/lvgl/src/draw/lv_draw_line.c ****     LV_PROFILER_DRAW_END;
+  72:Drivers/lvgl/src/draw/lv_draw_line.c **** }
+ 160              		.loc 1 72 1 view .LVU32
+ 161 0016 04B0     		add	sp, sp, #16
+ 162              	.LCFI3:
+ 163              		.cfi_remember_state
+ 164              		.cfi_def_cfa_offset 16
+ 165              		@ sp needed
+ 166 0018 70BD     		pop	{r4, r5, r6, pc}
+ 167              	.LVL10:
+ 168              	.L13:
+ 169              	.LCFI4:
+ 170              		.cfi_restore_state
+  58:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+ 171              		.loc 1 58 27 is_stmt 1 view .LVU33
+  60:Drivers/lvgl/src/draw/lv_draw_line.c ****     a.x1 = (int32_t)LV_MIN(dsc->p1.x, dsc->p2.x) - dsc->width;
+ 172              		.loc 1 60 5 view .LVU34
+  61:Drivers/lvgl/src/draw/lv_draw_line.c ****     a.x2 = (int32_t)LV_MAX(dsc->p1.x, dsc->p2.x) + dsc->width;
+ 173              		.loc 1 61 5 view .LVU35
+  61:Drivers/lvgl/src/draw/lv_draw_line.c ****     a.x2 = (int32_t)LV_MAX(dsc->p1.x, dsc->p2.x) + dsc->width;
+ 174              		.loc 1 61 21 is_stmt 0 view .LVU36
+ 175 001a 496A     		ldr	r1, [r1, #36]
+ 176              	.LVL11:
+  61:Drivers/lvgl/src/draw/lv_draw_line.c ****     a.x2 = (int32_t)LV_MAX(dsc->p1.x, dsc->p2.x) + dsc->width;
+ 177              		.loc 1 61 21 view .LVU37
+ 178 001c E269     		ldr	r2, [r4, #28]
+  61:Drivers/lvgl/src/draw/lv_draw_line.c ****     a.x2 = (int32_t)LV_MAX(dsc->p1.x, dsc->p2.x) + dsc->width;
+ 179              		.loc 1 61 50 view .LVU38
+ 180 001e 9142     		cmp	r1, r2
+ 181 0020 D4BF     		ite	le
+ 182 0022 C3EB0100 		rsble	r0, r3, r1
+ 183 0026 C3EB0200 		rsbgt	r0, r3, r2
+ 184              	.LVL12:
+  61:Drivers/lvgl/src/draw/lv_draw_line.c ****     a.x2 = (int32_t)LV_MAX(dsc->p1.x, dsc->p2.x) + dsc->width;
+ 185              		.loc 1 61 10 view .LVU39
+ 186 002a 0090     		str	r0, [sp]
+  62:Drivers/lvgl/src/draw/lv_draw_line.c ****     a.y1 = (int32_t)LV_MIN(dsc->p1.y, dsc->p2.y) - dsc->width;
+ 187              		.loc 1 62 5 is_stmt 1 view .LVU40
+  62:Drivers/lvgl/src/draw/lv_draw_line.c ****     a.y1 = (int32_t)LV_MIN(dsc->p1.y, dsc->p2.y) - dsc->width;
+ 188              		.loc 1 62 50 is_stmt 0 view .LVU41
+ 189 002c 9142     		cmp	r1, r2
+ 190 002e ACBF     		ite	ge
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccPwDQth.s 			page 7
+
+
+ 191 0030 5818     		addge	r0, r3, r1
+ 192 0032 9818     		addlt	r0, r3, r2
+  62:Drivers/lvgl/src/draw/lv_draw_line.c ****     a.y1 = (int32_t)LV_MIN(dsc->p1.y, dsc->p2.y) - dsc->width;
+ 193              		.loc 1 62 10 view .LVU42
+ 194 0034 0290     		str	r0, [sp, #8]
+  63:Drivers/lvgl/src/draw/lv_draw_line.c ****     a.y2 = (int32_t)LV_MAX(dsc->p1.y, dsc->p2.y) + dsc->width;
+ 195              		.loc 1 63 5 is_stmt 1 view .LVU43
+  63:Drivers/lvgl/src/draw/lv_draw_line.c ****     a.y2 = (int32_t)LV_MAX(dsc->p1.y, dsc->p2.y) + dsc->width;
+ 196              		.loc 1 63 21 is_stmt 0 view .LVU44
+ 197 0036 A16A     		ldr	r1, [r4, #40]
+ 198 0038 226A     		ldr	r2, [r4, #32]
+  63:Drivers/lvgl/src/draw/lv_draw_line.c ****     a.y2 = (int32_t)LV_MAX(dsc->p1.y, dsc->p2.y) + dsc->width;
+ 199              		.loc 1 63 50 view .LVU45
+ 200 003a 9142     		cmp	r1, r2
+ 201 003c D4BF     		ite	le
+ 202 003e C3EB0100 		rsble	r0, r3, r1
+ 203 0042 C3EB0200 		rsbgt	r0, r3, r2
+  63:Drivers/lvgl/src/draw/lv_draw_line.c ****     a.y2 = (int32_t)LV_MAX(dsc->p1.y, dsc->p2.y) + dsc->width;
+ 204              		.loc 1 63 10 view .LVU46
+ 205 0046 0190     		str	r0, [sp, #4]
+  64:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+ 206              		.loc 1 64 5 is_stmt 1 view .LVU47
+  64:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+ 207              		.loc 1 64 50 is_stmt 0 view .LVU48
+ 208 0048 9142     		cmp	r1, r2
+ 209 004a ACBF     		ite	ge
+ 210 004c 5B18     		addge	r3, r3, r1
+ 211 004e 9B18     		addlt	r3, r3, r2
+  64:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+ 212              		.loc 1 64 10 view .LVU49
+ 213 0050 0393     		str	r3, [sp, #12]
+  66:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+ 214              		.loc 1 66 5 is_stmt 1 view .LVU50
+  66:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+ 215              		.loc 1 66 26 is_stmt 0 view .LVU51
+ 216 0052 0822     		movs	r2, #8
+ 217 0054 6946     		mov	r1, sp
+ 218 0056 2846     		mov	r0, r5
+ 219 0058 FFF7FEFF 		bl	lv_draw_add_task
+ 220              	.LVL13:
+ 221 005c 0646     		mov	r6, r0
+ 222              	.LVL14:
+  68:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+ 223              		.loc 1 68 5 is_stmt 1 view .LVU52
+ 224 005e 4022     		movs	r2, #64
+ 225 0060 2146     		mov	r1, r4
+ 226 0062 406D     		ldr	r0, [r0, #84]
+ 227              	.LVL15:
+  68:Drivers/lvgl/src/draw/lv_draw_line.c **** 
+ 228              		.loc 1 68 5 is_stmt 0 view .LVU53
+ 229 0064 FFF7FEFF 		bl	lv_memcpy
+ 230              	.LVL16:
+  70:Drivers/lvgl/src/draw/lv_draw_line.c ****     LV_PROFILER_DRAW_END;
+ 231              		.loc 1 70 5 is_stmt 1 view .LVU54
+ 232 0068 3146     		mov	r1, r6
+ 233 006a 2846     		mov	r0, r5
+ 234 006c FFF7FEFF 		bl	lv_draw_finalize_task_creation
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccPwDQth.s 			page 8
+
+
+ 235              	.LVL17:
+  71:Drivers/lvgl/src/draw/lv_draw_line.c **** }
+ 236              		.loc 1 71 25 view .LVU55
+ 237 0070 D1E7     		b	.L6
+ 238              	.LVL18:
+ 239              	.L10:
+ 240              	.LCFI5:
+ 241              		.cfi_def_cfa_offset 0
+ 242              		.cfi_restore 4
+ 243              		.cfi_restore 5
+ 244              		.cfi_restore 6
+ 245              		.cfi_restore 14
+  71:Drivers/lvgl/src/draw/lv_draw_line.c **** }
+ 246              		.loc 1 71 25 is_stmt 0 view .LVU56
+ 247 0072 7047     		bx	lr
+ 248              		.cfi_endproc
+ 249              	.LFE195:
+ 251              		.text
+ 252              	.Letext0:
+ 253              		.file 3 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/arm-none-eabi/include/machine/_defa
+ 254              		.file 4 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/arm-none-eabi/include/sys/_stdint.h
+ 255              		.file 5 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/lib/gcc/arm-none-eabi/14.3.1/includ
+ 256              		.file 6 "Drivers/lvgl/src/draw/../misc/lv_types.h"
+ 257              		.file 7 "Drivers/lvgl/src/draw/lv_draw.h"
+ 258              		.file 8 "Drivers/lvgl/src/draw/lv_draw_private.h"
+ 259              		.file 9 "Drivers/lvgl/src/draw/../misc/../font/../draw/lv_draw_buf.h"
+ 260              		.file 10 "Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/lv_area.h"
+ 261              		.file 11 "Drivers/lvgl/src/draw/../misc/../font/../draw/../misc/lv_color.h"
+ 262              		.file 12 "Drivers/lvgl/src/draw/../misc/../font/../draw/lv_image_dsc.h"
+ 263              		.file 13 "Drivers/lvgl/src/draw/../core/../draw/lv_draw_line.h"
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccPwDQth.s 			page 9
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 lv_draw_line.c
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccPwDQth.s:21     .text.lv_draw_line_dsc_init:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccPwDQth.s:27     .text.lv_draw_line_dsc_init:00000000 lv_draw_line_dsc_init
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccPwDQth.s:84     .text.lv_draw_task_get_line_dsc:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccPwDQth.s:90     .text.lv_draw_task_get_line_dsc:00000000 lv_draw_task_get_line_dsc
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccPwDQth.s:120    .text.lv_draw_line:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccPwDQth.s:126    .text.lv_draw_line:00000000 lv_draw_line
+
+UNDEFINED SYMBOLS
+lv_memset
+lv_color_black
+lv_draw_add_task
+lv_memcpy
+lv_draw_finalize_task_creation
