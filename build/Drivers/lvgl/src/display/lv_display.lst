@@ -1,4 +1,4 @@
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 1
 
 
    1              		.cpu cortex-m4
@@ -58,7 +58,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
   28:Drivers/lvgl/src/display/lv_display.c ****  *********************/
   29:Drivers/lvgl/src/display/lv_display.c **** #define disp_def LV_GLOBAL_DEFAULT()->disp_default
   30:Drivers/lvgl/src/display/lv_display.c **** #define disp_ll_p &(LV_GLOBAL_DEFAULT()->disp_ll)
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 2
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 2
 
 
   31:Drivers/lvgl/src/display/lv_display.c **** 
@@ -118,7 +118,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
   85:Drivers/lvgl/src/display/lv_display.c ****     disp->tile_cnt = LV_DRAW_SW_DRAW_UNIT_CNT;
   86:Drivers/lvgl/src/display/lv_display.c **** #else
   87:Drivers/lvgl/src/display/lv_display.c ****     disp->tile_cnt = 1;
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 3
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 3
 
 
   88:Drivers/lvgl/src/display/lv_display.c **** #endif
@@ -178,7 +178,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  142:Drivers/lvgl/src/display/lv_display.c ****     disp->bottom_layer = lv_obj_create(NULL); /*Create bottom layer on the display*/
  143:Drivers/lvgl/src/display/lv_display.c ****     disp->act_scr   = lv_obj_create(NULL); /*Create a default screen on the display*/
  144:Drivers/lvgl/src/display/lv_display.c ****     disp->top_layer = lv_obj_create(NULL); /*Create top layer on the display*/
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 4
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 4
 
 
  145:Drivers/lvgl/src/display/lv_display.c ****     disp->sys_layer = lv_obj_create(NULL); /*Create sys layer on the display*/
@@ -238,7 +238,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  199:Drivers/lvgl/src/display/lv_display.c ****             lv_indev_set_display(indev, NULL);
  200:Drivers/lvgl/src/display/lv_display.c ****         }
  201:Drivers/lvgl/src/display/lv_display.c ****         indev = lv_indev_get_next(indev);
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 5
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 5
 
 
  202:Drivers/lvgl/src/display/lv_display.c ****     }
@@ -298,7 +298,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  256:Drivers/lvgl/src/display/lv_display.c **** 
  257:Drivers/lvgl/src/display/lv_display.c **** lv_display_t * lv_display_get_next(lv_display_t * disp)
  258:Drivers/lvgl/src/display/lv_display.c **** {
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 6
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 6
 
 
  259:Drivers/lvgl/src/display/lv_display.c ****     if(disp == NULL)
@@ -358,7 +358,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  313:Drivers/lvgl/src/display/lv_display.c **** 
  314:Drivers/lvgl/src/display/lv_display.c **** int32_t lv_display_get_horizontal_resolution(const lv_display_t * disp)
  315:Drivers/lvgl/src/display/lv_display.c **** {
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 7
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 7
 
 
  316:Drivers/lvgl/src/display/lv_display.c ****     if(disp == NULL) disp = lv_display_get_default();
@@ -418,7 +418,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  370:Drivers/lvgl/src/display/lv_display.c **** int32_t lv_display_get_physical_horizontal_resolution(const lv_display_t * disp)
  371:Drivers/lvgl/src/display/lv_display.c **** {
  372:Drivers/lvgl/src/display/lv_display.c ****     if(disp == NULL) disp = lv_display_get_default();
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 8
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 8
 
 
  373:Drivers/lvgl/src/display/lv_display.c **** 
@@ -478,7 +478,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  427:Drivers/lvgl/src/display/lv_display.c **** int32_t lv_display_get_offset_y(const lv_display_t * disp)
  428:Drivers/lvgl/src/display/lv_display.c **** {
  429:Drivers/lvgl/src/display/lv_display.c ****     if(disp == NULL) disp = lv_display_get_default();
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 9
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 9
 
 
  430:Drivers/lvgl/src/display/lv_display.c **** 
@@ -538,7 +538,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  484:Drivers/lvgl/src/display/lv_display.c **** {
  485:Drivers/lvgl/src/display/lv_display.c ****     LV_ASSERT_MSG(buf1 != NULL, "Null buffer");
  486:Drivers/lvgl/src/display/lv_display.c ****     lv_color_format_t cf = lv_display_get_color_format(disp);
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 10
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 10
 
 
  487:Drivers/lvgl/src/display/lv_display.c ****     uint32_t w = lv_display_get_original_horizontal_resolution(disp);
@@ -598,7 +598,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  541:Drivers/lvgl/src/display/lv_display.c ****     lv_draw_buf_init(&disp->_static_buf2, w, h, cf, stride, buf2, buf_size);
  542:Drivers/lvgl/src/display/lv_display.c ****     lv_display_set_draw_buffers(disp, &disp->_static_buf1, buf2 ? &disp->_static_buf2 : NULL);
  543:Drivers/lvgl/src/display/lv_display.c ****     lv_display_set_render_mode(disp, render_mode);
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 11
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 11
 
 
  544:Drivers/lvgl/src/display/lv_display.c **** 
@@ -658,7 +658,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  598:Drivers/lvgl/src/display/lv_display.c **** }
  599:Drivers/lvgl/src/display/lv_display.c **** 
  600:Drivers/lvgl/src/display/lv_display.c **** void lv_display_set_tile_cnt(lv_display_t * disp, uint32_t tile_cnt)
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 12
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 12
 
 
  601:Drivers/lvgl/src/display/lv_display.c **** {
@@ -718,7 +718,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  655:Drivers/lvgl/src/display/lv_display.c **** {
  656:Drivers/lvgl/src/display/lv_display.c ****     return disp->buf_2 != NULL;
  657:Drivers/lvgl/src/display/lv_display.c **** }
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 13
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 13
 
 
  658:Drivers/lvgl/src/display/lv_display.c **** 
@@ -778,7 +778,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  712:Drivers/lvgl/src/display/lv_display.c ****         return NULL;
  713:Drivers/lvgl/src/display/lv_display.c ****     }
  714:Drivers/lvgl/src/display/lv_display.c **** 
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 14
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 14
 
 
  715:Drivers/lvgl/src/display/lv_display.c ****     return disp->sys_layer;
@@ -838,7 +838,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  769:Drivers/lvgl/src/display/lv_display.c ****         lv_anim_delete(d->scr_to_load, NULL);
  770:Drivers/lvgl/src/display/lv_display.c ****         lv_obj_set_pos(d->scr_to_load, 0, 0);
  771:Drivers/lvgl/src/display/lv_display.c ****         lv_obj_remove_local_style_prop(d->scr_to_load, LV_STYLE_OPA, 0);
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 15
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 15
 
 
  772:Drivers/lvgl/src/display/lv_display.c **** 
@@ -898,7 +898,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  826:Drivers/lvgl/src/display/lv_display.c ****             /*Create a dummy animation to apply the delay*/
  827:Drivers/lvgl/src/display/lv_display.c ****             lv_anim_set_exec_cb(&a_new, set_x_anim);
  828:Drivers/lvgl/src/display/lv_display.c ****             lv_anim_set_values(&a_new, 0, 0);
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 16
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 16
 
 
  829:Drivers/lvgl/src/display/lv_display.c ****             break;
@@ -958,7 +958,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  883:Drivers/lvgl/src/display/lv_display.c ****             lv_anim_set_exec_cb(&a_old, set_x_anim);
  884:Drivers/lvgl/src/display/lv_display.c ****             lv_anim_set_values(&a_old, 0, -lv_display_get_horizontal_resolution(d));
  885:Drivers/lvgl/src/display/lv_display.c ****             break;
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 17
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 17
 
 
  886:Drivers/lvgl/src/display/lv_display.c ****         case LV_SCREEN_LOAD_ANIM_OUT_RIGHT:
@@ -1018,7 +1018,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  940:Drivers/lvgl/src/display/lv_display.c **** 
  941:Drivers/lvgl/src/display/lv_display.c ****     uint32_t event_cnt = lv_display_get_event_count(disp);
  942:Drivers/lvgl/src/display/lv_display.c ****     uint32_t removed_count = 0;
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 18
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 18
 
 
  943:Drivers/lvgl/src/display/lv_display.c ****     int32_t i;
@@ -1078,7 +1078,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  997:Drivers/lvgl/src/display/lv_display.c ****     }
  998:Drivers/lvgl/src/display/lv_display.c **** 
  999:Drivers/lvgl/src/display/lv_display.c ****     disp->matrix_rotation = enable;
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 19
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 19
 
 
 1000:Drivers/lvgl/src/display/lv_display.c **** #else
@@ -1138,7 +1138,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
 1054:Drivers/lvgl/src/display/lv_display.c ****         t = LV_MIN(t, elaps);
 1055:Drivers/lvgl/src/display/lv_display.c ****         d = lv_display_get_next(d);
 1056:Drivers/lvgl/src/display/lv_display.c ****     }
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 20
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 20
 
 
 1057:Drivers/lvgl/src/display/lv_display.c **** 
@@ -1198,7 +1198,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
 1111:Drivers/lvgl/src/display/lv_display.c **** lv_result_t lv_display_send_vsync_event(lv_display_t * disp, void * param)
 1112:Drivers/lvgl/src/display/lv_display.c **** {
 1113:Drivers/lvgl/src/display/lv_display.c ****     if(!disp) disp = lv_display_get_default();
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 21
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 21
 
 
 1114:Drivers/lvgl/src/display/lv_display.c ****     if(!disp) return LV_RESULT_INVALID;
@@ -1258,7 +1258,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
 1168:Drivers/lvgl/src/display/lv_display.c **** 
 1169:Drivers/lvgl/src/display/lv_display.c **** void * lv_display_get_user_data(lv_display_t * disp)
 1170:Drivers/lvgl/src/display/lv_display.c **** {
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 22
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 22
 
 
 1171:Drivers/lvgl/src/display/lv_display.c ****     if(!disp) disp = lv_display_get_default();
@@ -1318,7 +1318,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
 1225:Drivers/lvgl/src/display/lv_display.c **** {
 1226:Drivers/lvgl/src/display/lv_display.c ****     if(!disp) disp = lv_display_get_default();
 1227:Drivers/lvgl/src/display/lv_display.c ****     if(!disp) return 0;
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 23
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 23
 
 
 1228:Drivers/lvgl/src/display/lv_display.c **** 
@@ -1378,7 +1378,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
 1282:Drivers/lvgl/src/display/lv_display.c **** {
 1283:Drivers/lvgl/src/display/lv_display.c ****     return LV_DPX_CALC(lv_display_get_dpi(disp), n);
 1284:Drivers/lvgl/src/display/lv_display.c **** }
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 24
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 24
 
 
 1285:Drivers/lvgl/src/display/lv_display.c **** 
@@ -1438,7 +1438,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
 1339:Drivers/lvgl/src/display/lv_display.c **** static lv_obj_tree_walk_res_t invalidate_layout_cb(lv_obj_t * obj, void * user_data)
 1340:Drivers/lvgl/src/display/lv_display.c **** {
 1341:Drivers/lvgl/src/display/lv_display.c ****     LV_UNUSED(user_data);
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 25
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 25
 
 
 1342:Drivers/lvgl/src/display/lv_display.c ****     lv_obj_mark_layout_as_dirty(obj);
@@ -1498,7 +1498,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
 1396:Drivers/lvgl/src/display/lv_display.c **** {
 1397:Drivers/lvgl/src/display/lv_display.c ****     lv_obj_set_x(obj, v);
 1398:Drivers/lvgl/src/display/lv_display.c **** }
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 26
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 26
 
 
 1399:Drivers/lvgl/src/display/lv_display.c **** 
@@ -1558,7 +1558,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
   47              		.cfi_endproc
   48              	.LFE280:
   50              		.section	.text.disp_event_cb,"ax",%progbits
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 27
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 27
 
 
   51              		.align	1
@@ -1618,7 +1618,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
   92 0014 38BD     		pop	{r3, r4, r5, pc}
   93              	.LVL9:
   94              	.L5:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 28
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 28
 
 
 1442:Drivers/lvgl/src/display/lv_display.c ****             break;
@@ -1678,7 +1678,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  142              		.syntax unified
  143              		.thumb
  144              		.thumb_func
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 29
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 29
 
 
  146              	scr_anim_completed:
@@ -1738,7 +1738,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
 1413:Drivers/lvgl/src/display/lv_display.c ****         if(d->del_prev) {
  188              		.loc 1 1413 9 is_stmt 0 view .LVU38
  189 0020 D4F8D002 		ldr	r0, [r4, #720]
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 30
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 30
 
 
 1413:Drivers/lvgl/src/display/lv_display.c ****         if(d->del_prev) {
@@ -1798,7 +1798,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
 1423:Drivers/lvgl/src/display/lv_display.c ****     }
  228              		.loc 1 1423 9 is_stmt 1 view .LVU55
  229 005e FFF7FEFF 		bl	lv_obj_invalidate
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 31
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 31
 
 
  230              	.LVL22:
@@ -1858,7 +1858,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  276              		.loc 1 1384 17 view .LVU65
  277 0010 C0F8D022 		str	r2, [r0, #720]
 1385:Drivers/lvgl/src/display/lv_display.c **** 
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 32
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 32
 
 
  278              		.loc 1 1385 5 is_stmt 1 view .LVU66
@@ -1918,7 +1918,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  323              		.loc 1 1350 24 view .LVU77
 1351:Drivers/lvgl/src/display/lv_display.c **** 
  324              		.loc 1 1351 5 view .LVU78
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 33
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 33
 
 
 1353:Drivers/lvgl/src/display/lv_display.c ****     LV_ASSERT_NULL(d);
@@ -1978,7 +1978,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  363              		.cfi_restore 5
  364              		.cfi_restore 6
  365              		.cfi_restore 7
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 34
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 34
 
 
  366              		.cfi_restore 14
@@ -2038,7 +2038,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
 1367:Drivers/lvgl/src/display/lv_display.c **** 
  405              		.loc 1 1367 20 is_stmt 0 view .LVU110
  406 0038 0022     		movs	r2, #0
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 35
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 35
 
 
  407 003a C5F8D422 		str	r2, [r5, #724]
@@ -2098,7 +2098,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  449              		.section	.text.opa_scale_anim,"ax",%progbits
  450              		.align	1
  451              		.syntax unified
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 36
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 36
 
 
  452              		.thumb
@@ -2158,7 +2158,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  501              	.LVL51:
 1403:Drivers/lvgl/src/display/lv_display.c **** 
  502              		.loc 1 1403 1 is_stmt 0 view .LVU132
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 37
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 37
 
 
  503 0006 08BD     		pop	{r3, pc}
@@ -2218,7 +2218,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  553              		.loc 1 250 1 view .LVU140
  554 0004 7047     		bx	lr
  555              	.L36:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 38
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 38
 
 
  556 0006 00BF     		.align	2
@@ -2278,7 +2278,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  608              		.loc 1 259 5 is_stmt 1 view .LVU146
  259:Drivers/lvgl/src/display/lv_display.c ****         return lv_ll_get_head(disp_ll_p);
  609              		.loc 1 259 7 is_stmt 0 view .LVU147
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 39
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 39
 
 
  610 0002 20B1     		cbz	r0, .L44
@@ -2338,7 +2338,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  657              		.cfi_offset 3, -16
  658              		.cfi_offset 4, -12
  659              		.cfi_offset 5, -8
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 40
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 40
 
 
  660              		.cfi_offset 14, -4
@@ -2398,7 +2398,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  704              	lv_display_set_offset:
  705              	.LVL66:
  706              	.LFB200:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 41
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 41
 
 
  295:Drivers/lvgl/src/display/lv_display.c ****     if(disp == NULL) disp = lv_display_get_default();
@@ -2458,7 +2458,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  747              		.loc 1 297 7 is_stmt 0 view .LVU182
  748 001c 0346     		mov	r3, r0
  749 001e 0028     		cmp	r0, #0
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 42
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 42
 
 
  750 0020 F3D1     		bne	.L53
@@ -2518,7 +2518,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  795              		.loc 1 309 7 is_stmt 0 view .LVU193
  796 0010 0346     		mov	r3, r0
  797 0012 0028     		cmp	r0, #0
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 43
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 43
 
 
  798 0014 F8D1     		bne	.L58
@@ -2578,7 +2578,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  844              		.loc 1 316 22 is_stmt 1 discriminator 1 view .LVU203
  316:Drivers/lvgl/src/display/lv_display.c **** 
  845              		.loc 1 316 29 is_stmt 0 discriminator 1 view .LVU204
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 44
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 44
 
 
  846 001a FFF7FEFF 		bl	lv_display_get_default
@@ -2638,7 +2638,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  891 0002 0246     		mov	r2, r0
  892 0004 48B1     		cbz	r0, .L77
  893              	.L71:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 45
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 45
 
 
  894              	.LVL82:
@@ -2698,7 +2698,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  935              		.section	.text.lv_display_get_original_horizontal_resolution,"ax",%progbits
  936              		.align	1
  937              		.global	lv_display_get_original_horizontal_resolution
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 46
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 46
 
 
  938              		.syntax unified
@@ -2758,7 +2758,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  354:Drivers/lvgl/src/display/lv_display.c ****     }
  981              		.loc 1 354 16 view .LVU242
  982 0016 F7E7     		b	.L78
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 47
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 47
 
 
  983              		.cfi_endproc
@@ -2818,7 +2818,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  1028 0012 F8D1     		bne	.L85
  364:Drivers/lvgl/src/display/lv_display.c ****     }
  1029              		.loc 1 364 16 view .LVU254
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 48
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 48
 
 
  1030 0014 0020     		movs	r0, #0
@@ -2878,7 +2878,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  1075              		.loc 1 383 76 view .LVU265
  1076 0018 0028     		cmp	r0, #0
  1077 001a 0BDC     		bgt	.L90
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 49
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 49
 
 
  383:Drivers/lvgl/src/display/lv_display.c ****         }
@@ -2938,7 +2938,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  1119              		.global	lv_display_get_physical_vertical_resolution
  1120              		.syntax unified
  1121              		.thumb
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 50
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 50
 
 
  1122              		.thumb_func
@@ -2998,7 +2998,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  1164              		.loc 1 390 22 is_stmt 1 discriminator 1 view .LVU292
  390:Drivers/lvgl/src/display/lv_display.c **** 
  1165              		.loc 1 390 29 is_stmt 0 discriminator 1 view .LVU293
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 51
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 51
 
 
  1166 0020 FFF7FEFF 		bl	lv_display_get_default
@@ -3058,7 +3058,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  407:Drivers/lvgl/src/display/lv_display.c ****     if(disp == NULL) disp = lv_display_get_default();
  1211              		.loc 1 407 1 is_stmt 0 view .LVU305
  1212 0000 10B5     		push	{r4, lr}
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 52
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 52
 
 
  1213              	.LCFI20:
@@ -3118,7 +3118,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  411:Drivers/lvgl/src/display/lv_display.c ****     }
  1254              		.loc 1 411 16 view .LVU319
  1255 002a F7E7     		b	.L112
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 53
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 53
 
 
  1256              	.LVL114:
@@ -3178,7 +3178,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  1299              		.loc 1 428 1 is_stmt 1 view -0
  1300              		.cfi_startproc
  1301              		@ args = 0, pretend = 0, frame = 0
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 54
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 54
 
 
  1302              		@ frame_needed = 0, uses_anonymous_args = 0
@@ -3238,7 +3238,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  432:Drivers/lvgl/src/display/lv_display.c ****     }
  1343              		.loc 1 432 16 view .LVU346
  1344 0028 0020     		movs	r0, #0
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 55
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 55
 
 
  1345              	.LVL121:
@@ -3298,7 +3298,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  1388              	lv_display_get_dpi:
  1389              	.LVL125:
  1390              	.LFB210:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 56
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 56
 
 
  449:Drivers/lvgl/src/display/lv_display.c ****     if(disp == NULL) disp = lv_display_get_default();
@@ -3358,7 +3358,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  1433              		.align	1
  1434              		.global	lv_display_set_draw_buffers
  1435              		.syntax unified
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 57
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 57
 
 
  1436              		.thumb
@@ -3418,7 +3418,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  1478 001c 38BD     		pop	{r3, r4, r5, pc}
  1479              	.LVL132:
  1480              	.L140:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 58
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 58
 
 
  461:Drivers/lvgl/src/display/lv_display.c ****     if(disp == NULL) return;
@@ -3478,7 +3478,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  477:Drivers/lvgl/src/display/lv_display.c **** 
  1526              		.loc 1 477 5 view .LVU397
  477:Drivers/lvgl/src/display/lv_display.c **** 
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 59
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 59
 
 
  1527              		.loc 1 477 5 view .LVU398
@@ -3538,7 +3538,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  1563 0022 FEE7     		b	.L147
  1564              		.cfi_endproc
  1565              	.LFE212:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 60
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 60
 
 
  1567              		.section	.text.lv_display_set_render_mode,"ax",%progbits
@@ -3598,7 +3598,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  1611 0018 F8E7     		b	.L150
  1612              		.cfi_endproc
  1613              	.LFE215:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 61
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 61
 
 
  1615              		.section	.text.lv_display_set_flush_cb,"ax",%progbits
@@ -3658,7 +3658,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  1659 0016 F8E7     		b	.L155
  1660              		.cfi_endproc
  1661              	.LFE216:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 62
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 62
 
 
  1663              		.section	.text.lv_display_set_flush_wait_cb,"ax",%progbits
@@ -3718,7 +3718,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  1707 0016 F8E7     		b	.L160
  1708              		.cfi_endproc
  1709              	.LFE217:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 63
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 63
 
 
  1711              		.section	.text.lv_display_get_color_format,"ax",%progbits
@@ -3778,7 +3778,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  1754              		.loc 1 595 29 discriminator 1 view .LVU461
  1755 0016 0020     		movs	r0, #0
  1756              	.LVL155:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 64
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 64
 
 
  595:Drivers/lvgl/src/display/lv_display.c **** 
@@ -3838,7 +3838,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  486:Drivers/lvgl/src/display/lv_display.c ****     uint32_t w = lv_display_get_original_horizontal_resolution(disp);
  1805              		.loc 1 486 28 view .LVU470
  1806 0018 8346     		mov	fp, r0
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 65
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 65
 
 
  1807              	.LVL158:
@@ -3898,7 +3898,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  1843 0030 FEE7     		b	.L173
  1844              	.LVL165:
  1845              	.L175:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 66
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 66
 
 
  489:Drivers/lvgl/src/display/lv_display.c **** 
@@ -3958,7 +3958,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  493:Drivers/lvgl/src/display/lv_display.c **** 
  1882              		.loc 1 493 5 view .LVU507
  1883 004e FEE7     		b	.L179
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 67
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 67
 
 
  1884              	.L178:
@@ -4018,7 +4018,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  1920              		.loc 1 500 9 view .LVU525
  500:Drivers/lvgl/src/display/lv_display.c ****     }
  1921              		.loc 1 500 9 view .LVU526
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 68
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 68
 
 
  500:Drivers/lvgl/src/display/lv_display.c ****     }
@@ -4078,7 +4078,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  1961 009c 0195     		str	r5, [sp, #4]
  1962 009e 049B     		ldr	r3, [sp, #16]
  1963 00a0 0093     		str	r3, [sp]
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 69
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 69
 
 
  1964 00a2 5B46     		mov	r3, fp
@@ -4138,7 +4138,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  2012              		.thumb_func
  2014              	lv_display_set_buffers_with_stride:
  2015              	.LVL180:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 70
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 70
 
 
  2016              	.LFB214:
@@ -4198,7 +4198,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  2058              		.loc 1 526 18 is_stmt 0 view .LVU560
  2059 001e 2046     		mov	r0, r4
  2060 0020 FFF7FEFF 		bl	lv_display_get_original_horizontal_resolution
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 71
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 71
 
 
  2061              	.LVL183:
@@ -4258,7 +4258,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  2101              	.LVL190:
  2102              	.L193:
  2103              	.LCFI36:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 72
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 72
 
 
  2104              		.cfi_restore_state
@@ -4318,7 +4318,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  2139 005e 00D9     		bls	.L197
  2140              	.L199:
  536:Drivers/lvgl/src/display/lv_display.c ****                              render_mode == LV_DISPLAY_RENDER_MODE_FULL ? "FULL" : "DIRECT");
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 73
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 73
 
 
  2141              		.loc 1 536 9 view .LVU594
@@ -4378,7 +4378,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  2184              		.loc 1 543 5 is_stmt 1 view .LVU605
  2185 00a0 5946     		mov	r1, fp
  2186 00a2 2046     		mov	r0, r4
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 74
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 74
 
 
  2187 00a4 FFF7FEFF 		bl	lv_display_set_render_mode
@@ -4438,7 +4438,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  601:Drivers/lvgl/src/display/lv_display.c ****     LV_ASSERT_FORMAT_MSG(tile_cnt < 256, "tile_cnt must be smaller than 256 (%" LV_PRId32 " was use
  2231              		.loc 1 601 1 is_stmt 0 view .LVU618
  2232 0006 10B5     		push	{r4, lr}
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 75
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 75
 
 
  2233              	.LCFI37:
@@ -4498,7 +4498,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  611:Drivers/lvgl/src/display/lv_display.c ****     if(disp == NULL) disp = lv_display_get_default();
  2278              		.loc 1 611 1 is_stmt 1 view -0
  2279              		.cfi_startproc
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 76
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 76
 
 
  2280              		@ args = 0, pretend = 0, frame = 0
@@ -4558,7 +4558,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  2323              		.syntax unified
  2324              		.thumb
  2325              		.thumb_func
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 77
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 77
 
 
  2327              	lv_display_set_antialiasing:
@@ -4618,7 +4618,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  2367 001c 0028     		cmp	r0, #0
  2368 001e F3D1     		bne	.L219
  2369 0020 F8E7     		b	.L218
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 78
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 78
 
 
  2370              		.cfi_endproc
@@ -4678,7 +4678,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  2415 0016 0028     		cmp	r0, #0
  2416 0018 F5D1     		bne	.L224
  631:Drivers/lvgl/src/display/lv_display.c **** 
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 79
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 79
 
 
  2417              		.loc 1 631 29 discriminator 1 view .LVU668
@@ -4738,7 +4738,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  2462              		.loc 1 639 5 is_stmt 1 view .LVU679
  639:Drivers/lvgl/src/display/lv_display.c **** 
  2463              		.loc 1 639 5 view .LVU680
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 80
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 80
 
 
  2464 0010 0346     		mov	r3, r0
@@ -4798,7 +4798,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  2512              		.cfi_startproc
  2513              		@ args = 0, pretend = 0, frame = 0
  2514              		@ frame_needed = 0, uses_anonymous_args = 0
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 81
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 81
 
 
  2515              		@ link register save eliminated.
@@ -4858,7 +4858,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  2565              		.loc 1 664 1 is_stmt 1 view -0
  2566              		.cfi_startproc
  2567              		@ args = 0, pretend = 0, frame = 0
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 82
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 82
 
 
  2568              		@ frame_needed = 0, uses_anonymous_args = 0
@@ -4918,7 +4918,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  2613              		.cfi_startproc
  2614              		@ args = 0, pretend = 0, frame = 0
  2615              		@ frame_needed = 0, uses_anonymous_args = 0
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 83
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 83
 
 
  675:Drivers/lvgl/src/display/lv_display.c ****     if(!disp) disp = lv_display_get_default();
@@ -4978,7 +4978,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  2661              		@ args = 0, pretend = 0, frame = 0
  2662              		@ frame_needed = 0, uses_anonymous_args = 0
  686:Drivers/lvgl/src/display/lv_display.c ****     if(!disp) disp = lv_display_get_default();
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 84
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 84
 
 
  2663              		.loc 1 686 1 is_stmt 0 view .LVU721
@@ -5038,7 +5038,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  2709              		@ frame_needed = 0, uses_anonymous_args = 0
  697:Drivers/lvgl/src/display/lv_display.c ****     if(!disp) disp = lv_display_get_default();
  2710              		.loc 1 697 1 is_stmt 0 view .LVU732
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 85
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 85
 
 
  2711 0000 08B5     		push	{r3, lr}
@@ -5098,7 +5098,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  708:Drivers/lvgl/src/display/lv_display.c ****     if(!disp) disp = lv_display_get_default();
  2757              		.loc 1 708 1 is_stmt 0 view .LVU743
  2758 0000 08B5     		push	{r3, lr}
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 86
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 86
 
 
  2759              	.LCFI46:
@@ -5158,7 +5158,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  2804              		.loc 1 719 1 is_stmt 0 view .LVU754
  2805 0000 08B5     		push	{r3, lr}
  2806              	.LCFI47:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 87
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 87
 
 
  2807              		.cfi_def_cfa_offset 8
@@ -5218,7 +5218,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  2852 0000 2DE9F04F 		push	{r4, r5, r6, r7, r8, r9, r10, fp, lr}
  2853              	.LCFI48:
  2854              		.cfi_def_cfa_offset 36
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 88
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 88
 
 
  2855              		.cfi_offset 4, -36
@@ -5278,7 +5278,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  2897              		.loc 1 769 9 is_stmt 1 view .LVU777
  2898 0032 0021     		movs	r1, #0
  2899 0034 FFF7FEFF 		bl	lv_anim_delete
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 89
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 89
 
 
  2900              	.LVL258:
@@ -5338,7 +5338,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  2938              		.loc 1 783 9 is_stmt 0 view .LVU793
  2939 006e D4F8D002 		ldr	r0, [r4, #720]
  783:Drivers/lvgl/src/display/lv_display.c ****         lv_obj_delete(d->prev_scr);
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 90
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 90
 
 
  2940              		.loc 1 783 7 view .LVU794
@@ -5398,7 +5398,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  2981 00b6 1146     		mov	r1, r2
  2982 00b8 2846     		mov	r0, r5
  2983 00ba FFF7FEFF 		bl	lv_obj_set_pos
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 91
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 91
 
 
  2984              	.LVL266:
@@ -5458,7 +5458,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  3025              		.loc 1 812 5 view .LVU820
  3026 00f6 2946     		mov	r1, r5
  3027 00f8 5046     		mov	r0, r10
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 92
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 92
 
 
  3028 00fa FFF7FEFF 		bl	lv_anim_set_var
@@ -5518,7 +5518,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  3072 013e 29D8     		bhi	.L282
  3073 0140 DFE817F0 		tbh	[pc, r7, lsl #1]
  3074              	.L284:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 93
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 93
 
 
  3075 0144 1E00     		.2byte	(.L298-.L284)/2
@@ -5578,7 +5578,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  3119              	.LVL284:
  3120              	.L298:
  807:Drivers/lvgl/src/display/lv_display.c ****     }
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 94
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 94
 
 
  3121              		.loc 1 807 9 is_stmt 0 view .LVU841
@@ -5638,7 +5638,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  3163              	.LCFI50:
  3164              		.cfi_remember_state
  3165              		.cfi_def_cfa_offset 36
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 95
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 95
 
 
  3166              		@ sp needed
@@ -5698,7 +5698,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  3210 01e4 2846     		mov	r0, r5
  3211 01e6 FFF7FEFF 		bl	lv_anim_set_values
  3212              	.LVL300:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 96
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 96
 
 
  837:Drivers/lvgl/src/display/lv_display.c ****         case LV_SCREEN_LOAD_ANIM_OVER_TOP:
@@ -5758,7 +5758,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  3256 021e FFF7FEFF 		bl	lv_anim_set_values
  3257              	.LVL310:
  845:Drivers/lvgl/src/display/lv_display.c ****         case LV_SCREEN_LOAD_ANIM_MOVE_LEFT:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 97
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 97
 
 
  3258              		.loc 1 845 13 is_stmt 1 view .LVU875
@@ -5818,7 +5818,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  3302 025a 4F4F     		ldr	r7, .L306+8
  3303 025c 18AD     		add	r5, sp, #96
  3304              	.LVL320:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 98
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 98
 
 
  854:Drivers/lvgl/src/display/lv_display.c ****             lv_anim_set_values(&a_new, -lv_display_get_horizontal_resolution(d), 0);
@@ -5878,7 +5878,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  862:Drivers/lvgl/src/display/lv_display.c **** 
  3349              		.loc 1 862 13 is_stmt 1 view .LVU896
  3350 029c 2046     		mov	r0, r4
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 99
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 99
 
 
  3351 029e FFF7FEFF 		bl	lv_display_get_vertical_resolution
@@ -5938,7 +5938,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  3394 02d8 0022     		movs	r2, #0
  3395 02da 4142     		rsbs	r1, r0, #0
  3396 02dc 2846     		mov	r0, r5
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 100
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 100
 
 
  3397 02de FFF7FEFF 		bl	lv_anim_set_values
@@ -5998,7 +5998,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  3441              		.loc 1 880 13 view .LVU917
  3442 031a 0022     		movs	r2, #0
  3443 031c FF21     		movs	r1, #255
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 101
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 101
 
 
  3444 031e 6846     		mov	r0, sp
@@ -6058,7 +6058,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  3487              		.loc 1 891 13 view .LVU928
  3488 035a 1049     		ldr	r1, .L306+12
  3489 035c 6846     		mov	r0, sp
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 102
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 102
 
 
  3490 035e FFF7FEFF 		bl	lv_anim_set_exec_cb
@@ -6118,7 +6118,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  3537              		.syntax unified
  3538              		.thumb
  3539              		.thumb_func
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 103
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 103
 
 
  3541              	lv_screen_load:
@@ -6178,7 +6178,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  3589              		.loc 1 911 1 is_stmt 0 view .LVU944
  3590 0002 08B5     		push	{r3, lr}
  3591              	.LCFI55:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 104
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 104
 
 
  3592              		.cfi_def_cfa_offset 8
@@ -6238,7 +6238,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  3636              	.LCFI57:
  3637              		.cfi_def_cfa_offset 16
  3638              		.cfi_offset 4, -16
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 105
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 105
 
 
  3639              		.cfi_offset 5, -12
@@ -6298,7 +6298,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
   18:Drivers/lvgl/src/display/../display/../core/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** 
   19:Drivers/lvgl/src/display/../display/../core/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** /*********************
   20:Drivers/lvgl/src/display/../display/../core/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  *      DEFINES
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 106
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 106
 
 
   21:Drivers/lvgl/src/display/../display/../core/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****  *********************/
@@ -6358,7 +6358,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  3668              	.LBB10:
   74:Drivers/lvgl/src/display/../display/../core/../misc/../font/../draw/../misc/../stdlib/lv_string.h **** {
   75:Drivers/lvgl/src/display/../display/../core/../misc/../font/../draw/../misc/../stdlib/lv_string.h ****     lv_memset(dst, 0x00, len);
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 107
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 107
 
 
  3669              		.loc 2 75 5 view .LVU967
@@ -6418,7 +6418,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  3706              		.loc 1 78 5 is_stmt 1 view .LVU985
   78:Drivers/lvgl/src/display/lv_display.c **** #if LV_USE_EXT_DATA
  3707              		.loc 1 78 24 is_stmt 0 view .LVU986
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 108
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 108
 
 
  3708 0042 1223     		movs	r3, #18
@@ -6478,7 +6478,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  3745              		.loc 1 96 9 is_stmt 0 view .LVU1003
  3746 0074 D4F8B022 		ldr	r2, [r4, #688]
   96:Drivers/lvgl/src/display/lv_display.c ****     disp->layer_head->buf_area.y1 = 0;
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 109
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 109
 
 
  3747              		.loc 1 96 35 view .LVU1004
@@ -6538,7 +6538,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  103:Drivers/lvgl/src/display/lv_display.c **** 
  3783              		.loc 1 103 32 is_stmt 0 view .LVU1023
  3784 00a4 FFF7FEFF 		bl	lv_tick_get
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 110
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 110
 
 
  3785              	.LVL378:
@@ -6598,7 +6598,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  3822 00d4 0028     		cmp	r0, #0
  3823 00d6 7ED1     		bne	.L323
  120:Drivers/lvgl/src/display/lv_display.c ****                                             LV_THEME_DEFAULT_DARK, LV_FONT_DEFAULT);
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 111
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 111
 
 
  3824              		.loc 1 120 9 is_stmt 1 view .LVU1041
@@ -6658,7 +6658,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  3868 0130 C4F8C802 		str	r0, [r4, #712]
  144:Drivers/lvgl/src/display/lv_display.c ****     disp->sys_layer = lv_obj_create(NULL); /*Create sys layer on the display*/
  3869              		.loc 1 144 5 is_stmt 1 view .LVU1052
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 112
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 112
 
 
  144:Drivers/lvgl/src/display/lv_display.c ****     disp->sys_layer = lv_obj_create(NULL); /*Create sys layer on the display*/
@@ -6718,7 +6718,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  3911 017c 80B3     		cbz	r0, .L325
  153:Drivers/lvgl/src/display/lv_display.c ****     }
  3912              		.loc 1 153 9 is_stmt 1 view .LVU1066
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 113
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 113
 
 
  3913 017e 0022     		movs	r2, #0
@@ -6778,7 +6778,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  180:Drivers/lvgl/src/display/lv_display.c **** }
  3957              		.loc 1 180 5 view .LVU1077
  181:Drivers/lvgl/src/display/lv_display.c **** 
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 114
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 114
 
 
  3958              		.loc 1 181 1 is_stmt 0 view .LVU1078
@@ -6838,7 +6838,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  3995 01d6 FFF7FEFF 		bl	lv_theme_default_get
  3996              	.LVL406:
  124:Drivers/lvgl/src/display/lv_display.c ****     }
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 115
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 115
 
 
  3997              		.loc 1 124 21 discriminator 1 view .LVU1096
@@ -6898,7 +6898,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  4046              		.cfi_offset 14, -4
  919:Drivers/lvgl/src/display/lv_display.c ****     return lv_event_get_count(&disp->event_list);
  4047              		.loc 1 919 5 is_stmt 1 view .LVU1104
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 116
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 116
 
 
  919:Drivers/lvgl/src/display/lv_display.c ****     return lv_event_get_count(&disp->event_list);
@@ -6958,7 +6958,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  4090              		.loc 1 924 1 is_stmt 0 view .LVU1118
  4091 0002 08B5     		push	{r3, lr}
  4092              	.LCFI63:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 117
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 117
 
 
  4093              		.cfi_def_cfa_offset 8
@@ -7018,7 +7018,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  4136              		.loc 1 932 5 view .LVU1131
  932:Drivers/lvgl/src/display/lv_display.c **** 
  4137              		.loc 1 932 5 view .LVU1132
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 118
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 118
 
 
  4138 0000 28B1     		cbz	r0, .L344
@@ -7078,7 +7078,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  4181              		.loc 1 938 1 view -0
  4182              		.cfi_startproc
  4183              		@ args = 0, pretend = 0, frame = 0
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 119
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 119
 
 
  4184              		@ frame_needed = 0, uses_anonymous_args = 0
@@ -7138,7 +7138,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  4225              		.cfi_restore 8
  4226              		.cfi_restore 14
  939:Drivers/lvgl/src/display/lv_display.c **** 
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 120
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 120
 
 
  4227              		.loc 1 939 5 is_stmt 1 view .LVU1159
@@ -7198,7 +7198,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  4268              		.loc 1 947 45 discriminator 2 view .LVU1172
  4269 0034 5B68     		ldr	r3, [r3, #4]
  4270              	.LVL428:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 121
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 121
 
 
  947:Drivers/lvgl/src/display/lv_display.c ****             lv_display_delete_event(disp, i);
@@ -7258,7 +7258,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  4316              		.cfi_offset 14, -4
  4317 0002 1346     		mov	r3, r2
  958:Drivers/lvgl/src/display/lv_display.c **** }
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 122
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 122
 
 
  4318              		.loc 1 958 5 is_stmt 1 view .LVU1184
@@ -7318,7 +7318,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  4364              	.LVL438:
  187:Drivers/lvgl/src/display/lv_display.c ****     if(disp == lv_refr_get_disp_refreshing()) was_refr = true;
  4365              		.loc 1 187 7 discriminator 1 view .LVU1195
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 123
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 123
 
 
  4366 0008 8542     		cmp	r5, r0
@@ -7378,7 +7378,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  4407 0038 07E0     		b	.L361
  4408              	.LVL447:
  4409              	.L373:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 124
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 124
 
 
  187:Drivers/lvgl/src/display/lv_display.c ****     if(disp == lv_refr_get_disp_refreshing()) was_refr = true;
@@ -7438,7 +7438,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  4451 0066 FFF7FEFF 		bl	lv_obj_delete
  4452              	.LVL454:
  207:Drivers/lvgl/src/display/lv_display.c ****     }
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 125
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 125
 
 
  4453              		.loc 1 207 9 view .LVU1222
@@ -7498,7 +7498,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  4490 0096 04E0     		b	.L367
  4491              	.L368:
  223:Drivers/lvgl/src/display/lv_display.c ****     }
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 126
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 126
 
 
  4492              		.loc 1 223 9 is_stmt 1 view .LVU1240
@@ -7558,7 +7558,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  4531 00ce 2846     		mov	r0, r5
  4532 00d0 9847     		blx	r3
  4533              	.LVL461:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 127
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 127
 
 
  4534              	.L370:
@@ -7618,7 +7618,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  4576              	.LFE194:
  4578              		.section	.text.update_resolution,"ax",%progbits
  4579              		.align	1
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 128
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 128
 
 
  4580              		.syntax unified
@@ -7678,7 +7678,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
 1309:Drivers/lvgl/src/display/lv_display.c ****     uint32_t i;
  4625              		.loc 1 1309 5 is_stmt 0 view .LVU1278
  4626 001a FFF7FEFF 		bl	lv_obj_get_coords
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 129
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 129
 
 
  4627              	.LVL475:
@@ -7738,7 +7738,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  4665              		.loc 1 1311 39 is_stmt 1 discriminator 3 view .LVU1294
  4666 0052 0135     		adds	r5, r5, #1
  4667              	.LVL480:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 130
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 130
 
 
  4668              	.L382:
@@ -7798,7 +7798,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  4707 008c D4F8C002 		ldr	r0, [r4, #704]
 1322:Drivers/lvgl/src/display/lv_display.c ****     lv_obj_send_event(disp->sys_layer, LV_EVENT_SIZE_CHANGED, &prev_coords);
  4708              		.loc 1 1322 5 view .LVU1310
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 131
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 131
 
 
  4709 0090 3146     		mov	r1, r6
@@ -7858,7 +7858,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  4753              	.LVL491:
  4754              		.loc 2 75 5 view .LVU1323
  4755              	.LBE13:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 132
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 132
 
 
  4756              	.LBE12:
@@ -7918,7 +7918,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  4801              	.LVL498:
  4802              	.L386:
 1337:Drivers/lvgl/src/display/lv_display.c **** 
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 133
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 133
 
 
  4803              		.loc 1 1337 1 view .LVU1336
@@ -7978,7 +7978,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  4850 0014 04D0     		beq	.L387
  4851              	.L390:
  276:Drivers/lvgl/src/display/lv_display.c ****     disp->ver_res = ver_res;
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 134
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 134
 
 
  4852              		.loc 1 276 5 is_stmt 1 view .LVU1346
@@ -8038,7 +8038,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  4897              		.cfi_def_cfa_offset 16
  4898              		.cfi_offset 3, -16
  4899              		.cfi_offset 4, -12
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 135
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 135
 
 
  4900              		.cfi_offset 5, -8
@@ -8098,7 +8098,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  580:Drivers/lvgl/src/display/lv_display.c **** 
  4936              		.loc 1 580 12 is_stmt 0 view .LVU1376
  4937 0020 636A     		ldr	r3, [r4, #36]
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 136
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 136
 
 
  580:Drivers/lvgl/src/display/lv_display.c **** 
@@ -8158,7 +8158,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  4979              	.LVL511:
  4980              	.L399:
  586:Drivers/lvgl/src/display/lv_display.c ****     }
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 137
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 137
 
 
  4981              		.loc 1 586 9 is_stmt 1 view .LVU1390
@@ -8218,7 +8218,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  5028              	.LVL516:
  964:Drivers/lvgl/src/display/lv_display.c ****     }
  5029              		.loc 1 964 16 view .LVU1400
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 138
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 138
 
 
  5030 0010 FBE7     		b	.L403
@@ -8278,7 +8278,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  5076              		.loc 1 974 29 is_stmt 0 discriminator 1 view .LVU1410
  5077 001c FFF7FEFF 		bl	lv_display_get_default
  5078              	.LVL521:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 139
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 139
 
 
  975:Drivers/lvgl/src/display/lv_display.c **** 
@@ -8338,7 +8338,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  5124              		.loc 1 983 29 is_stmt 0 discriminator 1 view .LVU1421
  5125 0010 FFF7FEFF 		bl	lv_display_get_default
  5126              	.LVL525:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 140
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 140
 
 
  984:Drivers/lvgl/src/display/lv_display.c ****     return disp->rotation;
@@ -8398,7 +8398,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  5174              	.LFB246:
 1008:Drivers/lvgl/src/display/lv_display.c ****     if(disp == NULL) disp = lv_display_get_default();
  5175              		.loc 1 1008 1 is_stmt 1 view -0
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 141
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 141
 
 
  5176              		.cfi_startproc
@@ -8458,7 +8458,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  5219              		.global	lv_display_set_theme
  5220              		.syntax unified
  5221              		.thumb
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 142
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 142
 
 
  5222              		.thumb_func
@@ -8518,7 +8518,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
 1017:Drivers/lvgl/src/display/lv_display.c ****         LV_LOG_WARN("no display registered");
  5265              		.loc 1 1017 5 is_stmt 1 view .LVU1458
 1017:Drivers/lvgl/src/display/lv_display.c ****         LV_LOG_WARN("no display registered");
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 143
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 143
 
 
  5266              		.loc 1 1017 7 is_stmt 0 view .LVU1459
@@ -8578,7 +8578,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  5307              		.loc 1 1030 9 is_stmt 1 view .LVU1472
 1030:Drivers/lvgl/src/display/lv_display.c ****             /* When th is NULL, clear all styles */
  5308              		.loc 1 1030 11 is_stmt 0 view .LVU1473
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 144
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 144
 
 
  5309 0056 002D     		cmp	r5, #0
@@ -8638,7 +8638,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  5354              	.LCFI82:
  5355              		.cfi_def_cfa_offset 8
  5356              		.cfi_offset 3, -8
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 145
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 145
 
 
  5357              		.cfi_offset 14, -4
@@ -8698,7 +8698,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
 1047:Drivers/lvgl/src/display/lv_display.c **** 
  5403              		.loc 1 1047 7 is_stmt 0 view .LVU1495
  5404 0002 30B1     		cbz	r0, .L440
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 146
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 146
 
 
 1047:Drivers/lvgl/src/display/lv_display.c **** 
@@ -8758,7 +8758,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
 1054:Drivers/lvgl/src/display/lv_display.c ****         d = lv_display_get_next(d);
  5444              		.loc 1 1054 11 is_stmt 0 view .LVU1511
  5445 0028 8542     		cmp	r5, r0
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 147
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 147
 
 
  5446 002a 28BF     		it	cs
@@ -8818,7 +8818,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  5493              	.LVL564:
 1069:Drivers/lvgl/src/display/lv_display.c **** }
  5494              		.loc 1 1069 5 is_stmt 1 view .LVU1521
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 148
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 148
 
 
 1069:Drivers/lvgl/src/display/lv_display.c **** }
@@ -8878,7 +8878,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  5540              		.loc 1 1074 7 is_stmt 0 view .LVU1532
  5541 0004 0246     		mov	r2, r0
  5542 0006 38B1     		cbz	r0, .L456
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 149
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 149
 
 
  5543              	.LVL569:
@@ -8938,7 +8938,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  5588              	.LFB252:
 1084:Drivers/lvgl/src/display/lv_display.c ****     if(!disp) disp = lv_display_get_default();
  5589              		.loc 1 1084 1 is_stmt 1 view -0
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 150
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 150
 
 
  5590              		.cfi_startproc
@@ -8998,7 +8998,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  5631 0020 F7E7     		b	.L459
  5632              		.cfi_endproc
  5633              	.LFE252:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 151
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 151
 
 
  5635              		.section	.text.lv_display_get_refr_timer,"ax",%progbits
@@ -9058,7 +9058,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  5679              		.cfi_endproc
  5680              	.LFE253:
  5682              		.section	.text.lv_display_delete_refr_timer,"ax",%progbits
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 152
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 152
 
 
  5683              		.align	1
@@ -9118,7 +9118,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  5726 0018 FFF7FEFF 		bl	lv_display_get_default
  5727              	.LVL586:
 1105:Drivers/lvgl/src/display/lv_display.c **** 
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 153
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 153
 
 
  5728              		.loc 1 1105 5 is_stmt 1 view .LVU1581
@@ -9178,7 +9178,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  5774              	.LVL589:
  5775              	.L480:
 1113:Drivers/lvgl/src/display/lv_display.c ****     if(!disp) return LV_RESULT_INVALID;
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 154
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 154
 
 
  5776              		.loc 1 1113 15 is_stmt 1 discriminator 1 view .LVU1592
@@ -9238,7 +9238,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  5823              		.cfi_offset 6, -8
  5824              		.cfi_offset 14, -4
  5825 0002 0D46     		mov	r5, r1
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 155
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 155
 
 
  5826 0004 1646     		mov	r6, r2
@@ -9298,7 +9298,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
 1125:Drivers/lvgl/src/display/lv_display.c **** 
  5865              		.loc 1 1125 7 is_stmt 0 view .LVU1617
  5866 002e 0446     		mov	r4, r0
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 156
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 156
 
 
  5867 0030 0028     		cmp	r0, #0
@@ -9358,7 +9358,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
 1142:Drivers/lvgl/src/display/lv_display.c ****     if(removed_count == 0)
  5916              		.loc 1 1142 5 is_stmt 1 view .LVU1625
 1142:Drivers/lvgl/src/display/lv_display.c ****     if(removed_count == 0)
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 157
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 157
 
 
  5917              		.loc 1 1142 30 is_stmt 0 view .LVU1626
@@ -9418,7 +9418,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  5956 0032 F7E7     		b	.L492
  5957              	.LVL609:
  5958              	.L498:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 158
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 158
 
 
 1149:Drivers/lvgl/src/display/lv_display.c **** 
@@ -9478,7 +9478,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  6006              	.L500:
 1158:Drivers/lvgl/src/display/lv_display.c **** }
  6007              		.loc 1 1158 5 is_stmt 1 view .LVU1651
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 159
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 159
 
 
 1158:Drivers/lvgl/src/display/lv_display.c **** }
@@ -9538,7 +9538,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  6054              	.L505:
 1166:Drivers/lvgl/src/display/lv_display.c **** }
  6055              		.loc 1 1166 5 is_stmt 1 view .LVU1662
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 160
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 160
 
 
 1166:Drivers/lvgl/src/display/lv_display.c **** }
@@ -9598,7 +9598,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
 1173:Drivers/lvgl/src/display/lv_display.c **** }
  6102              		.loc 1 1173 5 is_stmt 1 view .LVU1673
 1173:Drivers/lvgl/src/display/lv_display.c **** }
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 161
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 161
 
 
  6103              		.loc 1 1173 16 is_stmt 0 view .LVU1674
@@ -9658,7 +9658,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  6149              		.loc 1 1181 5 is_stmt 1 view .LVU1684
 1181:Drivers/lvgl/src/display/lv_display.c **** }
  6150              		.loc 1 1181 16 is_stmt 0 view .LVU1685
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 162
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 162
 
 
  6151 0006 D3F8E002 		ldr	r0, [r3, #736]
@@ -9718,7 +9718,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
 1188:Drivers/lvgl/src/display/lv_display.c **** }
  6197              		.loc 1 1188 16 is_stmt 0 view .LVU1696
  6198 0006 986A     		ldr	r0, [r3, #40]
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 163
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 163
 
 
  6199              	.L521:
@@ -9778,7 +9778,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  6246              	.LVL635:
 1195:Drivers/lvgl/src/display/lv_display.c **** 
  6247              		.loc 1 1195 5 is_stmt 1 view .LVU1706
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 164
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 164
 
 
 1195:Drivers/lvgl/src/display/lv_display.c **** 
@@ -9838,7 +9838,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
 1202:Drivers/lvgl/src/display/lv_display.c ****             area->x1 = area->y1;
  6288              		.loc 1 1202 49 view .LVU1721
  6289 0030 013B     		subs	r3, r3, #1
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 165
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 165
 
 
 1202:Drivers/lvgl/src/display/lv_display.c ****             area->x1 = area->y1;
@@ -9898,7 +9898,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
 1209:Drivers/lvgl/src/display/lv_display.c ****             area->x2 = disp->hor_res - area->x1 - 1;
  6325              		.loc 1 1209 13 is_stmt 1 view .LVU1741
 1209:Drivers/lvgl/src/display/lv_display.c ****             area->x2 = disp->hor_res - area->x1 - 1;
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 166
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 166
 
 
  6326              		.loc 1 1209 33 is_stmt 0 view .LVU1742
@@ -9958,7 +9958,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
 1214:Drivers/lvgl/src/display/lv_display.c ****             area->y2 = area->x2;
  6362              		.loc 1 1214 22 view .LVU1761
  6363 0070 2360     		str	r3, [r4]
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 167
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 167
 
 
 1215:Drivers/lvgl/src/display/lv_display.c ****             area->x2 = area->x1 + h - 1;
@@ -10018,7 +10018,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  6406              		.cfi_offset 3, -8
  6407              		.cfi_offset 14, -4
 1226:Drivers/lvgl/src/display/lv_display.c ****     if(!disp) return 0;
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 168
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 168
 
 
  6408              		.loc 1 1226 5 is_stmt 1 view .LVU1776
@@ -10078,7 +10078,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  6449              		.section	.text.lv_display_get_invalidated_draw_buf_size,"ax",%progbits
  6450              		.align	1
  6451              		.global	lv_display_get_invalidated_draw_buf_size
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 169
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 169
 
 
  6452              		.syntax unified
@@ -10138,7 +10138,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  6496 001a 3046     		mov	r0, r6
  6497 001c FFF7FEFF 		bl	lv_draw_buf_width_to_stride
  6498              	.LVL654:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 170
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 170
 
 
 1247:Drivers/lvgl/src/display/lv_display.c **** 
@@ -10198,7 +10198,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
 1241:Drivers/lvgl/src/display/lv_display.c ****         height = lv_display_get_vertical_resolution(disp);
  6537              		.loc 1 1241 9 is_stmt 1 view .LVU1818
 1241:Drivers/lvgl/src/display/lv_display.c ****         height = lv_display_get_vertical_resolution(disp);
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 171
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 171
 
 
  6538              		.loc 1 1241 17 is_stmt 0 view .LVU1819
@@ -10258,7 +10258,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  6576              		.loc 1 1250 21 view .LVU1835
 1251:Drivers/lvgl/src/display/lv_display.c **** 
  6577              		.loc 1 1251 5 view .LVU1836
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 172
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 172
 
 
 1251:Drivers/lvgl/src/display/lv_display.c **** 
@@ -10318,7 +10318,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  6621 0006 FFF7FEFF 		bl	lv_display_get_screen_active
  6622              	.LVL667:
 1259:Drivers/lvgl/src/display/lv_display.c **** 
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 173
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 173
 
 
  6623              		.loc 1 1259 1 view .LVU1850
@@ -10378,7 +10378,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  6675              		.cfi_offset 14, -4
 1268:Drivers/lvgl/src/display/lv_display.c **** }
  6676              		.loc 1 1268 5 view .LVU1857
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 174
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 174
 
 
 1268:Drivers/lvgl/src/display/lv_display.c **** }
@@ -10438,7 +10438,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  6727              	.LFB270:
 1277:Drivers/lvgl/src/display/lv_display.c ****     return LV_DPX(n);
  6728              		.loc 1 1277 1 is_stmt 1 view -0
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 175
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 175
 
 
  6729              		.cfi_startproc
@@ -10498,7 +10498,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  6774              	.LFE270:
  6776              		.section	.text.lv_display_dpx,"ax",%progbits
  6777              		.align	1
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 176
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 176
 
 
  6778              		.global	lv_display_dpx
@@ -10558,7 +10558,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  6823              		.loc 1 1283 12 discriminator 4 view .LVU1885
  6824 0026 FBE7     		b	.L568
  6825              	.L572:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 177
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 177
 
 
  6826              		.align	2
@@ -10616,209 +10616,209 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 1
  6879              		.file 48 "Drivers/lvgl/src/display/../themes/default/lv_theme_default.h"
  6880              		.file 49 "Drivers/lvgl/src/display/../display/../core/../misc/../font/../draw/../misc/../stdlib/lv
  6881              		.file 50 "Drivers/lvgl/src/display/../core/lv_refr.h"
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 178
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 178
 
 
 DEFINED SYMBOLS
                             *ABS*:00000000 lv_display.c
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:21     .text.is_out_anim:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:26     .text.is_out_anim:00000000 is_out_anim
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:51     .text.disp_event_cb:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:56     .text.disp_event_cb:00000000 disp_event_cb
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:111    .text.invalidate_layout_cb:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:116    .text.invalidate_layout_cb:00000000 invalidate_layout_cb
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:141    .text.scr_anim_completed:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:146    .text.scr_anim_completed:00000000 scr_anim_completed
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:245    .text.scr_load_anim_start:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:250    .text.scr_load_anim_start:00000000 scr_load_anim_start
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:296    .text.load_new_screen:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:301    .text.load_new_screen:00000000 load_new_screen
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:450    .text.opa_scale_anim:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:455    .text.opa_scale_anim:00000000 opa_scale_anim
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:481    .text.set_y_anim:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:486    .text.set_y_anim:00000000 set_y_anim
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:508    .text.set_x_anim:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:513    .text.set_x_anim:00000000 set_x_anim
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:535    .text.lv_display_set_default:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:541    .text.lv_display_set_default:00000000 lv_display_set_default
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:558    .text.lv_display_set_default:00000008 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:563    .text.lv_display_get_default:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:569    .text.lv_display_get_default:00000000 lv_display_get_default
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:584    .text.lv_display_get_default:00000008 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:589    .text.lv_display_get_next:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:595    .text.lv_display_get_next:00000000 lv_display_get_next
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:635    .text.lv_display_get_next:00000018 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:640    .text.lv_display_set_physical_resolution:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:646    .text.lv_display_set_physical_resolution:00000000 lv_display_set_physical_resolution
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:698    .text.lv_display_set_offset:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:704    .text.lv_display_set_offset:00000000 lv_display_set_offset
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:756    .text.lv_display_set_dpi:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:762    .text.lv_display_set_dpi:00000000 lv_display_set_dpi
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:804    .text.lv_display_get_horizontal_resolution:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:810    .text.lv_display_get_horizontal_resolution:00000000 lv_display_get_horizontal_resolution
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:870    .text.lv_display_get_vertical_resolution:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:876    .text.lv_display_get_vertical_resolution:00000000 lv_display_get_vertical_resolution
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:936    .text.lv_display_get_original_horizontal_resolution:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:942    .text.lv_display_get_original_horizontal_resolution:00000000 lv_display_get_original_horizontal_resolution
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:987    .text.lv_display_get_original_vertical_resolution:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:993    .text.lv_display_get_original_vertical_resolution:00000000 lv_display_get_original_vertical_resolution
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1038   .text.lv_display_get_physical_horizontal_resolution:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1044   .text.lv_display_get_physical_horizontal_resolution:00000000 lv_display_get_physical_horizontal_resolution
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1118   .text.lv_display_get_physical_vertical_resolution:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1124   .text.lv_display_get_physical_vertical_resolution:00000000 lv_display_get_physical_vertical_resolution
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1198   .text.lv_display_get_offset_x:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1204   .text.lv_display_get_offset_x:00000000 lv_display_get_offset_x
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1290   .text.lv_display_get_offset_y:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1296   .text.lv_display_get_offset_y:00000000 lv_display_get_offset_y
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1382   .text.lv_display_get_dpi:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1388   .text.lv_display_get_dpi:00000000 lv_display_get_dpi
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1433   .text.lv_display_set_draw_buffers:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1439   .text.lv_display_set_draw_buffers:00000000 lv_display_set_draw_buffers
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1495   .text.lv_display_set_3rd_draw_buffer:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1501   .text.lv_display_set_3rd_draw_buffer:00000000 lv_display_set_3rd_draw_buffer
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 179
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:21     .text.is_out_anim:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:26     .text.is_out_anim:00000000 is_out_anim
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:51     .text.disp_event_cb:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:56     .text.disp_event_cb:00000000 disp_event_cb
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:111    .text.invalidate_layout_cb:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:116    .text.invalidate_layout_cb:00000000 invalidate_layout_cb
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:141    .text.scr_anim_completed:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:146    .text.scr_anim_completed:00000000 scr_anim_completed
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:245    .text.scr_load_anim_start:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:250    .text.scr_load_anim_start:00000000 scr_load_anim_start
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:296    .text.load_new_screen:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:301    .text.load_new_screen:00000000 load_new_screen
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:450    .text.opa_scale_anim:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:455    .text.opa_scale_anim:00000000 opa_scale_anim
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:481    .text.set_y_anim:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:486    .text.set_y_anim:00000000 set_y_anim
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:508    .text.set_x_anim:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:513    .text.set_x_anim:00000000 set_x_anim
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:535    .text.lv_display_set_default:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:541    .text.lv_display_set_default:00000000 lv_display_set_default
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:558    .text.lv_display_set_default:00000008 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:563    .text.lv_display_get_default:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:569    .text.lv_display_get_default:00000000 lv_display_get_default
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:584    .text.lv_display_get_default:00000008 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:589    .text.lv_display_get_next:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:595    .text.lv_display_get_next:00000000 lv_display_get_next
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:635    .text.lv_display_get_next:00000018 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:640    .text.lv_display_set_physical_resolution:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:646    .text.lv_display_set_physical_resolution:00000000 lv_display_set_physical_resolution
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:698    .text.lv_display_set_offset:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:704    .text.lv_display_set_offset:00000000 lv_display_set_offset
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:756    .text.lv_display_set_dpi:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:762    .text.lv_display_set_dpi:00000000 lv_display_set_dpi
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:804    .text.lv_display_get_horizontal_resolution:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:810    .text.lv_display_get_horizontal_resolution:00000000 lv_display_get_horizontal_resolution
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:870    .text.lv_display_get_vertical_resolution:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:876    .text.lv_display_get_vertical_resolution:00000000 lv_display_get_vertical_resolution
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:936    .text.lv_display_get_original_horizontal_resolution:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:942    .text.lv_display_get_original_horizontal_resolution:00000000 lv_display_get_original_horizontal_resolution
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:987    .text.lv_display_get_original_vertical_resolution:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:993    .text.lv_display_get_original_vertical_resolution:00000000 lv_display_get_original_vertical_resolution
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1038   .text.lv_display_get_physical_horizontal_resolution:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1044   .text.lv_display_get_physical_horizontal_resolution:00000000 lv_display_get_physical_horizontal_resolution
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1118   .text.lv_display_get_physical_vertical_resolution:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1124   .text.lv_display_get_physical_vertical_resolution:00000000 lv_display_get_physical_vertical_resolution
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1198   .text.lv_display_get_offset_x:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1204   .text.lv_display_get_offset_x:00000000 lv_display_get_offset_x
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1290   .text.lv_display_get_offset_y:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1296   .text.lv_display_get_offset_y:00000000 lv_display_get_offset_y
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1382   .text.lv_display_get_dpi:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1388   .text.lv_display_get_dpi:00000000 lv_display_get_dpi
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1433   .text.lv_display_set_draw_buffers:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1439   .text.lv_display_set_draw_buffers:00000000 lv_display_set_draw_buffers
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1495   .text.lv_display_set_3rd_draw_buffer:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1501   .text.lv_display_set_3rd_draw_buffer:00000000 lv_display_set_3rd_draw_buffer
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 179
 
 
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1568   .text.lv_display_set_render_mode:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1574   .text.lv_display_set_render_mode:00000000 lv_display_set_render_mode
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1616   .text.lv_display_set_flush_cb:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1622   .text.lv_display_set_flush_cb:00000000 lv_display_set_flush_cb
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1664   .text.lv_display_set_flush_wait_cb:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1670   .text.lv_display_set_flush_wait_cb:00000000 lv_display_set_flush_wait_cb
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1712   .text.lv_display_get_color_format:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1718   .text.lv_display_get_color_format:00000000 lv_display_get_color_format
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1763   .text.lv_display_set_buffers:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:1769   .text.lv_display_set_buffers:00000000 lv_display_set_buffers
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2008   .text.lv_display_set_buffers_with_stride:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2014   .text.lv_display_set_buffers_with_stride:00000000 lv_display_set_buffers_with_stride
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2206   .text.lv_display_set_tile_cnt:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2212   .text.lv_display_set_tile_cnt:00000000 lv_display_set_tile_cnt
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2269   .text.lv_display_get_tile_cnt:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2275   .text.lv_display_get_tile_cnt:00000000 lv_display_get_tile_cnt
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2321   .text.lv_display_set_antialiasing:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2327   .text.lv_display_set_antialiasing:00000000 lv_display_set_antialiasing
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2374   .text.lv_display_get_antialiasing:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2380   .text.lv_display_get_antialiasing:00000000 lv_display_get_antialiasing
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2426   .text.lv_display_get_render_mode:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2432   .text.lv_display_get_render_mode:00000000 lv_display_get_render_mode
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2478   .text.lv_display_flush_ready:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2484   .text.lv_display_flush_ready:00000000 lv_display_flush_ready
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2502   .text.lv_display_flush_is_last:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2508   .text.lv_display_flush_is_last:00000000 lv_display_flush_is_last
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2529   .text.lv_display_is_double_buffered:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2535   .text.lv_display_is_double_buffered:00000000 lv_display_is_double_buffered
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2556   .text.lv_display_get_screen_active:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2562   .text.lv_display_get_screen_active:00000000 lv_display_get_screen_active
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2603   .text.lv_display_get_screen_loading:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2609   .text.lv_display_get_screen_loading:00000000 lv_display_get_screen_loading
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2650   .text.lv_display_get_screen_prev:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2656   .text.lv_display_get_screen_prev:00000000 lv_display_get_screen_prev
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2697   .text.lv_display_get_layer_top:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2703   .text.lv_display_get_layer_top:00000000 lv_display_get_layer_top
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2744   .text.lv_display_get_layer_sys:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2750   .text.lv_display_get_layer_sys:00000000 lv_display_get_layer_sys
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2791   .text.lv_display_get_layer_bottom:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2797   .text.lv_display_get_layer_bottom:00000000 lv_display_get_layer_bottom
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2838   .text.lv_screen_load_anim:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:2844   .text.lv_screen_load_anim:00000000 lv_screen_load_anim
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:3075   .text.lv_screen_load_anim:00000144 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:3090   .text.lv_screen_load_anim:00000162 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:3526   .text.lv_screen_load_anim:00000390 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:3535   .text.lv_screen_load:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:3541   .text.lv_screen_load:00000000 lv_screen_load
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:3573   .text.lv_display_add_event_cb:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:3579   .text.lv_display_add_event_cb:00000000 lv_display_add_event_cb
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:3621   .text.lv_display_create:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:3627   .text.lv_display_create:00000000 lv_display_create
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4016   .text.lv_display_create:000001f4 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4025   .text.lv_display_get_event_count:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4031   .text.lv_display_get_event_count:00000000 lv_display_get_event_count
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4074   .text.lv_display_get_event_dsc:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4080   .text.lv_display_get_event_dsc:00000000 lv_display_get_event_dsc
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4123   .text.lv_display_delete_event:00000000 $t
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 180
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1568   .text.lv_display_set_render_mode:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1574   .text.lv_display_set_render_mode:00000000 lv_display_set_render_mode
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1616   .text.lv_display_set_flush_cb:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1622   .text.lv_display_set_flush_cb:00000000 lv_display_set_flush_cb
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1664   .text.lv_display_set_flush_wait_cb:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1670   .text.lv_display_set_flush_wait_cb:00000000 lv_display_set_flush_wait_cb
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1712   .text.lv_display_get_color_format:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1718   .text.lv_display_get_color_format:00000000 lv_display_get_color_format
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1763   .text.lv_display_set_buffers:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:1769   .text.lv_display_set_buffers:00000000 lv_display_set_buffers
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2008   .text.lv_display_set_buffers_with_stride:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2014   .text.lv_display_set_buffers_with_stride:00000000 lv_display_set_buffers_with_stride
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2206   .text.lv_display_set_tile_cnt:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2212   .text.lv_display_set_tile_cnt:00000000 lv_display_set_tile_cnt
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2269   .text.lv_display_get_tile_cnt:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2275   .text.lv_display_get_tile_cnt:00000000 lv_display_get_tile_cnt
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2321   .text.lv_display_set_antialiasing:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2327   .text.lv_display_set_antialiasing:00000000 lv_display_set_antialiasing
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2374   .text.lv_display_get_antialiasing:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2380   .text.lv_display_get_antialiasing:00000000 lv_display_get_antialiasing
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2426   .text.lv_display_get_render_mode:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2432   .text.lv_display_get_render_mode:00000000 lv_display_get_render_mode
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2478   .text.lv_display_flush_ready:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2484   .text.lv_display_flush_ready:00000000 lv_display_flush_ready
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2502   .text.lv_display_flush_is_last:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2508   .text.lv_display_flush_is_last:00000000 lv_display_flush_is_last
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2529   .text.lv_display_is_double_buffered:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2535   .text.lv_display_is_double_buffered:00000000 lv_display_is_double_buffered
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2556   .text.lv_display_get_screen_active:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2562   .text.lv_display_get_screen_active:00000000 lv_display_get_screen_active
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2603   .text.lv_display_get_screen_loading:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2609   .text.lv_display_get_screen_loading:00000000 lv_display_get_screen_loading
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2650   .text.lv_display_get_screen_prev:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2656   .text.lv_display_get_screen_prev:00000000 lv_display_get_screen_prev
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2697   .text.lv_display_get_layer_top:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2703   .text.lv_display_get_layer_top:00000000 lv_display_get_layer_top
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2744   .text.lv_display_get_layer_sys:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2750   .text.lv_display_get_layer_sys:00000000 lv_display_get_layer_sys
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2791   .text.lv_display_get_layer_bottom:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2797   .text.lv_display_get_layer_bottom:00000000 lv_display_get_layer_bottom
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2838   .text.lv_screen_load_anim:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:2844   .text.lv_screen_load_anim:00000000 lv_screen_load_anim
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:3075   .text.lv_screen_load_anim:00000144 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:3090   .text.lv_screen_load_anim:00000162 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:3526   .text.lv_screen_load_anim:00000390 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:3535   .text.lv_screen_load:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:3541   .text.lv_screen_load:00000000 lv_screen_load
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:3573   .text.lv_display_add_event_cb:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:3579   .text.lv_display_add_event_cb:00000000 lv_display_add_event_cb
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:3621   .text.lv_display_create:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:3627   .text.lv_display_create:00000000 lv_display_create
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4016   .text.lv_display_create:000001f4 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4025   .text.lv_display_get_event_count:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4031   .text.lv_display_get_event_count:00000000 lv_display_get_event_count
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4074   .text.lv_display_get_event_dsc:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4080   .text.lv_display_get_event_dsc:00000000 lv_display_get_event_dsc
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4123   .text.lv_display_delete_event:00000000 $t
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 180
 
 
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4129   .text.lv_display_delete_event:00000000 lv_display_delete_event
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4172   .text.lv_display_remove_event_cb_with_user_data:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4178   .text.lv_display_remove_event_cb_with_user_data:00000000 lv_display_remove_event_cb_with_user_data
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4298   .text.lv_display_send_event:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4304   .text.lv_display_send_event:00000000 lv_display_send_event
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4334   .text.lv_display_delete:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4340   .text.lv_display_delete:00000000 lv_display_delete
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4574   .text.lv_display_delete:000000fc $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4579   .text.update_resolution:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4584   .text.update_resolution:00000000 update_resolution
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4806   .text.update_resolution:00000108 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4811   .text.lv_display_set_resolution:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4817   .text.lv_display_set_resolution:00000000 lv_display_set_resolution
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4881   .text.lv_display_set_color_format:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4887   .text.lv_display_set_color_format:00000000 lv_display_set_color_format
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4992   .text.lv_event_get_invalidated_area:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:4998   .text.lv_event_get_invalidated_area:00000000 lv_event_get_invalidated_area
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5035   .text.lv_display_set_rotation:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5041   .text.lv_display_set_rotation:00000000 lv_display_set_rotation
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5089   .text.lv_display_get_rotation:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5095   .text.lv_display_get_rotation:00000000 lv_display_get_rotation
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5141   .text.lv_display_set_matrix_rotation:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5147   .text.lv_display_set_matrix_rotation:00000000 lv_display_set_matrix_rotation
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5166   .text.lv_display_get_matrix_rotation:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5172   .text.lv_display_get_matrix_rotation:00000000 lv_display_get_matrix_rotation
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5218   .text.lv_display_set_theme:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5224   .text.lv_display_set_theme:00000000 lv_display_set_theme
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5339   .text.lv_display_get_theme:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5345   .text.lv_display_get_theme:00000000 lv_display_get_theme
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5381   .text.lv_display_get_inactive_time:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5387   .text.lv_display_get_inactive_time:00000000 lv_display_get_inactive_time
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5469   .text.lv_display_trigger_activity:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5475   .text.lv_display_trigger_activity:00000000 lv_display_trigger_activity
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5519   .text.lv_display_enable_invalidation:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5525   .text.lv_display_enable_invalidation:00000000 lv_display_enable_invalidation
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5580   .text.lv_display_is_invalidation_enabled:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5586   .text.lv_display_is_invalidation_enabled:00000000 lv_display_is_invalidation_enabled
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5636   .text.lv_display_get_refr_timer:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5642   .text.lv_display_get_refr_timer:00000000 lv_display_get_refr_timer
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5683   .text.lv_display_delete_refr_timer:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5689   .text.lv_display_delete_refr_timer:00000000 lv_display_delete_refr_timer
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5738   .text.lv_display_send_vsync_event:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5744   .text.lv_display_send_vsync_event:00000000 lv_display_send_vsync_event
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5804   .text.lv_display_register_vsync_event:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5810   .text.lv_display_register_vsync_event:00000000 lv_display_register_vsync_event
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5887   .text.lv_display_unregister_vsync_event:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5893   .text.lv_display_unregister_vsync_event:00000000 lv_display_unregister_vsync_event
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5981   .text.lv_display_set_user_data:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:5987   .text.lv_display_set_user_data:00000000 lv_display_set_user_data
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6029   .text.lv_display_set_driver_data:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6035   .text.lv_display_set_driver_data:00000000 lv_display_set_driver_data
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6077   .text.lv_display_get_user_data:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6083   .text.lv_display_get_user_data:00000000 lv_display_get_user_data
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6124   .text.lv_display_get_driver_data:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6130   .text.lv_display_get_driver_data:00000000 lv_display_get_driver_data
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6171   .text.lv_display_get_buf_active:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6177   .text.lv_display_get_buf_active:00000000 lv_display_get_buf_active
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 181
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4129   .text.lv_display_delete_event:00000000 lv_display_delete_event
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4172   .text.lv_display_remove_event_cb_with_user_data:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4178   .text.lv_display_remove_event_cb_with_user_data:00000000 lv_display_remove_event_cb_with_user_data
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4298   .text.lv_display_send_event:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4304   .text.lv_display_send_event:00000000 lv_display_send_event
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4334   .text.lv_display_delete:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4340   .text.lv_display_delete:00000000 lv_display_delete
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4574   .text.lv_display_delete:000000fc $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4579   .text.update_resolution:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4584   .text.update_resolution:00000000 update_resolution
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4806   .text.update_resolution:00000108 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4811   .text.lv_display_set_resolution:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4817   .text.lv_display_set_resolution:00000000 lv_display_set_resolution
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4881   .text.lv_display_set_color_format:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4887   .text.lv_display_set_color_format:00000000 lv_display_set_color_format
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4992   .text.lv_event_get_invalidated_area:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:4998   .text.lv_event_get_invalidated_area:00000000 lv_event_get_invalidated_area
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5035   .text.lv_display_set_rotation:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5041   .text.lv_display_set_rotation:00000000 lv_display_set_rotation
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5089   .text.lv_display_get_rotation:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5095   .text.lv_display_get_rotation:00000000 lv_display_get_rotation
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5141   .text.lv_display_set_matrix_rotation:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5147   .text.lv_display_set_matrix_rotation:00000000 lv_display_set_matrix_rotation
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5166   .text.lv_display_get_matrix_rotation:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5172   .text.lv_display_get_matrix_rotation:00000000 lv_display_get_matrix_rotation
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5218   .text.lv_display_set_theme:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5224   .text.lv_display_set_theme:00000000 lv_display_set_theme
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5339   .text.lv_display_get_theme:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5345   .text.lv_display_get_theme:00000000 lv_display_get_theme
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5381   .text.lv_display_get_inactive_time:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5387   .text.lv_display_get_inactive_time:00000000 lv_display_get_inactive_time
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5469   .text.lv_display_trigger_activity:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5475   .text.lv_display_trigger_activity:00000000 lv_display_trigger_activity
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5519   .text.lv_display_enable_invalidation:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5525   .text.lv_display_enable_invalidation:00000000 lv_display_enable_invalidation
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5580   .text.lv_display_is_invalidation_enabled:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5586   .text.lv_display_is_invalidation_enabled:00000000 lv_display_is_invalidation_enabled
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5636   .text.lv_display_get_refr_timer:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5642   .text.lv_display_get_refr_timer:00000000 lv_display_get_refr_timer
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5683   .text.lv_display_delete_refr_timer:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5689   .text.lv_display_delete_refr_timer:00000000 lv_display_delete_refr_timer
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5738   .text.lv_display_send_vsync_event:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5744   .text.lv_display_send_vsync_event:00000000 lv_display_send_vsync_event
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5804   .text.lv_display_register_vsync_event:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5810   .text.lv_display_register_vsync_event:00000000 lv_display_register_vsync_event
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5887   .text.lv_display_unregister_vsync_event:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5893   .text.lv_display_unregister_vsync_event:00000000 lv_display_unregister_vsync_event
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5981   .text.lv_display_set_user_data:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:5987   .text.lv_display_set_user_data:00000000 lv_display_set_user_data
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6029   .text.lv_display_set_driver_data:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6035   .text.lv_display_set_driver_data:00000000 lv_display_set_driver_data
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6077   .text.lv_display_get_user_data:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6083   .text.lv_display_get_user_data:00000000 lv_display_get_user_data
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6124   .text.lv_display_get_driver_data:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6130   .text.lv_display_get_driver_data:00000000 lv_display_get_driver_data
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6171   .text.lv_display_get_buf_active:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6177   .text.lv_display_get_buf_active:00000000 lv_display_get_buf_active
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 181
 
 
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6218   .text.lv_display_rotate_area:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6224   .text.lv_display_rotate_area:00000000 lv_display_rotate_area
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6389   .text.lv_display_get_draw_buf_size:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6395   .text.lv_display_get_draw_buf_size:00000000 lv_display_get_draw_buf_size
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6450   .text.lv_display_get_invalidated_draw_buf_size:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6456   .text.lv_display_get_invalidated_draw_buf_size:00000000 lv_display_get_invalidated_draw_buf_size
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6599   .text.lv_screen_active:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6605   .text.lv_screen_active:00000000 lv_screen_active
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6629   .text.lv_layer_top:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6635   .text.lv_layer_top:00000000 lv_layer_top
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6659   .text.lv_layer_sys:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6665   .text.lv_layer_sys:00000000 lv_layer_sys
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6689   .text.lv_layer_bottom:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6695   .text.lv_layer_bottom:00000000 lv_layer_bottom
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6719   .text.lv_dpx:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6725   .text.lv_dpx:00000000 lv_dpx
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6772   .text.lv_dpx:0000002c $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6777   .text.lv_display_dpx:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6783   .text.lv_display_dpx:00000000 lv_display_dpx
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s:6828   .text.lv_display_dpx:00000028 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6218   .text.lv_display_rotate_area:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6224   .text.lv_display_rotate_area:00000000 lv_display_rotate_area
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6389   .text.lv_display_get_draw_buf_size:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6395   .text.lv_display_get_draw_buf_size:00000000 lv_display_get_draw_buf_size
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6450   .text.lv_display_get_invalidated_draw_buf_size:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6456   .text.lv_display_get_invalidated_draw_buf_size:00000000 lv_display_get_invalidated_draw_buf_size
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6599   .text.lv_screen_active:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6605   .text.lv_screen_active:00000000 lv_screen_active
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6629   .text.lv_layer_top:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6635   .text.lv_layer_top:00000000 lv_layer_top
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6659   .text.lv_layer_sys:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6665   .text.lv_layer_sys:00000000 lv_layer_sys
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6689   .text.lv_layer_bottom:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6695   .text.lv_layer_bottom:00000000 lv_layer_bottom
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6719   .text.lv_dpx:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6725   .text.lv_dpx:00000000 lv_dpx
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6772   .text.lv_dpx:0000002c $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6777   .text.lv_display_dpx:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6783   .text.lv_display_dpx:00000000 lv_display_dpx
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s:6828   .text.lv_display_dpx:00000028 $d
 
 UNDEFINED SYMBOLS
 lv_event_get_code
@@ -10856,7 +10856,7 @@ lv_memset
 lv_malloc
 lv_layer_init
 lv_tick_get
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cceXEZMJ.s 			page 182
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccljMUDC.s 			page 182
 
 
 lv_ll_init

@@ -55,8 +55,15 @@ build/Core/Src/main.o: Core/Src/main.c Core/Inc/main.h \
  Middlewares/Third_Party/FreeRTOS/Source/include/timers.h Core/Inc/crc.h \
  Core/Inc/main.h Core/Inc/dma2d.h Core/Inc/i2c.h Core/Inc/ltdc.h \
  Core/Inc/spi.h Core/Inc/tim.h Core/Inc/usart.h USB_HOST/App/usb_host.h \
- Core/Inc/gpio.h Core/Inc/fmc.h Drivers/lvgl/lvgl.h \
- Drivers/lvgl/lv_version.h Drivers/lvgl/src/lv_init.h \
+ Core/Inc/gpio.h Core/Inc/fmc.h \
+ Drivers/BSP/STM32F429I-Discovery/stm32f429i_discovery_lcd.h \
+ Drivers/BSP/STM32F429I-Discovery/stm32f429i_discovery.h \
+ Drivers/BSP/STM32F429I-Discovery/stm32f429i_discovery_sdram.h \
+ Drivers/BSP/STM32F429I-Discovery/../../../Utilities/Fonts/fonts.h \
+ Drivers/BSP/STM32F429I-Discovery/../Components/ili9341/ili9341.h \
+ Drivers/BSP/STM32F429I-Discovery/../Components/ili9341/../Common/lcd.h \
+ Drivers/BSP/STM32F429I-Discovery/stm32f429i_discovery_sdram.h \
+ Drivers/lvgl/lvgl.h Drivers/lvgl/lv_version.h Drivers/lvgl/src/lv_init.h \
  Drivers/lvgl/src/lv_conf_internal.h Drivers/lvgl/src/lv_conf_kconfig.h \
  Drivers/lvgl/lv_conf.h Drivers/lvgl/src/misc/lv_types.h \
  Drivers/lvgl/src/misc/../lv_conf_internal.h \
@@ -547,6 +554,13 @@ Core/Inc/usart.h:
 USB_HOST/App/usb_host.h:
 Core/Inc/gpio.h:
 Core/Inc/fmc.h:
+Drivers/BSP/STM32F429I-Discovery/stm32f429i_discovery_lcd.h:
+Drivers/BSP/STM32F429I-Discovery/stm32f429i_discovery.h:
+Drivers/BSP/STM32F429I-Discovery/stm32f429i_discovery_sdram.h:
+Drivers/BSP/STM32F429I-Discovery/../../../Utilities/Fonts/fonts.h:
+Drivers/BSP/STM32F429I-Discovery/../Components/ili9341/ili9341.h:
+Drivers/BSP/STM32F429I-Discovery/../Components/ili9341/../Common/lcd.h:
+Drivers/BSP/STM32F429I-Discovery/stm32f429i_discovery_sdram.h:
 Drivers/lvgl/lvgl.h:
 Drivers/lvgl/lv_version.h:
 Drivers/lvgl/src/lv_init.h:

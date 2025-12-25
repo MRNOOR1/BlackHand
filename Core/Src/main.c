@@ -35,6 +35,7 @@
 /* Include BSP Drivers */
 #include "stm32f429i_discovery_lcd.h"
 #include "stm32f429i_discovery_sdram.h"
+#include "lvgl.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -62,7 +63,18 @@ static uint8_t buf1[240 * 20 * 2];
 void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
-
+/* Define the flush callback here so it's a valid C function */
+static void my_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
+    uint16_t *vram = (uint16_t *)LCD_FRAME_BUFFER;
+    uint16_t *map = (uint16_t *)px_map;
+    
+    for(int32_t y = area->y1; y <= area->y2; y++) {
+        for(int32_t x = area->x1; x <= area->x2; x++) {
+            vram[y * 240 + x] = *map++;
+        }
+    }
+    lv_display_flush_ready(disp);
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -108,28 +120,17 @@ int main(void)
   MX_TIM1_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  /* 1. BSP Hardware Init - Replaces all manual sequences */
   BSP_SDRAM_Init(); 
   BSP_LCD_Init(); 
   BSP_LCD_LayerDefaultInit(0, LCD_FRAME_BUFFER); 
   BSP_LCD_DisplayOn();
 
-  /* 2. LVGL Init */
   lv_init();
   lv_display_t * disp = lv_display_create(240, 320);
   lv_display_set_buffers(disp, buf1, NULL, sizeof(buf1), LV_DISPLAY_RENDER_MODE_PARTIAL);
   
-  /* Simple Flush: Copy LVGL buffer to the BSP Framebuffer */
-  lv_display_set_flush_cb(disp, [](lv_display_t *d, const lv_area_t *area, uint8_t *px_map){
-      uint16_t *vram = (uint16_t *)LCD_FRAME_BUFFER;
-      uint16_t *map = (uint16_t *)px_map;
-      for(int32_t y = area->y1; y <= area->y2; y++) {
-          for(int32_t x = area->x1; x <= area->x2; x++) {
-              vram[y * 240 + x] = *map++;
-          }
-      }
-      lv_display_flush_ready(d);
-  });
+  /* Use the function name instead of the [] lambda */
+  lv_display_set_flush_cb(disp, my_flush_cb);
 
   lv_obj_t *label = lv_label_create(lv_screen_active());
   lv_label_set_text(label, "BSP & OS Active");

@@ -1,4 +1,4 @@
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 1
 
 
    1              		.cpu cortex-m4
@@ -58,7 +58,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
   28:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****     #include "arm2d/lv_draw_sw_helium.h"
   29:Drivers/lvgl/src/draw/sw/lv_draw_sw.c **** #elif LV_USE_DRAW_SW_ASM == LV_DRAW_SW_ASM_CUSTOM
   30:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****     #include LV_DRAW_SW_ASM_CUSTOM_INCLUDE
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 2
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 2
 
 
   31:Drivers/lvgl/src/draw/sw/lv_draw_sw.c **** #endif
@@ -118,7 +118,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
   85:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****     draw_sw_unit->base_unit.delete_cb = LV_USE_OS ? lv_draw_sw_delete : NULL;
   86:Drivers/lvgl/src/draw/sw/lv_draw_sw.c **** #if LV_USE_DRAW_ARM2D_SYNC
   87:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****     draw_sw_unit->base_unit.name = "SW_ARM2D";
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 3
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 3
 
 
   88:Drivers/lvgl/src/draw/sw/lv_draw_sw.c **** #else
@@ -178,7 +178,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
  142:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****     }
  143:Drivers/lvgl/src/draw/sw/lv_draw_sw.c **** 
  144:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****     return 0;
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 4
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 4
 
 
  145:Drivers/lvgl/src/draw/sw/lv_draw_sw.c **** #else
@@ -238,7 +238,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
  199:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****     }
  200:Drivers/lvgl/src/draw/sw/lv_draw_sw.c **** 
  201:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****     return NULL;
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 5
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 5
 
 
  202:Drivers/lvgl/src/draw/sw/lv_draw_sw.c **** }
@@ -298,7 +298,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
  242:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****     if(task->preference_score >= 100) {
   43              		.loc 1 242 5 is_stmt 1 view .LVU5
   44              		.loc 1 242 12 is_stmt 0 view .LVU6
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 6
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 6
 
 
   45 0008 91F85A30 		ldrb	r3, [r1, #90]	@ zero_extendqisi2
@@ -358,7 +358,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
   84              	.LVL4:
  224:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****                 if(masked && (cf == LV_COLOR_FORMAT_A8 || cf == LV_COLOR_FORMAT_RGB565A8)) {
   85              		.loc 1 224 17 is_stmt 1 view .LVU23
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 7
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 7
 
 
  224:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****                 if(masked && (cf == LV_COLOR_FORMAT_A8 || cf == LV_COLOR_FORMAT_RGB565A8)) {
@@ -418,7 +418,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
  267:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****             all_idle = false;
  268:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****             break;
  269:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****         }
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 8
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 8
 
 
  270:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****     }
@@ -478,7 +478,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
  324:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****         LV_PROFILER_DRAW_END;
  325:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****         return LV_DRAW_UNIT_IDLE;  /*Couldn't start rendering*/
  326:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****     }
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 9
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 9
 
 
  327:Drivers/lvgl/src/draw/sw/lv_draw_sw.c **** 
@@ -538,7 +538,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
  381:Drivers/lvgl/src/draw/sw/lv_draw_sw.c **** #endif
  382:Drivers/lvgl/src/draw/sw/lv_draw_sw.c **** 
  383:Drivers/lvgl/src/draw/sw/lv_draw_sw.c **** static void execute_drawing(lv_draw_task_t * t)
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 10
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 10
 
 
  384:Drivers/lvgl/src/draw/sw/lv_draw_sw.c **** {
@@ -598,7 +598,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
  396:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****             break;
  397:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****         case LV_DRAW_TASK_TYPE_LETTER:
  398:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****             lv_draw_sw_letter(t, t->draw_dsc, &t->area);
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 11
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 11
 
 
  399:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****             break;
@@ -658,7 +658,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
  173 0034 00F10802 		add	r2, r0, #8
  174 0038 416D     		ldr	r1, [r0, #84]
  175 003a FFF7FEFF 		bl	lv_draw_sw_box_shadow
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 12
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 12
 
 
  176              	.LVL11:
@@ -718,7 +718,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
  220              	.LVL21:
  411:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****         case LV_DRAW_TASK_TYPE_BLUR:
  221              		.loc 1 411 13 view .LVU53
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 13
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 13
 
 
  222 0076 D6E7     		b	.L6
@@ -778,7 +778,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
  269              	.LVL30:
  270              	.LFB200:
  251:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****     LV_PROFILER_DRAW_BEGIN;
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 14
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 14
 
 
  271              		.loc 1 251 1 is_stmt 1 view -0
@@ -838,7 +838,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
  317:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****         LV_PROFILER_DRAW_END;
  312              		.loc 1 317 5 is_stmt 1 view .LVU78
  317:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****         LV_PROFILER_DRAW_END;
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 15
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 15
 
 
  313              		.loc 1 317 7 is_stmt 0 view .LVU79
@@ -898,7 +898,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
  350 003a FFF7FEFF 		bl	lv_draw_dispatch_request
  351              	.LVL41:
  338:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****     return 1;
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 16
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 16
 
 
  352              		.loc 1 338 25 view .LVU97
@@ -958,7 +958,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
  399              		.loc 1 79 5 view .LVU106
  400 0002 FFF7FEFF 		bl	lv_draw_sw_mask_init
  401              	.LVL47:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 17
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 17
 
 
   82:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****     draw_sw_unit->base_unit.dispatch_cb = dispatch;
@@ -1018,7 +1018,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
  444              		.global	lv_draw_sw_deinit
  445              		.syntax unified
  446              		.thumb
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 18
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 18
 
 
  447              		.thumb_func
@@ -1078,7 +1078,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
  495              		.loc 1 157 5 is_stmt 0 view .LVU128
  496 0006 FFF7FEFF 		bl	lv_ll_get_head
  497              	.LVL55:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 19
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 19
 
 
  157:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****         if(existing_handler->dest_cf == handler->dest_cf) {
@@ -1138,7 +1138,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
  165:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****         if(new_handler == NULL) {
  538              		.loc 1 165 23 is_stmt 0 view .LVU143
  539 002c 0248     		ldr	r0, .L48
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 20
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 20
 
 
  540              	.LVL62:
@@ -1198,7 +1198,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
  585              		.loc 1 178 5 is_stmt 1 view .LVU154
  180:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****         if(handler->dest_cf == dest_cf) {
  586              		.loc 1 180 5 view .LVU155
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 21
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 21
 
 
  587 0004 0C48     		ldr	r0, .L57
@@ -1258,7 +1258,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
  629 0032 0020     		movs	r0, #0
  630              	.L53:
  189:Drivers/lvgl/src/draw/sw/lv_draw_sw.c **** 
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 22
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 22
 
 
  631              		.loc 1 189 1 view .LVU168
@@ -1318,7 +1318,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
  679              	.LVL79:
  195:Drivers/lvgl/src/draw/sw/lv_draw_sw.c ****         if(handler->dest_cf == dest_cf) {
  680              		.loc 1 195 5 is_stmt 0 discriminator 2 view .LVU177
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 23
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 23
 
 
  681 0014 0146     		mov	r1, r0
@@ -1378,7 +1378,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
  727              		.file 16 "Drivers/lvgl/src/draw/sw/../../misc/../font/../draw/lv_draw_buf.h"
  728              		.file 17 "Drivers/lvgl/src/draw/sw/../../misc/../font/../draw/../misc/lv_area.h"
  729              		.file 18 "Drivers/lvgl/src/draw/sw/../../misc/../font/../draw/../misc/lv_color.h"
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 24
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 24
 
 
  730              		.file 19 "Drivers/lvgl/src/draw/sw/../../misc/../font/../draw/lv_image_dsc.h"
@@ -1411,35 +1411,35 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 1
  757              		.file 46 "Drivers/lvgl/src/draw/sw/../../misc/../font/../draw/../misc/../stdlib/lv_string.h"
  758              		.file 47 "Drivers/lvgl/src/draw/sw/lv_draw_sw.h"
  759              		.file 48 "Drivers/lvgl/src/draw/sw/blend/../lv_draw_sw_mask.h"
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s 			page 25
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s 			page 25
 
 
 DEFINED SYMBOLS
                             *ABS*:00000000 lv_draw_sw.c
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:21     .text.evaluate:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:26     .text.evaluate:00000000 evaluate
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:109    .text.execute_drawing:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:114    .text.execute_drawing:00000000 execute_drawing
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:137    .text.execute_drawing:0000000e $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:263    .text.dispatch:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:268    .text.dispatch:00000000 dispatch
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:378    .rodata.lv_draw_sw_init.str1.4:00000000 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:382    .text.lv_draw_sw_init:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:388    .text.lv_draw_sw_init:00000000 lv_draw_sw_init
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:435    .text.lv_draw_sw_init:00000028 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:443    .text.lv_draw_sw_deinit:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:449    .text.lv_draw_sw_deinit:00000000 lv_draw_sw_deinit
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:469    .text.lv_draw_sw_register_blend_handler:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:475    .text.lv_draw_sw_register_blend_handler:00000000 lv_draw_sw_register_blend_handler
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:558    .text.lv_draw_sw_register_blend_handler:00000038 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:563    .text.lv_draw_sw_unregister_blend_handler:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:569    .text.lv_draw_sw_unregister_blend_handler:00000000 lv_draw_sw_unregister_blend_handler
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:638    .text.lv_draw_sw_unregister_blend_handler:00000038 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:643    .text.lv_draw_sw_get_blend_handler:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:649    .text.lv_draw_sw_get_blend_handler:00000000 lv_draw_sw_get_blend_handler
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:707    .text.lv_draw_sw_get_blend_handler:00000028 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:150    .text.execute_drawing:0000001b $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccYBRO69.s:150    .text.execute_drawing:0000001c $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:21     .text.evaluate:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:26     .text.evaluate:00000000 evaluate
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:109    .text.execute_drawing:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:114    .text.execute_drawing:00000000 execute_drawing
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:137    .text.execute_drawing:0000000e $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:263    .text.dispatch:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:268    .text.dispatch:00000000 dispatch
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:378    .rodata.lv_draw_sw_init.str1.4:00000000 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:382    .text.lv_draw_sw_init:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:388    .text.lv_draw_sw_init:00000000 lv_draw_sw_init
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:435    .text.lv_draw_sw_init:00000028 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:443    .text.lv_draw_sw_deinit:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:449    .text.lv_draw_sw_deinit:00000000 lv_draw_sw_deinit
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:469    .text.lv_draw_sw_register_blend_handler:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:475    .text.lv_draw_sw_register_blend_handler:00000000 lv_draw_sw_register_blend_handler
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:558    .text.lv_draw_sw_register_blend_handler:00000038 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:563    .text.lv_draw_sw_unregister_blend_handler:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:569    .text.lv_draw_sw_unregister_blend_handler:00000000 lv_draw_sw_unregister_blend_handler
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:638    .text.lv_draw_sw_unregister_blend_handler:00000038 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:643    .text.lv_draw_sw_get_blend_handler:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:649    .text.lv_draw_sw_get_blend_handler:00000000 lv_draw_sw_get_blend_handler
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:707    .text.lv_draw_sw_get_blend_handler:00000028 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:150    .text.execute_drawing:0000001b $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccLtPVsx.s:150    .text.execute_drawing:0000001c $t
 
 UNDEFINED SYMBOLS
 lv_draw_sw_fill

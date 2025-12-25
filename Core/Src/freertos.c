@@ -147,17 +147,12 @@ void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackTy
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
   
-  /* Create LED Task */
   osThreadDef(ledTask, StartLedTask, osPriorityNormal, 0, 128);
   ledTaskHandle = osThreadCreate(osThread(ledTask), NULL);
 
-  /* Create LVGL Task - Priority High to keep UI smooth */
   osThreadDef(lvglTask, LVGL_Task, osPriorityHigh, 0, 1024);
   lvglTaskHandle = osThreadCreate(osThread(lvglTask), NULL);
 
-  // Default task
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 4096);
-  defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* USER CODE END Init */
 

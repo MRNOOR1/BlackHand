@@ -1,4 +1,4 @@
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 1
 
 
    1              		.cpu cortex-m4
@@ -58,7 +58,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
   28:Drivers/lvgl/src/themes/simple/lv_theme_simple.c **** #define COLOR_LIGHT   lv_palette_lighten(LV_PALETTE_GREY, 2)
   29:Drivers/lvgl/src/themes/simple/lv_theme_simple.c **** #define COLOR_DARK    lv_palette_main(LV_PALETTE_GREY)
   30:Drivers/lvgl/src/themes/simple/lv_theme_simple.c **** #define COLOR_DIM     lv_palette_darken(LV_PALETTE_GREY, 2)
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 2
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 2
 
 
   31:Drivers/lvgl/src/themes/simple/lv_theme_simple.c **** #define SCROLLBAR_WIDTH     2
@@ -118,7 +118,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
   85:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****     lv_style_set_bg_opa(&theme->styles.scr, LV_OPA_COVER);
   86:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****     lv_style_set_bg_color(&theme->styles.scr, COLOR_SCR);
   87:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****     lv_style_set_text_color(&theme->styles.scr, COLOR_DIM);
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 3
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 3
 
 
   88:Drivers/lvgl/src/themes/simple/lv_theme_simple.c **** 
@@ -178,7 +178,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  142:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****  *   GLOBAL FUNCTIONS
  143:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****  **********************/
  144:Drivers/lvgl/src/themes/simple/lv_theme_simple.c **** 
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 4
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 4
 
 
  145:Drivers/lvgl/src/themes/simple/lv_theme_simple.c **** lv_theme_t * lv_theme_simple_init(lv_display_t * disp)
@@ -238,7 +238,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  199:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****             lv_style_t * theme_styles = (lv_style_t *)(&(theme->styles));
  200:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****             uint32_t i;
  201:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****             for(i = 0; i < sizeof(my_theme_styles_t) / sizeof(lv_style_t); i++) {
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 5
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 5
 
 
  202:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****                 lv_style_reset(theme_styles + i);
@@ -298,7 +298,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
   57 0010 B0B3     		cbz	r0, .L34
   58 0012 0646     		mov	r6, r0
  228:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****         lv_obj_add_style(obj, &theme->styles.scr, 0);
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 6
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 6
 
 
  229:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****         lv_obj_add_style(obj, &theme->styles.scrollbar, LV_PART_SCROLLBAR);
@@ -358,7 +358,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
   91 0038 B149     		ldr	r1, .L43+12
   92 003a 3046     		mov	r0, r6
   93 003c FFF7FEFF 		bl	lv_obj_check_type
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 7
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 7
 
 
   94              	.LVL9:
@@ -418,7 +418,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  136              	.LVL15:
  137              	.L34:
  228:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****         lv_obj_add_style(obj, &theme->styles.scrollbar, LV_PART_SCROLLBAR);
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 8
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 8
 
 
  138              		.loc 1 228 9 view .LVU33
@@ -478,7 +478,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  183 00cc 2046     		mov	r0, r4
  184 00ce FFF7FEFF 		bl	lv_obj_add_style
  185              	.LVL23:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 9
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 9
 
 
  252:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****         }
@@ -538,7 +538,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  280:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****             lv_obj_add_style(obj, &theme->styles.light, LV_PART_ITEMS);
  281:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****             return;
  282:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****         }
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 10
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 10
 
 
  283:Drivers/lvgl/src/themes/simple/lv_theme_simple.c **** #endif
@@ -598,7 +598,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  337:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****         lv_obj_add_style(obj, &theme->styles.dark, LV_PART_SELECTED);
  338:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****     }
  339:Drivers/lvgl/src/themes/simple/lv_theme_simple.c **** #endif
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 11
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 11
 
 
  340:Drivers/lvgl/src/themes/simple/lv_theme_simple.c **** 
@@ -658,7 +658,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  394:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****     }
  395:Drivers/lvgl/src/themes/simple/lv_theme_simple.c **** #endif
  396:Drivers/lvgl/src/themes/simple/lv_theme_simple.c **** 
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 12
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 12
 
 
  397:Drivers/lvgl/src/themes/simple/lv_theme_simple.c **** #if LV_USE_LIST
@@ -718,7 +718,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  271:Drivers/lvgl/src/themes/simple/lv_theme_simple.c **** #if LV_USE_MSGBOX
  229              		.loc 1 271 12 discriminator 1 view .LVU54
  230 0110 38B3     		cbz	r0, .L10
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 13
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 13
 
 
  273:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****             lv_obj_add_style(obj, &theme->styles.light, LV_PART_ITEMS);
@@ -778,7 +778,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  274 015c FFF7FEFF 		bl	lv_obj_add_style
  275              	.LVL35:
  281:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****         }
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 14
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 14
 
 
  276              		.loc 1 281 13 view .LVU66
@@ -838,7 +838,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  320              	.LVL41:
  300:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****     }
  321              		.loc 1 300 9 view .LVU77
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 15
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 15
 
 
  322 01ac 4FF44032 		mov	r2, #196608
@@ -898,7 +898,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  366 01fc 484A     		ldr	r2, .L43+44
  367 01fe 05F15801 		add	r1, r5, #88
  368 0202 2046     		mov	r0, r4
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 16
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 16
 
 
  369 0204 FFF7FEFF 		bl	lv_obj_add_style
@@ -958,7 +958,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  413 0250 FFF7FEFF 		bl	lv_obj_add_style
  414              	.LVL54:
  329:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****         lv_obj_add_style(obj, &theme->styles.dark, LV_PART_CURSOR);
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 17
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 17
 
 
  415              		.loc 1 329 9 view .LVU98
@@ -1018,7 +1018,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  459              		.loc 1 343 9 is_stmt 1 view .LVU108
  460 02a2 0022     		movs	r2, #0
  461 02a4 05F14001 		add	r1, r5, #64
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 18
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 18
 
 
  462 02a8 2046     		mov	r0, r4
@@ -1078,7 +1078,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  509 0308 00000000 		.word	lv_buttonmatrix_class
  510 030c 00000000 		.word	lv_msgbox_class
  511 0310 00000000 		.word	lv_bar_class
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 19
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 19
 
 
  512 0314 00000000 		.word	lv_slider_class
@@ -1138,7 +1138,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  557 0376 FFF7FEFF 		bl	lv_obj_add_style
  558              	.LVL72:
  359:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****         lv_obj_add_style(obj, &theme->styles.dim, LV_PART_KNOB);
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 20
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 20
 
 
  559              		.loc 1 359 9 view .LVU125
@@ -1198,7 +1198,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  369:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****         lv_obj_add_style(obj, &theme->styles.dark, LV_PART_INDICATOR);
  604              		.loc 1 369 9 view .LVU135
  605 03ca 0022     		movs	r2, #0
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 21
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 21
 
 
  606 03cc 3146     		mov	r1, r6
@@ -1258,7 +1258,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  652              	.L24:
  384:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****         lv_obj_add_style(obj, &theme->styles.light, 0);
  653              		.loc 1 384 10 view .LVU144
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 22
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 22
 
 
  384:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****         lv_obj_add_style(obj, &theme->styles.light, 0);
@@ -1318,7 +1318,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  398:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****         lv_obj_add_style(obj, &theme->styles.light, 0);
  698              		.loc 1 398 13 is_stmt 0 view .LVU155
  699 046c 4049     		ldr	r1, .L45+28
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 23
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 23
 
 
  700 046e 2046     		mov	r0, r4
@@ -1378,7 +1378,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  743 04b6 26E6     		b	.L1
  744              	.L28:
  411:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****         lv_obj_add_style(obj, &theme->styles.light, 0);
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 24
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 24
 
 
  745              		.loc 1 411 10 view .LVU167
@@ -1438,7 +1438,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  788 04fa FFF7FEFF 		bl	lv_obj_check_type
  789              	.LVL106:
  424:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****         lv_obj_add_style(obj, &theme->styles.scr, 0);
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 25
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 25
 
 
  790              		.loc 1 424 12 discriminator 1 view .LVU179
@@ -1498,7 +1498,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  834 054a 2046     		mov	r0, r4
  835 054c FFF7FEFF 		bl	lv_obj_add_style
  836              	.LVL112:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 26
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 26
 
 
  837 0550 D9E5     		b	.L1
@@ -1558,7 +1558,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
   25:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h **** #include "../layouts/lv_layout.h"
   26:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h **** 
   27:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h **** /*********************
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 27
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 27
 
 
   28:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****  *      DEFINES
@@ -1618,7 +1618,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
   82:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h **** /**********************
   83:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****  *      TYPEDEFS
   84:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****  **********************/
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 28
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 28
 
 
   85:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h **** 
@@ -1678,7 +1678,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  139:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****     int32_t num;         /**< Number integer number (opacity, enums, booleans or "normal" numbers)*
  140:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****     const void * ptr;    /**< Constant pointers  (font, cone text, etc)*/
  141:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****     lv_color_t color;    /**< Colors*/
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 29
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 29
 
 
  142:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h **** } lv_style_value_t;
@@ -1738,7 +1738,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  196:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****     LV_STYLE_BG_GRAD                = 38,
  197:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****     LV_STYLE_BASE_DIR               = 39,
  198:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h **** 
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 30
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 30
 
 
  199:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****     LV_STYLE_BG_IMAGE_SRC             = 40,
@@ -1798,7 +1798,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  253:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****     LV_STYLE_TEXT_DECOR             = 93,
  254:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****     LV_STYLE_TEXT_ALIGN             = 94,
  255:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****     LV_STYLE_TEXT_OUTLINE_STROKE_WIDTH = 95,
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 31
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 31
 
 
  256:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****     LV_STYLE_TEXT_OUTLINE_STROKE_OPA   = 96,
@@ -1858,7 +1858,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  310:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****     LV_STYLE_PROP_ANY                = 0xFF,
  311:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****     LV_STYLE_PROP_CONST             = 0xFF /* magic value for const styles */
  312:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h **** };
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 32
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 32
 
 
  313:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h **** 
@@ -1918,7 +1918,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  367:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****  * Clear all properties from a style and free all allocated memories.
  368:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****  * @param style pointer to a style
  369:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****  */
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 33
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 33
 
 
  370:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h **** void lv_style_reset(lv_style_t * style);
@@ -1978,7 +1978,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  424:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****  * lv_style_set_my_prop(&style1, lv_palette_main(LV_PALETTE_RED));
  425:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****  * @endcode
  426:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****  */
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 34
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 34
 
 
  427:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h **** lv_style_prop_t lv_style_register_prop(uint8_t flag);
@@ -2038,7 +2038,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  481:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h **** 
  482:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h **** /**
  483:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****  * Get the default value of a property
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 35
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 35
 
 
  484:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****  * @param prop the ID of a property
@@ -2098,7 +2098,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  538:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****  */
  539:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h **** static inline uint32_t lv_style_get_prop_group(lv_style_prop_t prop)
  540:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h **** {
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 36
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 36
 
 
  541:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****     uint32_t group = prop >> 2;
@@ -2158,7 +2158,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  568:Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style.h ****     lv_style_set_pad_bottom(style, value);
  896              		.loc 2 568 5 view .LVU195
  897 001a 2946     		mov	r1, r5
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 37
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 37
 
 
  898 001c 2046     		mov	r0, r4
@@ -2218,7 +2218,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  945              		.section	.text.style_init_reset,"ax",%progbits
  946              		.align	1
  947              		.syntax unified
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 38
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 38
 
 
  948              		.thumb
@@ -2278,7 +2278,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  993              		.thumb_func
  995              	style_init:
  996              	.LVL124:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 39
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 39
 
 
  997              	.LFB202:
@@ -2338,7 +2338,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  1043              	.LVL130:
   84:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****     lv_style_set_bg_opa(&theme->styles.scr, LV_OPA_COVER);
  1044              		.loc 1 84 5 view .LVU224
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 40
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 40
 
 
  1045 0042 04F12805 		add	r5, r4, #40
@@ -2398,7 +2398,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  1092 00aa FFF7FEFF 		bl	lv_style_set_bg_opa
  1093              	.LVL138:
   92:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****     lv_style_set_bg_opa(&theme->styles.white, LV_OPA_COVER);
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 41
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 41
 
 
  1094              		.loc 1 92 5 view .LVU232
@@ -2458,7 +2458,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  1140              		.loc 1 98 5 view .LVU240
  1141 0110 FFF7FEFF 		bl	lv_color_white
  1142              	.LVL147:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 42
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 42
 
 
  1143 0114 8DF81400 		strb	r0, [sp, #20]
@@ -2518,7 +2518,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  1190 017e 8DF81D30 		strb	r3, [sp, #29]
  1191 0182 C0F30740 		ubfx	r0, r0, #16, #8
  1192 0186 8DF81E00 		strb	r0, [sp, #30]
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 43
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 43
 
 
  104:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****     lv_style_set_arc_width(&theme->styles.light, 2);
@@ -2578,7 +2578,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  1239 01ec 2846     		mov	r0, r5
  1240 01ee FFF7FEFF 		bl	lv_style_set_bg_color
  1241              	.LVL162:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 44
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 44
 
 
  111:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****     lv_style_set_line_color(&theme->styles.dark, COLOR_DARK);
@@ -2638,7 +2638,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  1288 0254 FFF7FEFF 		bl	lv_style_set_bg_opa
  1289              	.LVL170:
  118:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****     lv_style_set_line_width(&theme->styles.dim, 1);
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 45
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 45
 
 
  1290              		.loc 1 118 5 view .LVU264
@@ -2698,7 +2698,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  1338 02c4 C0F30740 		ubfx	r0, r0, #16, #8
  1339 02c8 8DF83A00 		strb	r0, [sp, #58]
  122:Drivers/lvgl/src/themes/simple/lv_theme_simple.c **** 
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 46
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 46
 
 
  1340              		.loc 1 122 5 is_stmt 0 discriminator 1 view .LVU271
@@ -2758,7 +2758,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  1386 0320 8DF83E00 		strb	r0, [sp, #62]
  134:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****     lv_style_set_border_width(&theme->styles.ta_cursor, 2);
  1387              		.loc 1 134 5 is_stmt 0 discriminator 1 view .LVU280
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 47
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 47
 
 
  1388 0324 0F99     		ldr	r1, [sp, #60]
@@ -2818,7 +2818,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  1437              		.cfi_offset 5, -8
  1438              		.cfi_offset 14, -4
  1439 0002 0546     		mov	r5, r0
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 48
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 48
 
 
  150:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****         theme_def = lv_malloc_zeroed(sizeof(my_theme_t));
@@ -2878,7 +2878,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  1475              		.loc 1 160 5 is_stmt 1 view .LVU306
  160:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****     theme->base.apply_cb = theme_apply;
  1476              		.loc 1 160 28 is_stmt 0 view .LVU307
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 49
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 49
 
 
  1477 0026 2362     		str	r3, [r4, #32]
@@ -2938,7 +2938,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  152:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****     }
  1516              		.loc 1 152 9 view .LVU323
  152:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****     }
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 50
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 50
 
 
  1517              		.loc 1 152 9 view .LVU324
@@ -2998,7 +2998,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  1565              	.L72:
  1566 0014 00000000 		.word	lv_global
  1567              		.cfi_endproc
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 51
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 51
 
 
  1568              	.LFE205:
@@ -3058,7 +3058,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  1611 0012 0024     		movs	r4, #0
  201:Drivers/lvgl/src/themes/simple/lv_theme_simple.c ****                 lv_style_reset(theme_styles + i);
  1612              		.loc 1 201 13 view .LVU346
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 52
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 52
 
 
  1613 0014 06E0     		b	.L77
@@ -3118,7 +3118,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  1658              		.file 5 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/lib/gcc/arm-none-eabi/14.3.1/includ
  1659              		.file 6 "Drivers/lvgl/src/themes/simple/../../core/../misc/lv_types.h"
  1660              		.file 7 "Drivers/lvgl/src/themes/simple/../../core/../draw/lv_draw.h"
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 53
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 53
 
 
  1661              		.file 8 "Drivers/lvgl/src/themes/simple/../../core/../draw/lv_draw_private.h"
@@ -3173,34 +3173,34 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 1
  1710              		.file 57 "Drivers/lvgl/src/themes/simple/../../core/../misc/lv_style_gen.h"
  1711              		.file 58 "Drivers/lvgl/src/themes/simple/../../core/lv_obj_tree.h"
  1712              		.file 59 "Drivers/lvgl/src/themes/simple/../../core/../display/lv_display.h"
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 54
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 54
 
 
 DEFINED SYMBOLS
                             *ABS*:00000000 lv_theme_simple.c
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:21     .text.theme_apply:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:26     .text.theme_apply:00000000 theme_apply
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:504    .text.theme_apply:000002f4 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:525    .text.theme_apply:0000033c $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:841    .text.theme_apply:00000554 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:860    .text.lv_style_set_pad_all:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:865    .text.lv_style_set_pad_all:00000000 lv_style_set_pad_all
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:908    .text.lv_theme_simple_is_inited:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:914    .text.lv_theme_simple_is_inited:00000000 lv_theme_simple_is_inited
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:941    .text.lv_theme_simple_is_inited:00000014 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:946    .text.style_init_reset:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:951    .text.style_init_reset:00000000 style_init_reset
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:990    .text.style_init:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:995    .text.style_init:00000000 style_init
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:1418   .text.lv_theme_simple_init:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:1424   .text.lv_theme_simple_init:00000000 lv_theme_simple_init
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:1522   .text.lv_theme_simple_init:00000054 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:1529   .text.lv_theme_simple_get:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:1535   .text.lv_theme_simple_get:00000000 lv_theme_simple_get
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:1566   .text.lv_theme_simple_get:00000014 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:1571   .text.lv_theme_simple_deinit:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:1577   .text.lv_theme_simple_deinit:00000000 lv_theme_simple_deinit
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s:1650   .text.lv_theme_simple_deinit:0000003c $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:21     .text.theme_apply:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:26     .text.theme_apply:00000000 theme_apply
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:504    .text.theme_apply:000002f4 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:525    .text.theme_apply:0000033c $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:841    .text.theme_apply:00000554 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:860    .text.lv_style_set_pad_all:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:865    .text.lv_style_set_pad_all:00000000 lv_style_set_pad_all
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:908    .text.lv_theme_simple_is_inited:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:914    .text.lv_theme_simple_is_inited:00000000 lv_theme_simple_is_inited
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:941    .text.lv_theme_simple_is_inited:00000014 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:946    .text.style_init_reset:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:951    .text.style_init_reset:00000000 style_init_reset
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:990    .text.style_init:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:995    .text.style_init:00000000 style_init
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:1418   .text.lv_theme_simple_init:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:1424   .text.lv_theme_simple_init:00000000 lv_theme_simple_init
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:1522   .text.lv_theme_simple_init:00000054 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:1529   .text.lv_theme_simple_get:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:1535   .text.lv_theme_simple_get:00000000 lv_theme_simple_get
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:1566   .text.lv_theme_simple_get:00000014 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:1571   .text.lv_theme_simple_deinit:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:1577   .text.lv_theme_simple_deinit:00000000 lv_theme_simple_deinit
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s:1650   .text.lv_theme_simple_deinit:0000003c $d
 
 UNDEFINED SYMBOLS
 lv_obj_get_parent
@@ -3233,7 +3233,7 @@ lv_list_text_class
 lv_list_button_class
 lv_spinbox_class
 lv_tileview_class
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccjm9sSK.s 			page 55
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//cc9mDJWp.s 			page 55
 
 
 lv_tileview_tile_class

@@ -4,10 +4,6 @@
 
 # ------------------------------------------------
 # Generic Makefile (based on gcc)
-#
-# ChangeLog :
-#	2017-02-10 - Several enhancements + project update mode
-#   2015-07-22 - first version
 # ------------------------------------------------
 
 ######################################
@@ -15,20 +11,15 @@
 ######################################
 TARGET = BlackHand
 
-
 ######################################
 # building variables
 ######################################
-# debug build?
 DEBUG = 1
-# optimization
 OPT = -Og
-
 
 #######################################
 # paths
 #######################################
-# Build path
 BUILD_DIR = build
 
 ######################################
@@ -102,98 +93,54 @@ Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_ioreq.c \
 Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_pipes.c \
 Middlewares/ST/STM32_USB_Host_Library/Class/CDC/Src/usbh_cdc.c \
 Core/Src/sysmem.c \
-Core/Src/syscalls.c \
 Drivers/BSP/STM32F429I-Discovery/stm32f429i_discovery_lcd.c \
 Drivers/BSP/STM32F429I-Discovery/stm32f429i_discovery_sdram.c \
-Drivers/BSP/Components/ili9341/ili9341.c
+Drivers/BSP/STM32F429I-Discovery/stm32f429i_discovery.c \
+Drivers/BSP/Components/ili9341/ili9341.c \
+Core/Src/syscalls.c 
+
 # --- LVGL SOURCES ---
-# --- LVGL SOURCES ---LVGL_DIR_NAME = Drivers/lvgl
-# This finds all .c files in the lvgl directory and its subdirectories
-LVGL_SOURCES = $(shell find $(LVGL_DIR_NAME)/src -name "*.c")
-C_SOURCES += $(LVGL_SOURCES)
+LVGL_DIR = Drivers/lvgl
+C_SOURCES += $(shell find $(LVGL_DIR)/src -name "*.c")
 
 # ASM sources
 ASM_SOURCES =  \
 startup_stm32f429xx.s
 
-# ASMM sources
-ASMM_SOURCES = 
-
-
-
 #######################################
 # binaries
 #######################################
 PREFIX = arm-none-eabi-
-# The gcc compiler bin path can be either defined in make command via GCC_PATH variable (> make GCC_PATH=xxx)
-# either it can be added to the PATH environment variable.
-ifdef GCC_PATH
-CC = $(GCC_PATH)/$(PREFIX)gcc
-AS = $(GCC_PATH)/$(PREFIX)gcc -x assembler-with-cpp
-CP = $(GCC_PATH)/$(PREFIX)objcopy
-SZ = $(GCC_PATH)/$(PREFIX)size
-else
 CC = $(PREFIX)gcc
 AS = $(PREFIX)gcc -x assembler-with-cpp
 CP = $(PREFIX)objcopy
 SZ = $(PREFIX)size
-endif
+
 HEX = $(CP) -O ihex
 BIN = $(CP) -O binary -S
 
-# ------------------------------------------------------------------
-# Flashing tool config (using STM32_Programmer_CLI)
-# ------------------------------------------------------------------
+# Flashing tool config
 PROG       = STM32_Programmer_CLI
-FLASH_ADDR = 0x08000000   # Start of flash for STM32F429
-# ------------------------------------------------------------------
+FLASH_ADDR = 0x08000000
 
 #######################################
 # CFLAGS
 #######################################
-# cpu
 CPU = -mcpu=cortex-m4
-
-# fpu
 FPU = -mfpu=fpv4-sp-d16
-
-# float-abi
 FLOAT-ABI = -mfloat-abi=hard
-
-# mcu
 MCU = $(CPU) -mthumb $(FPU) $(FLOAT-ABI)
 
-# macros for gcc
-# AS defines
-AS_DEFS = 
-
-# C defines
 C_DEFS =  \
 -DUSE_HAL_DRIVER \
 -DSTM32F429xx
 
-
-# AS includes
-AS_INCLUDES =  \
--ICore/Inc \
--IUSB_HOST/App \
--IUSB_HOST/Target \
--IDrivers/STM32F4xx_HAL_Driver/Inc \
--IDrivers/STM32F4xx_HAL_Driver/Inc/Legacy \
--IMiddlewares/Third_Party/FreeRTOS/Source/include \
--IMiddlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS \
--IMiddlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F \
--IMiddlewares/ST/STM32_USB_Host_Library/Core/Inc \
--IMiddlewares/ST/STM32_USB_Host_Library/Class/CDC/Inc \
--IDrivers/CMSIS/Device/ST/STM32F4xx/Include \
--IDrivers/CMSIS/Include
-
-# C includes
 C_INCLUDES =  \
 -ICore/Inc \
 -IUSB_HOST/App \
 -IUSB_HOST/Target \
 -IDrivers/lvgl \
+-IDrivers/lvgl/src \
 -IDrivers/STM32F4xx_HAL_Driver/Inc \
 -IDrivers/STM32F4xx_HAL_Driver/Inc/Legacy \
 -IMiddlewares/Third_Party/FreeRTOS/Source/include \
@@ -203,49 +150,30 @@ C_INCLUDES =  \
 -IMiddlewares/ST/STM32_USB_Host_Library/Class/CDC/Inc \
 -IDrivers/CMSIS/Device/ST/STM32F4xx/Include \
 -IDrivers/CMSIS/Include \
--Ilvgl \
 -IDrivers/BSP/STM32F429I-Discovery \
 -IDrivers/BSP/Components/ili9341
 
-
-# compile gcc flags
-ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
-
-CFLAGS += $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
-
-ifeq ($(DEBUG), 1)
-CFLAGS += -g -gdwarf-2
-endif
-
-
-# Generate dependency information
+ASFLAGS = $(MCU) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
+CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections -g -gdwarf-2
 CFLAGS += -MMD -MP -MF"$(@:%.o=%.d)"
-
 
 #######################################
 # LDFLAGS
 #######################################
-# link script
 LDSCRIPT = STM32F429XX_FLASH.ld
-
-# libraries
 LIBS = -lc -lm -lnosys 
-LIBDIR = 
-LDFLAGS = $(MCU) -specs=nano.specs -T$(LDSCRIPT) $(LIBDIR) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections
+LDFLAGS = $(MCU) -specs=nano.specs -T$(LDSCRIPT) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections
 
 # default action: build all
 all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET).bin
 
-
 #######################################
 # build the application
 #######################################
-# List of objects - preserves folder structure
 OBJECTS = $(C_SOURCES:%.c=$(BUILD_DIR)/%.o)
-# Add ASM objects
 OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(ASM_SOURCES:.s=.o)))
 
-# Rule for C files (Handles subdirectories automatically)
+# Rule for C files
 $(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR) 
 	@mkdir -p $(dir $@)
 	$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(@:.o=.lst) $< -o $@
@@ -272,29 +200,12 @@ $(BUILD_DIR):
 #######################################
 # flashing helpers
 #######################################
-# Build + flash the .bin to internal flash
-flash: $(BUILD_DIR)/$(TARGET).bin
-	$(PROG) -c port=SWD -w $< $(FLASH_ADDR) -rst
+flash: all
+	$(PROG) -c port=SWD -w $(BUILD_DIR)/$(TARGET).bin $(FLASH_ADDR) -rst
 
-# Just connect (debug: see device info)
-connect:
-	$(PROG) -c port=SWD
-
-# Mass erase the chip (if it gets bricked)
-erase:
-	$(PROG) -c port=SWD -e all -rst
-
-#######################################
-# clean up
-#######################################
 clean:
 	-rm -fR $(BUILD_DIR)
   
-#######################################
-# dependencies
-#######################################
 -include $(wildcard $(BUILD_DIR)/*.d)
 
-.PHONY: all clean flash erase connect
-
-# *** EOF ***
+.PHONY: all clean flash
