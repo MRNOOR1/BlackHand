@@ -29,16 +29,16 @@
 #include "usb_host.h"
 #include "gpio.h"
 #include "fmc.h"
-#include "lvgl.h" 
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+/* Include BSP Drivers */
+#include "stm32f429i_discovery_lcd.h"
+#include "stm32f429i_discovery_sdram.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
 
 /* USER CODE END PTD */
 
@@ -55,9 +55,6 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-static lv_display_t * disp;
-// Define the buffer as uint8_t or uint16_t for clarity. 
-// For a 240x20 area in RGB565, size is Width * Height * 2 bytes.
 static uint8_t buf1[240 * 20 * 2];
 /* USER CODE END PV */
 
@@ -65,13 +62,7 @@ static uint8_t buf1[240 * 20 * 2];
 void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
-void SDRAM_Initialization_Sequence(SDRAM_HandleTypeDef *hsdram);
-void ILI9341_Init(void);
-void ILI9341_Write_Command(uint8_t cmd);
-void ILI9341_Write_Data(uint8_t data);
-// Note: LVGL_Task is defined in freertos.c, but main.c needs to know about it
-void LVGL_Task(void *argument); 
-static void my_flush_cb(lv_display_t *d, const lv_area_t *area, uint8_t *px_map);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -117,23 +108,31 @@ int main(void)
   MX_TIM1_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  SDRAM_Initialization_Sequence(&hsdram1); 
-  HAL_SDRAM_ProgramRefreshRate(&hsdram1, 1105);
-  HAL_GPIO_WritePin(GPIOI, GPIO_PIN_12, GPIO_PIN_SET);
-  ILI9341_Init();                           
-  
-  
-  // Initialize LVGL
+  /* 1. BSP Hardware Init - Replaces all manual sequences */
+  BSP_SDRAM_Init(); 
+  BSP_LCD_Init(); 
+  BSP_LCD_LayerDefaultInit(0, LCD_FRAME_BUFFER); 
+  BSP_LCD_DisplayOn();
+
+  /* 2. LVGL Init */
   lv_init();
-
-  // Create the display object
-  disp = lv_display_create(240, 320);
+  lv_display_t * disp = lv_display_create(240, 320);
   lv_display_set_buffers(disp, buf1, NULL, sizeof(buf1), LV_DISPLAY_RENDER_MODE_PARTIAL);
-  lv_display_set_flush_cb(disp, my_flush_cb);
+  
+  /* Simple Flush: Copy LVGL buffer to the BSP Framebuffer */
+  lv_display_set_flush_cb(disp, [](lv_display_t *d, const lv_area_t *area, uint8_t *px_map){
+      uint16_t *vram = (uint16_t *)LCD_FRAME_BUFFER;
+      uint16_t *map = (uint16_t *)px_map;
+      for(int32_t y = area->y1; y <= area->y2; y++) {
+          for(int32_t x = area->x1; x <= area->x2; x++) {
+              vram[y * 240 + x] = *map++;
+          }
+      }
+      lv_display_flush_ready(d);
+  });
 
-  // Example Label to see if it works
   lv_obj_t *label = lv_label_create(lv_screen_active());
-  lv_label_set_text(label, "Hello STM32!");
+  lv_label_set_text(label, "BSP & OS Active");
   lv_obj_center(label);
   /* USER CODE END 2 */
 
@@ -155,8 +154,6 @@ int main(void)
   }
   /* USER CODE END 3 */
 }
-
- 
 
 /**
   * @brief System Clock Configuration
@@ -204,88 +201,7 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-#define SDRAM_MODEREG_BURST_LENGTH_1             ((uint16_t)0x0000)
-#define SDRAM_MODEREG_BURST_TYPE_SEQUENTIAL      ((uint16_t)0x0000)
-#define SDRAM_MODEREG_CAS_LATENCY_3              ((uint16_t)0x0030)
-#define SDRAM_MODEREG_OPERATING_MODE_STANDARD    ((uint16_t)0x0000)
-#define SDRAM_MODEREG_WRITEBURST_MODE_SINGLE     ((uint16_t)0x0200)
 
-void SDRAM_Initialization_Sequence(SDRAM_HandleTypeDef *hsdram) {
-  FMC_SDRAM_CommandTypeDef command;
-
-  // 1. Clock enable command
-  command.CommandMode = FMC_SDRAM_CMD_CLK_ENABLE;
-  command.CommandTarget = FMC_SDRAM_CMD_TARGET_BANK1;
-  command.AutoRefreshNumber = 1;
-  command.ModeRegisterDefinition = 0;
-  HAL_SDRAM_SendCommand(hsdram, &command, 0xFFFF);
-  HAL_Delay(1);
-
-  // 2. Precharge all command
-  command.CommandMode = FMC_SDRAM_CMD_PALL;
-  HAL_SDRAM_SendCommand(hsdram, &command, 0xFFFF);
-
-  // 3. Auto-refresh command
-  command.CommandMode = FMC_SDRAM_CMD_AUTOREFRESH_MODE;
-  command.AutoRefreshNumber = 8;
-  HAL_SDRAM_SendCommand(hsdram, &command, 0xFFFF);
-
-  // 4. Load Mode Register
-  uint32_t tmpmrd = (uint32_t)SDRAM_MODEREG_BURST_LENGTH_1 |
-                     SDRAM_MODEREG_BURST_TYPE_SEQUENTIAL |
-                     SDRAM_MODEREG_CAS_LATENCY_3 |
-                     SDRAM_MODEREG_OPERATING_MODE_STANDARD |
-                     SDRAM_MODEREG_WRITEBURST_MODE_SINGLE;
-  command.CommandMode = FMC_SDRAM_CMD_LOAD_MODE;
-  command.ModeRegisterDefinition = tmpmrd;
-  HAL_SDRAM_SendCommand(hsdram, &command, 0xFFFF);
-}
-
-
-void ILI9341_Write_Command(uint8_t cmd) {
-    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET); // CS Low
-    HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET); // DC Low (Command)
-    HAL_SPI_Transmit(&hspi5, &cmd, 1, 10);
-    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_SET); // CS High
-}
-
-void ILI9341_Write_Data(uint8_t data) {
-    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET); // CS Low
-    HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_SET);   // DC High (Data)
-    HAL_SPI_Transmit(&hspi5, &data, 1, 10);
-    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_SET); // CS High
-}
-
-void ILI9341_Init(void) {
-    ILI9341_Write_Command(0x01); // Software Reset
-    HAL_Delay(10);
-    ILI9341_Write_Command(0x28); // Display OFF
-    
-    // Simple Power Control
-    ILI9341_Write_Command(0xCF); ILI9341_Write_Data(0x00); ILI9341_Write_Data(0x83); ILI9341_Write_Data(0x30);
-    ILI9341_Write_Command(0x11); // Sleep Out
-    HAL_Delay(120);
-    ILI9341_Write_Command(0x29); // Display ON
-}
-
-static void my_flush_cb(lv_display_t *d, const lv_area_t *area, uint8_t *px_map)
-{
-    uint16_t * buf16 = (uint16_t *)px_map;
-    int32_t x, y;
-    
-    // Calculate the starting position in the SDRAM Framebuffer
-    // Standard LTDC Address for STM32F429: 0xD0000000
-    uint16_t * vram = (uint16_t *)0xD0000000;
-
-    for(y = area->y1; y <= area->y2; y++) {
-        for(x = area->x1; x <= area->x2; x++) {
-            vram[y * 240 + x] = *buf16;
-            buf16++;
-        }
-    }
-
-    lv_display_flush_ready(d);
-}
 /* USER CODE END 4 */
 
 /**
@@ -307,7 +223,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     lv_tick_inc(1);
   }
   /* USER CODE BEGIN Callback 1 */
-  
+
   /* USER CODE END Callback 1 */
 }
 

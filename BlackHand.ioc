@@ -1,7 +1,7 @@
 #MicroXplorer Configuration settings - do not modify
-CAD.formats=
-CAD.pinconfig=
-CAD.provider=
+CAD.formats=[]
+CAD.pinconfig=Dual
+CAD.provider=Component Search Engine
 FMC.CASLatency1=FMC_SDRAM_CAS_LATENCY_3
 FMC.ExitSelfRefreshDelay1=7
 FMC.IPParameters=CASLatency1,SDClockPeriod1,SDClockPeriod2,ReadBurst1,ReadPipeDelay1,ReadPipeDelay2,LoadToActiveDelay1,ExitSelfRefreshDelay1,SelfRefreshTime1,RowCycleDelay1,RowCycleDelay2,WriteRecoveryTime1,RPDelay1,RPDelay2,RCDDelay1
@@ -37,11 +37,12 @@ LTDC.ActiveW=240
 LTDC.Alpha_L0=255
 LTDC.BlendingFactor1_L0=LTDC_BLENDING_FACTOR1_PAxCA
 LTDC.BlendingFactor2_L0=LTDC_BLENDING_FACTOR2_PAxCA
+LTDC.Blue=255
 LTDC.FBStartAdress_L0=0xD0000000
 LTDC.HBP=20
 LTDC.HFP=10
 LTDC.HSync=10
-LTDC.IPParameters=ActiveW,ActiveH,Layers,WindowX1_L0,WindowY1_L0,PixelFormat_L0,Alpha_L0,BlendingFactor1_L0,BlendingFactor2_L0,FBStartAdress_L0,ImageWidth_L0,ImageHeight_L0,HSync,HBP,HFP,VSync,VFP
+LTDC.IPParameters=ActiveW,ActiveH,Layers,WindowX1_L0,WindowY1_L0,PixelFormat_L0,Alpha_L0,BlendingFactor1_L0,BlendingFactor2_L0,FBStartAdress_L0,ImageWidth_L0,ImageHeight_L0,HSync,HBP,HFP,VSync,VFP,Blue
 LTDC.ImageHeight_L0=320
 LTDC.ImageWidth_L0=240
 LTDC.Layers=0
