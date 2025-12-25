@@ -39,6 +39,7 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -54,13 +55,19 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+static lv_display_t * disp;
+static lv_color_t buf1[240 * 20];
+static lv_draw_buf_t draw_buf;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
+void LVGL_Task(void *argument);
+static void my_flush_cb(lv_display_t *d,
+                        const lv_area_t *area,
+                        uint8_t *px_map);
 
 /* USER CODE END PFP */
 
@@ -108,6 +115,20 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   lv_init();
+
+/* STEP 3: Register display */
+disp = lv_display_create(240, 320);
+
+lv_draw_buf_init(&draw_buf, buf1, NULL,
+                 sizeof(buf1) / sizeof(buf1[0]));
+
+lv_display_set_draw_buffers(disp, &draw_buf, NULL);
+lv_display_set_flush_cb(disp, my_flush_cb);
+
+/* Create a test label */
+lv_obj_t *label = lv_label_create(lv_screen_active());
+lv_label_set_text(label, "Hello BlackHand OS");
+lv_obj_center(label);
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in cmsis_os2.c) */
@@ -128,6 +149,8 @@ int main(void)
   }
   /* USER CODE END 3 */
 }
+
+ 
 
 /**
   * @brief System Clock Configuration
@@ -175,7 +198,21 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void LVGL_Task(void *argument)
+{
+    for (;;)
+    {
+        lv_timer_handler();               // VERY IMPORTANT
+        osDelay(5);                       // ~5ms
+    }
+}
+static void my_flush_cb(lv_display_t *d,
+                        const lv_area_t *area,
+                        uint8_t *px_map)
+{
+    /* TEMP: no real drawing yet */
+    lv_display_flush_ready(d);
+}
 /* USER CODE END 4 */
 
 /**
@@ -196,7 +233,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-
+  
   /* USER CODE END Callback 1 */
 }
 

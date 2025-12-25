@@ -40,12 +40,15 @@
 osThreadId ledTaskHandle;
 osThreadId uartTaskHandle;
 osThreadId buttonTaskHandle;
+osThreadId lvglTaskHandle;
 
 
 
 void StartLedTask(void const * argument);
 void StartUartTask(void const * argument);
 void StartButtonTask(void const * argument);
+void LVGL_Task(void const *argument);
+
 
 /* USER CODE END Includes */
 
@@ -155,8 +158,18 @@ void MX_FREERTOS_Init(void) {
   // UART task: low priority, 128 words stack
   osThreadDef(uartTask, StartUartTask, osPriorityAboveNormal, 0, 128);
   uartTaskHandle = osThreadCreate(osThread(uartTask), NULL);
+
+  osThreadDef(lvglTask, LVGL_Task, osPriorityNormal, 0, 512);
+  lvglTaskHandle = osThreadCreate(osThread(lvglTask), NULL);
+
   /* USER CODE BEGIN RTOS_TIMERS */
   /* USER CODE END Init */
+const osThreadAttr_t lvglTask_attributes = {
+  .name = "lvglTask",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 4096
+};
+
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -202,7 +215,7 @@ void StartDefaultTask(void const * argument)
   for(;;)
   {
 
-
+    osDelay(1);
   }
   /* USER CODE END StartDefaultTask */
 }
@@ -285,6 +298,18 @@ void StartButtonTask(void const * argument)
         osDelay(30); // debounce delay
     }
 }
+
+void LVGL_Task(void const *argument)
+{
+    (void)argument;
+
+    for(;;)
+    {
+        lv_timer_handler();
+        osDelay(5);
+    }
+}
+
 
 
 
