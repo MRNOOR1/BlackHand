@@ -29,6 +29,7 @@
 #include "usb_host.h"
 #include "gpio.h"
 #include "fmc.h"
+#include "lvgl.h" 
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */

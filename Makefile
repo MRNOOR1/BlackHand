@@ -185,6 +185,7 @@ C_INCLUDES =  \
 -ICore/Inc \
 -IUSB_HOST/App \
 -IUSB_HOST/Target \
+-IDrivers/lvgl \
 -IDrivers/STM32F4xx_HAL_Driver/Inc \
 -IDrivers/STM32F4xx_HAL_Driver/Inc/Legacy \
 -IMiddlewares/Third_Party/FreeRTOS/Source/include \

@@ -1,4 +1,4 @@
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 1
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s 			page 1
 
 
    1              		.cpu cortex-m4
@@ -58,7 +58,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 1
   27:Core/Src/freertos.c **** /* USER CODE BEGIN Includes */
   28:Core/Src/freertos.c **** #include <string.h>
   29:Core/Src/freertos.c **** #include "usart.h"
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 2
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s 			page 2
 
 
   30:Core/Src/freertos.c **** #include <stdio.h>
@@ -118,7 +118,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 1
   84:Core/Src/freertos.c **** void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskS
   85:Core/Src/freertos.c **** 
   86:Core/Src/freertos.c **** /* Hook prototypes */
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 3
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s 			page 3
 
 
   87:Core/Src/freertos.c **** void vApplicationIdleHook(void);
@@ -178,7 +178,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 1
  141:Core/Src/freertos.c **** }
  142:Core/Src/freertos.c **** /* USER CODE END GET_IDLE_TASK_MEMORY */
  143:Core/Src/freertos.c **** 
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 4
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s 			page 4
 
 
  144:Core/Src/freertos.c **** /**
@@ -238,7 +238,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 1
   30              		.loc 1 197 1 view -0
   31              		.cfi_startproc
   32              		@ Volatile: function does not return.
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 5
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s 			page 5
 
 
   33              		@ args = 0, pretend = 0, frame = 0
@@ -298,7 +298,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 1
   70              		.cfi_def_cfa_offset 8
   71              		.cfi_offset 3, -8
   72              		.cfi_offset 14, -4
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 6
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s 			page 6
 
 
   73              	.LVL3:
@@ -358,7 +358,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 1
  113              		.loc 1 226 1 is_stmt 0 view .LVU14
  114 0000 08B5     		push	{r3, lr}
  115              	.LCFI2:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 7
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s 			page 7
 
 
  116              		.cfi_def_cfa_offset 8
@@ -381,9 +381,9 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 1
  127 000a 0548     		ldr	r0, .L12+4
  128 000c FFF7FEFF 		bl	HAL_UART_Transmit
  129              	.LVL8:
- 233:Core/Src/freertos.c ****     osDelay(2000); // 1 s
+ 233:Core/Src/freertos.c ****     osDelay(1000); // 1 s
  130              		.loc 1 233 5 is_stmt 1 discriminator 1 view .LVU18
- 131 0010 4FF4FA60 		mov	r0, #2000
+ 131 0010 4FF47A70 		mov	r0, #1000
  132 0014 FFF7FEFF 		bl	osDelay
  133              	.LVL9:
  230:Core/Src/freertos.c ****   {
@@ -418,7 +418,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 1
  154              		.section	.text.StartButtonTask,"ax",%progbits
  155              		.align	1
  156              		.global	StartButtonTask
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 8
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s 			page 8
 
 
  157              		.syntax unified
@@ -478,7 +478,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 1
  199              		.loc 1 246 5 is_stmt 1 view .LVU28
  200              		.loc 1 246 51 is_stmt 0 view .LVU29
  201 001a 2046     		mov	r0, r4
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 9
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s 			page 9
 
 
  202 001c FFF7FEFF 		bl	strlen
@@ -538,7 +538,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 1
  217 0030 1E20     		movs	r0, #30
  218 0032 FFF7FEFF 		bl	osDelay
  219              	.LVL19:
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 10
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s 			page 10
 
 
  220              	.LBE2:
@@ -598,7 +598,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 1
  260              		.loc 1 258 13 is_stmt 1 view .LVU46
  259:Core/Src/freertos.c ****             HAL_UART_Transmit(&huart1, (uint8_t*)dbg, strlen(dbg), HAL_MAX_DELAY);
  261              		.loc 1 259 13 view .LVU47
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 11
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s 			page 11
 
 
  259:Core/Src/freertos.c ****             HAL_UART_Transmit(&huart1, (uint8_t*)dbg, strlen(dbg), HAL_MAX_DELAY);
@@ -658,7 +658,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 1
  303 0092 FFF7FEFF 		bl	osThreadSuspend
  304              	.LVL31:
  305 0096 CBE7     		b	.L15
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 12
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s 			page 12
 
 
  306              	.L21:
@@ -718,7 +718,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 1
  361              		.align	1
  362              		.weak	vApplicationMallocFailedHook
  363              		.syntax unified
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 13
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s 			page 13
 
 
  364              		.thumb
@@ -778,7 +778,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 1
  411 0010 00000000 		.word	xIdleTaskTCBBuffer
  412 0014 00000000 		.word	xIdleStack
  413              		.cfi_endproc
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 14
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s 			page 14
 
 
  414              	.LFE145:
@@ -838,7 +838,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 1
  462              		.loc 1 157 20 is_stmt 0 view .LVU82
  463 0040 0021     		movs	r1, #0
  464 0042 0EA8     		add	r0, sp, #56
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 15
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s 			page 15
 
 
  465 0044 FFF7FEFF 		bl	osThreadCreate
@@ -898,7 +898,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 1
  509 0096 00BF     		.align	2
  510              	.L30:
  511 0098 00000000 		.word	.LANCHOR0
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 16
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s 			page 16
 
 
  512 009c 00000000 		.word	ledTaskHandle
@@ -958,7 +958,7 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 1
  560              		.align	2
  563              	uartTaskHandle:
  564 0000 00000000 		.space	4
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 17
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s 			page 17
 
 
  565              		.global	ledTaskHandle
@@ -1018,57 +1018,57 @@ ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 1
  621              		.file 10 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_gpio.h"
  622              		.file 11 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_dma.h"
  623              		.file 12 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h"
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 18
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s 			page 18
 
 
  624              		.file 13 "Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.h"
  625              		.file 14 "Core/Inc/usart.h"
  626              		.file 15 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/arm-none-eabi/include/stdio.h"
  627              		.file 16 "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/arm-none-eabi/include/string.h"
-ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s 			page 19
+ARM GAS  /var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s 			page 19
 
 
 DEFINED SYMBOLS
                             *ABS*:00000000 freertos.c
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:21     .text.StartDefaultTask:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:27     .text.StartDefaultTask:00000000 StartDefaultTask
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:53     .text.StartLedTask:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:59     .text.StartLedTask:00000000 StartLedTask
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:91     .text.StartLedTask:00000018 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:96     .rodata.StartUartTask.str1.4:00000000 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:100    .text.StartUartTask:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:106    .text.StartUartTask:00000000 StartUartTask
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:139    .text.StartUartTask:0000001c $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:145    .rodata.StartButtonTask.str1.4:00000000 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:155    .text.StartButtonTask:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:161    .text.StartButtonTask:00000000 StartButtonTask
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:309    .text.StartButtonTask:00000098 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:570    .bss.ledTaskHandle:00000000 ledTaskHandle
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:563    .bss.uartTaskHandle:00000000 uartTaskHandle
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:322    .text.vApplicationIdleHook:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:328    .text.vApplicationIdleHook:00000000 vApplicationIdleHook
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:341    .text.vApplicationStackOverflowHook:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:347    .text.vApplicationStackOverflowHook:00000000 vApplicationStackOverflowHook
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:361    .text.vApplicationMallocFailedHook:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:367    .text.vApplicationMallocFailedHook:00000000 vApplicationMallocFailedHook
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:380    .text.vApplicationGetIdleTaskMemory:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:386    .text.vApplicationGetIdleTaskMemory:00000000 vApplicationGetIdleTaskMemory
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:411    .text.vApplicationGetIdleTaskMemory:00000010 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:542    .bss.xIdleTaskTCBBuffer:00000000 xIdleTaskTCBBuffer
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:536    .bss.xIdleStack:00000000 xIdleStack
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:417    .text.MX_FREERTOS_Init:00000000 $t
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:423    .text.MX_FREERTOS_Init:00000000 MX_FREERTOS_Init
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:511    .text.MX_FREERTOS_Init:00000098 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:556    .bss.buttonTaskHandle:00000000 buttonTaskHandle
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:549    .bss.defaultTaskHandle:00000000 defaultTaskHandle
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:520    .rodata.str1.4:00000000 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:533    .bss.xIdleStack:00000000 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:539    .bss.xIdleTaskTCBBuffer:00000000 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:546    .bss.defaultTaskHandle:00000000 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:553    .bss.buttonTaskHandle:00000000 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:560    .bss.uartTaskHandle:00000000 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:567    .bss.ledTaskHandle:00000000 $d
-/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccFfyZnF.s:573    .rodata:00000000 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:21     .text.StartDefaultTask:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:27     .text.StartDefaultTask:00000000 StartDefaultTask
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:53     .text.StartLedTask:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:59     .text.StartLedTask:00000000 StartLedTask
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:91     .text.StartLedTask:00000018 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:96     .rodata.StartUartTask.str1.4:00000000 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:100    .text.StartUartTask:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:106    .text.StartUartTask:00000000 StartUartTask
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:139    .text.StartUartTask:0000001c $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:145    .rodata.StartButtonTask.str1.4:00000000 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:155    .text.StartButtonTask:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:161    .text.StartButtonTask:00000000 StartButtonTask
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:309    .text.StartButtonTask:00000098 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:570    .bss.ledTaskHandle:00000000 ledTaskHandle
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:563    .bss.uartTaskHandle:00000000 uartTaskHandle
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:322    .text.vApplicationIdleHook:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:328    .text.vApplicationIdleHook:00000000 vApplicationIdleHook
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:341    .text.vApplicationStackOverflowHook:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:347    .text.vApplicationStackOverflowHook:00000000 vApplicationStackOverflowHook
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:361    .text.vApplicationMallocFailedHook:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:367    .text.vApplicationMallocFailedHook:00000000 vApplicationMallocFailedHook
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:380    .text.vApplicationGetIdleTaskMemory:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:386    .text.vApplicationGetIdleTaskMemory:00000000 vApplicationGetIdleTaskMemory
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:411    .text.vApplicationGetIdleTaskMemory:00000010 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:542    .bss.xIdleTaskTCBBuffer:00000000 xIdleTaskTCBBuffer
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:536    .bss.xIdleStack:00000000 xIdleStack
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:417    .text.MX_FREERTOS_Init:00000000 $t
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:423    .text.MX_FREERTOS_Init:00000000 MX_FREERTOS_Init
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:511    .text.MX_FREERTOS_Init:00000098 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:556    .bss.buttonTaskHandle:00000000 buttonTaskHandle
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:549    .bss.defaultTaskHandle:00000000 defaultTaskHandle
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:520    .rodata.str1.4:00000000 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:533    .bss.xIdleStack:00000000 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:539    .bss.xIdleTaskTCBBuffer:00000000 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:546    .bss.defaultTaskHandle:00000000 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:553    .bss.buttonTaskHandle:00000000 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:560    .bss.uartTaskHandle:00000000 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:567    .bss.ledTaskHandle:00000000 $d
+/var/folders/qx/2_175_4n2s19vhvtspjhb3qh0000gn/T//ccp3J0Uz.s:573    .rodata:00000000 $d
 
 UNDEFINED SYMBOLS
 MX_USB_HOST_Init

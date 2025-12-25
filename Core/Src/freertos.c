@@ -230,7 +230,7 @@ void StartUartTask(void const * argument)
   for (;;)
   {
     HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
-    osDelay(2000); // 1 s
+    osDelay(1000); // 1 s
   }
 }
 extern UART_HandleTypeDef huart1;
