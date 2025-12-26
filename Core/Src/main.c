@@ -56,7 +56,12 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-static uint8_t buf1[240 * 20 * 2];
+/* DMA-aligned LVGL draw buffers - increased to 60 lines for better performance */
+__attribute__((aligned(4))) static uint8_t buf1[240 * 60 * 2];
+__attribute__((aligned(4))) static uint8_t buf2[240 * 60 * 2];
+
+/* Mutex for protecting LVGL operations (defined in freertos.c) */
+extern osMutexId lvglMutexHandle;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -65,14 +70,42 @@ void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
 /* Define the flush callback here so it's a valid C function */
 static void my_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
+    /* Display dimensions */
+    const uint16_t LCD_WIDTH = 240;
+    const uint16_t LCD_HEIGHT = 320;
+
     uint16_t *vram = (uint16_t *)LCD_FRAME_BUFFER;
     uint16_t *map = (uint16_t *)px_map;
-    
-    for(int32_t y = area->y1; y <= area->y2; y++) {
-        for(int32_t x = area->x1; x <= area->x2; x++) {
-            vram[y * 240 + x] = *map++;
+
+    /* Validate pointers and area */
+    if(disp == NULL || area == NULL || px_map == NULL) {
+        if(disp != NULL) {
+            lv_display_flush_ready(disp);
+        }
+        return;
+    }
+
+    /* Clamp coordinates to display bounds */
+    int32_t x1 = (area->x1 < 0) ? 0 : area->x1;
+    int32_t y1 = (area->y1 < 0) ? 0 : area->y1;
+    int32_t x2 = (area->x2 >= LCD_WIDTH) ? (LCD_WIDTH - 1) : area->x2;
+    int32_t y2 = (area->y2 >= LCD_HEIGHT) ? (LCD_HEIGHT - 1) : area->y2;
+
+    /* Calculate area dimensions */
+    int32_t area_width = x2 - x1 + 1;
+    int32_t area_height = y2 - y1 + 1;
+
+    /* FIXED: Copy pixels line by line, respecting source buffer stride */
+    for(int32_t y = 0; y < area_height; y++) {
+        uint32_t dest_offset = ((y1 + y) * LCD_WIDTH) + x1;
+        uint32_t src_offset = y * area_width;
+
+        /* Copy one line at a time */
+        for(int32_t x = 0; x < area_width; x++) {
+            vram[dest_offset + x] = map[src_offset + x];
         }
     }
+
     lv_display_flush_ready(disp);
 }
 /* USER CODE END PFP */
@@ -119,15 +152,29 @@ int main(void)
   MX_SPI5_Init();
   MX_TIM1_Init();
   MX_USART1_UART_Init();
+  MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
-  BSP_SDRAM_Init(); 
-  BSP_LCD_Init(); 
-  BSP_LCD_LayerDefaultInit(0, LCD_FRAME_BUFFER); 
+  /* Initialize LCD (this also initializes SDRAM internally) */
+  if(BSP_LCD_Init() != LCD_OK) {
+    Error_Handler();
+  }
+
+  /* Configure LCD layer */
+  BSP_LCD_LayerDefaultInit(0, LCD_FRAME_BUFFER);
+
+  /* Turn on LCD display */
   BSP_LCD_DisplayOn();
+
+  /* Start TIM7 for LVGL timing */
+  if(HAL_TIM_Base_Start_IT(&htim7) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
   lv_init();
   lv_display_t * disp = lv_display_create(240, 320);
-  lv_display_set_buffers(disp, buf1, NULL, sizeof(buf1), LV_DISPLAY_RENDER_MODE_PARTIAL);
+  /* Use double buffering for smoother rendering */
+  lv_display_set_buffers(disp, buf1, buf2, sizeof(buf1), LV_DISPLAY_RENDER_MODE_PARTIAL);
   
   /* Use the function name instead of the [] lambda */
   lv_display_set_flush_cb(disp, my_flush_cb);
@@ -218,10 +265,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 0 */
 
   /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM6)
+  if (htim->Instance == TIM7)
   {
     HAL_IncTick();
-    lv_tick_inc(1);
+    lv_tick_inc(1);  /* Increment LVGL tick by 1ms */
   }
   /* USER CODE BEGIN Callback 1 */
 

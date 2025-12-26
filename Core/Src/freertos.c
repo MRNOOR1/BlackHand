@@ -30,15 +30,12 @@
 #include <stdio.h>
 #include "lvgl.h"
 
-#define BUTTON_PORT A0_GPIO_Port
-#define BUTTON_PIN  A0_Pin
-
-#define BUTTON_PRESSED      GPIO_PIN_SET      // 1 when pressed
-#define BUTTON_RELEASED     GPIO_PIN_RESET    // 0 when not pressed
-
 /* Task Handles */
 osThreadId ledTaskHandle;
 osThreadId lvglTaskHandle;
+
+/* Mutex Handle */
+osMutexId lvglMutexHandle;
 
 /* Task Functions */
 void StartLedTask(void const * argument);
@@ -107,6 +104,15 @@ __weak void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTask
    /* Run time stack overflow checking is performed if
    configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2. This hook function is
    called if a stack overflow is detected. */
+
+   /* FIXED: Indicate error with LED rapid blink pattern */
+   (void)xTask;
+   (void)pcTaskName;
+
+   while(1) {
+       HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_13 | GPIO_PIN_14);  /* Blink both LEDs */
+       for(volatile uint32_t i = 0; i < 100000; i++);  /* Fast blink = ERROR */
+   }
 }
 /* USER CODE END 4 */
 
@@ -123,6 +129,10 @@ __weak void vApplicationMallocFailedHook(void)
    FreeRTOSConfig.h, and the xPortGetFreeHeapSize() API function can be used
    to query the size of free heap space that remains (although it does not
    provide information on how the remaining heap might be fragmented). */
+
+   /* FIXED: Indicate error with LED constant on */
+   HAL_GPIO_WritePin(GPIOG, GPIO_PIN_13 | GPIO_PIN_14, GPIO_PIN_SET);  /* Both LEDs ON = MALLOC FAIL */
+   while(1);
 }
 /* USER CODE END 5 */
 
@@ -146,18 +156,16 @@ void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackTy
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-  
-  osThreadDef(ledTask, StartLedTask, osPriorityNormal, 0, 128);
-  ledTaskHandle = osThreadCreate(osThread(ledTask), NULL);
-
-  osThreadDef(lvglTask, LVGL_Task, osPriorityHigh, 0, 1024);
-  lvglTaskHandle = osThreadCreate(osThread(lvglTask), NULL);
-
 
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
-  /* add mutexes, ... */
+  /* Create mutex for LVGL thread safety */
+  osMutexDef(lvglMutex);
+  lvglMutexHandle = osMutexCreate(osMutex(lvglMutex));
+  if(lvglMutexHandle == NULL) {
+    Error_Handler();
+  }
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
@@ -178,7 +186,21 @@ void MX_FREERTOS_Init(void) {
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
+  /* FIXED: Create tasks here AFTER mutex is created */
+
+  /* Create LED task with INCREASED stack size */
+  osThreadDef(ledTask, StartLedTask, osPriorityLow, 0, 256);
+  ledTaskHandle = osThreadCreate(osThread(ledTask), NULL);
+  if(ledTaskHandle == NULL) {
+    Error_Handler();
+  }
+
+  /* Create LVGL task with HIGHER priority for responsive UI */
+  osThreadDef(lvglTask, LVGL_Task, osPriorityAboveNormal, 0, 2048);
+  lvglTaskHandle = osThreadCreate(osThread(lvglTask), NULL);
+  if(lvglTaskHandle == NULL) {
+    Error_Handler();
+  }
   /* USER CODE END RTOS_THREADS */
 
 }
@@ -208,10 +230,26 @@ void StartDefaultTask(void const * argument)
 /* USER CODE BEGIN Application */
 void LVGL_Task(void const *argument)
 {
+  uint32_t task_delay_ms = 5;  /* 5ms = 200Hz update rate */
+
   for(;;)
   {
-    lv_timer_handler(); 
-    osDelay(5);
+    /* Acquire mutex before LVGL operations */
+    if(osMutexWait(lvglMutexHandle, osWaitForever) == osOK)
+    {
+      /* Call LVGL timer handler - processes UI updates */
+      uint32_t next_delay = lv_timer_handler();
+
+      /* Use adaptive delay if LVGL suggests one */
+      if(next_delay > 0 && next_delay < 1000) {
+        task_delay_ms = next_delay;
+      }
+
+      /* Release mutex */
+      osMutexRelease(lvglMutexHandle);
+    }
+
+    osDelay(task_delay_ms);
   }
 }
 
