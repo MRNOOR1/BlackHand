@@ -32,7 +32,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,7 +43,10 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+// LED definitions for STM32F429I-Discovery
+#define LED_PORT        GPIOG
+#define LED_GREEN_PIN   GPIO_PIN_13  // Green LED
+#define LED_RED_PIN     GPIO_PIN_14  // Red LED
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -60,11 +64,18 @@
 void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
-
+extern UART_HandleTypeDef huart1;
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+// Printf redirection to UART
+int _write(int file, char *ptr, int len)
+{
+  HAL_UART_Transmit(&huart1, (uint8_t *)ptr, len, HAL_MAX_DELAY);
+  return len;
+}
 
 /* USER CODE END 0 */
 
@@ -107,13 +118,31 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  // Print boot message
+  printf("\r\n");
+  printf("========================================\r\n");
+  printf("   STM32F429I-Discovery Boot\r\n");
+  printf("   Phase 1 - Level 1: Boot & Control\r\n");
+  printf("========================================\r\n");
+  printf("System Clock: %lu MHz\r\n", HAL_RCC_GetSysClockFreq() / 1000000);
+  printf("Starting bare-metal LED blink...\r\n");
+  printf("\r\n");
+
+  // Turn off red LED, turn on green LED initially
+  HAL_GPIO_WritePin(LED_PORT, LED_RED_PIN, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LED_PORT, LED_GREEN_PIN, GPIO_PIN_SET);
+
+  // Variables for non-blocking LED blink
+  uint32_t last_blink_time = 0;
+  uint8_t led_state = 1;
+
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in cmsis_os2.c) */
-  MX_FREERTOS_Init();
+  // MX_FREERTOS_Init();  // DISABLED for Level 1 - bare-metal learning
 
   /* Start scheduler */
-  osKernelStart();
+  // osKernelStart();  // DISABLED for Level 1 - bare-metal learning
 
   /* We should never get here as control is now taken by the scheduler */
 
@@ -124,6 +153,26 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+    // Non-blocking LED blink using HAL_GetTick()
+    uint32_t current_time = HAL_GetTick();
+
+    if (current_time - last_blink_time >= 500)  // 500ms interval
+    {
+      last_blink_time = current_time;
+      led_state = !led_state;
+
+      if (led_state)
+      {
+        HAL_GPIO_WritePin(LED_PORT, LED_GREEN_PIN, GPIO_PIN_SET);
+        printf("[%05lu] LED ON\r\n", current_time);
+      }
+      else
+      {
+        HAL_GPIO_WritePin(LED_PORT, LED_GREEN_PIN, GPIO_PIN_RESET);
+        printf("[%05lu] LED OFF\r\n", current_time);
+      }
+    }
   }
   /* USER CODE END 3 */
 }
