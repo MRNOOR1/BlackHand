@@ -70,6 +70,7 @@ extern UART_HandleTypeDef huart1;
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+
 // Printf redirection to UART
 int _write(int file, char *ptr, int len)
 {
@@ -128,13 +129,11 @@ int main(void)
   printf("Starting bare-metal LED blink...\r\n");
   printf("\r\n");
 
-  // Turn off red LED, turn on green LED initially
-  HAL_GPIO_WritePin(LED_PORT, LED_RED_PIN, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(LED_PORT, LED_GREEN_PIN, GPIO_PIN_SET);
-
-  // Variables for non-blocking LED blink
-  uint32_t last_blink_time = 0;
-  uint8_t led_state = 1;
+  MX_TIM2_Init();
+  if(HAL_TIM_Base_Start_IT(&htim2) != HAL_OK){
+    Error_Handler();
+  }
+  printf("TIM2 started");
 
   /* USER CODE END 2 */
 
@@ -154,25 +153,6 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-    // Non-blocking LED blink using HAL_GetTick()
-    uint32_t current_time = HAL_GetTick();
-
-    if (current_time - last_blink_time >= 500)  // 500ms interval
-    {
-      last_blink_time = current_time;
-      led_state = !led_state;
-
-      if (led_state)
-      {
-        HAL_GPIO_WritePin(LED_PORT, LED_GREEN_PIN, GPIO_PIN_SET);
-        printf("[%05lu] LED ON\r\n", current_time);
-      }
-      else
-      {
-        HAL_GPIO_WritePin(LED_PORT, LED_GREEN_PIN, GPIO_PIN_RESET);
-        printf("[%05lu] LED OFF\r\n", current_time);
-      }
-    }
   }
   /* USER CODE END 3 */
 }
@@ -236,16 +216,25 @@ void SystemClock_Config(void)
   */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-  /* USER CODE BEGIN Callback 0 */
+    /* USER CODE BEGIN Callback 0 */
+    if (htim->Instance == TIM2)
+    {
+      // Toggle green LED
+      HAL_GPIO_TogglePin(LED_PORT, LED_GREEN_PIN);
 
-  /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM6)
-  {
-    HAL_IncTick();
-  }
-  /* USER CODE BEGIN Callback 1 */
+      // Print status
+      static uint32_t tick_count = 0;
+      tick_count++;
+      printf("[TIM2 ISR] LED Toggle #%lu\r\n", tick_count);
+    }
+    /* USER CODE END Callback 0 */
+    if (htim->Instance == TIM6)
+    {
+      HAL_IncTick();
+    }
+    /* USER CODE BEGIN Callback 1 */
 
-  /* USER CODE END Callback 1 */
+    /* USER CODE END Callback 1 */
 }
 
 /**
