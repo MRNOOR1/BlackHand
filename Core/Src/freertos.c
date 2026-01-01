@@ -29,14 +29,13 @@
 #include "usart.h"
 #include <stdio.h>
 
+SemaphoreHandle_t ButtonSemaphore;
 
+osThreadId PeriodicTaskHandle;
+osThreadId EventTaskHandle;
 
-osThreadId ledTaskHandle;
-osThreadId ButtonaskHandle;
-
-void StartLedTask(void const * argument);
-void StartLedTaskHigh(void const * argument);
-void StartButtonTask(void const * argument);
+void PeriodicTask(void const * argument);
+void EventTask(void const * argument);
 
 // LED definitions for STM32F429I-Discovery
 #define LED_PORT        GPIOG
@@ -144,7 +143,7 @@ void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackTy
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-
+  ButtonSemaphore = xSemaphoreCreateBinary();
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -155,15 +154,13 @@ void MX_FREERTOS_Init(void) {
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
     // LED task: normal priority, 128 words stack
-  osThreadDef(ledTask, StartLedTask, osPriorityNormal, 0, 128);
-  ledTaskHandle = osThreadCreate(osThread(ledTask), NULL);
+  osThreadDef(Periodic, PeriodicTask, osPriorityNormal, 0, 128);
+  PeriodicTaskHandle = osThreadCreate(osThread(Periodic), NULL);
 
-  osThreadDef(ledTaskhigh, StartLedTaskHigh, osPriorityHigh, 0, 128);
-  ledTaskHandle = osThreadCreate(osThread(ledTaskhigh), NULL);
 
-  // UART task: low priority, 128 words stack
-  osThreadDef(ButtonTask, StartButtonTask, osPriorityNormal, 0, 128);
-  ButtonaskHandle = osThreadCreate(osThread(ButtonTask), NULL);
+  // Button task: normal priority, 128 words stack
+  osThreadDef(Event, EventTask, osPriorityNormal, 0, 128);
+  EventTaskHandle = osThreadCreate(osThread(Event), NULL);
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
@@ -207,67 +204,37 @@ void StartDefaultTask(void const * argument)
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
-extern UART_HandleTypeDef huart1;
 
-void StartLedTask(void const * argument)
-{
-  (void)argument;
+void PeriodicTask(void const * argument){
+  TickType_t lastWakeTime = xTaskGetTickCount();
+  const TickType_t frequency = pdMS_TO_TICKS(1000);
+  uint32_t count = 0;
 
-  for (;;)
+  for(;;){
+    count++;
+    printf("[%lu] Periodic tick #%lu\r\n", HAL_GetTick(), count);
+    vTaskDelayUntil(&lastWakeTime, frequency);
+  }
+}
+
+  void EventTask(void const * argument)
   {
-      HAL_GPIO_TogglePin(LED_PORT, LED_GREEN_PIN);
+      uint32_t count = 0;
 
-      // Print status
-      static uint32_t tick_count = 0;
-      tick_count++;
-      printf("[LED Task] Toggle #%lu\r\n", tick_count);
-      osDelay(500);
+      for(;;)
+      {
+          // Block until semaphore given (button pressed)
+          xSemaphoreTake(ButtonSemaphore, portMAX_DELAY);
+
+          // Instant response!
+          count++;
+          printf("[%lu] Button event! Count: %lu\r\n", HAL_GetTick(), count);
+          HAL_GPIO_TogglePin(LED_PORT, LED_RED_PIN);
+      }
   }
-}
 
-void StartButtonTask(void const * argument)
-{
- printf("Button task started\r\n");
- static uint32_t press_count = 0;
- uint8_t last_state = 0;
- uint32_t last_press_time = 0;
 
- for(;;){
 
-  uint8_t current_state = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
-  uint32_t now = osKernelSysTick();
-
-  if(current_state == 1 && last_state == 0){
-    // Debounce check
-    if(now - last_press_time > 50){
-      press_count++;
-      printf("Button count = %lu\r\n", press_count);
-      HAL_GPIO_TogglePin(LED_PORT, LED_RED_PIN);
-      last_press_time = now;
-    }
-  }
-  last_state = current_state;
-
-  osDelay(10);
- }
-
-}
-
-void StartLedTaskHigh(void const * argument)
-{
-  (void)argument;
-
-  for (;;)
-  {
-      HAL_GPIO_TogglePin(LED_PORT, LED_RED_PIN);
-
-      // Print status
-      static uint32_t tick_count = 0;
-      tick_count++;
-      printf("[LED HIGH Task] Toggle #%lu\r\n", tick_count);
-      osDelay(100);
-  }
-}
 
 
 /* USER CODE END Application */

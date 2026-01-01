@@ -196,7 +196,21 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+extern SemaphoreHandle_t ButtonSemaphore;
 
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+  {
+      BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+      if(GPIO_Pin == GPIO_PIN_0)
+      {
+          // Give semaphore from ISR
+          xSemaphoreGiveFromISR(ButtonSemaphore, &xHigherPriorityTaskWoken);
+
+          // Yield if needed
+          portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+      }
+  }
 /* USER CODE END 4 */
 
 /**
