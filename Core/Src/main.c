@@ -69,7 +69,7 @@ extern UART_HandleTypeDef huart1;
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+volatile uint32_t button_count = 0;
 
 // Printf redirection to UART
 int _write(int file, char *ptr, int len)
@@ -237,6 +237,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     /* USER CODE END Callback 1 */
 }
 
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+
+  if(GPIO_Pin == GPIO_PIN_0){
+    static uint32_t last_pressed;
+    uint32_t now = HAL_GetTick();
+    if(now - last_pressed > 50){
+      last_pressed = now;
+      button_count++;
+     printf("Button pressed! Count: %lu\r\n", button_count);
+    HAL_GPIO_TogglePin(LED_PORT, LED_RED_PIN);
+    }
+  }
+}
 /**
   * @brief  This function is executed in case of error occurrence.
   * @retval None

@@ -249,5 +249,11 @@ void DMA2D_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
+/**
+ * @brief This function handles exit line 0 interupt. 
+ */
+void EXTI0_IRQHandler(void){
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
+}
 
 /* USER CODE END 1 */
