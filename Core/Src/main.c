@@ -43,10 +43,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-// LED definitions for STM32F429I-Discovery
-#define LED_PORT        GPIOG
-#define LED_GREEN_PIN   GPIO_PIN_13  // Green LED
-#define LED_RED_PIN     GPIO_PIN_14  // Red LED
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -129,19 +126,15 @@ int main(void)
   printf("Starting bare-metal LED blink...\r\n");
   printf("\r\n");
 
-  MX_TIM2_Init();
-  if(HAL_TIM_Base_Start_IT(&htim2) != HAL_OK){
-    Error_Handler();
-  }
-  printf("TIM2 started");
+  printf("FreeRTOS started");
 
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in cmsis_os2.c) */
-  // MX_FREERTOS_Init();  // DISABLED for Level 1 - bare-metal learning
+   MX_FREERTOS_Init();  // DISABLED for Level 1 - bare-metal learning
 
   /* Start scheduler */
-  // osKernelStart();  // DISABLED for Level 1 - bare-metal learning
+   osKernelStart();  // DISABLED for Level 1 - bare-metal learning
 
   /* We should never get here as control is now taken by the scheduler */
 
@@ -217,16 +210,7 @@ void SystemClock_Config(void)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     /* USER CODE BEGIN Callback 0 */
-    if (htim->Instance == TIM2)
-    {
-      // Toggle green LED
-      HAL_GPIO_TogglePin(LED_PORT, LED_GREEN_PIN);
-
-      // Print status
-      static uint32_t tick_count = 0;
-      tick_count++;
-      printf("[TIM2 ISR] LED Toggle #%lu\r\n", tick_count);
-    }
+    
     /* USER CODE END Callback 0 */
     if (htim->Instance == TIM6)
     {
@@ -237,19 +221,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     /* USER CODE END Callback 1 */
 }
 
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-
-  if(GPIO_Pin == GPIO_PIN_0){
-    static uint32_t last_pressed;
-    uint32_t now = HAL_GetTick();
-    if(now - last_pressed > 50){
-      last_pressed = now;
-      button_count++;
-     printf("Button pressed! Count: %lu\r\n", button_count);
-    HAL_GPIO_TogglePin(LED_PORT, LED_RED_PIN);
-    }
-  }
-}
 /**
   * @brief  This function is executed in case of error occurrence.
   * @retval None

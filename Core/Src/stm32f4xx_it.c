@@ -191,20 +191,14 @@ void TIM6_DAC_IRQHandler(void)
 
   /* USER CODE END TIM6_DAC_IRQn 1 */
 }
-  /**
-    * @brief This function handles TIM2 global interrupt.
-    */
-  void TIM2_IRQHandler(void)
-  {
-    /* USER CODE BEGIN TIM2_IRQn 0 */
 
-    /* USER CODE END TIM2_IRQn 0 */
-    HAL_TIM_IRQHandler(&htim2);
-    /* USER CODE BEGIN TIM2_IRQn 1 */
-
-    /* USER CODE END TIM2_IRQn 1 */
-  }
-
+/*
+// TIM2 interrupt handler - DISABLED (FreeRTOS LED task handles blinking)
+void TIM2_IRQHandler(void)
+{
+  HAL_TIM_IRQHandler(&htim2);
+}
+*/
 
 /**
   * @brief This function handles USB On The Go HS global interrupt.
@@ -249,11 +243,10 @@ void DMA2D_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
-/**
- * @brief This function handles exit line 0 interupt. 
- */
+/*
+// Button interrupt handler - DISABLED (using FreeRTOS task polling)
 void EXTI0_IRQHandler(void){
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
 }
-
+*/
 /* USER CODE END 1 */

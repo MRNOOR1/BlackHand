@@ -27,14 +27,20 @@
 /* USER CODE BEGIN Includes */
 #include <string.h>
 #include "usart.h"
+#include <stdio.h>
 
 
 
 osThreadId ledTaskHandle;
-osThreadId uartTaskHandle;
+osThreadId ButtonaskHandle;
 
 void StartLedTask(void const * argument);
-void StartUartTask(void const * argument);
+void StartButtonTask(void const * argument);
+
+// LED definitions for STM32F429I-Discovery
+#define LED_PORT        GPIOG
+#define LED_GREEN_PIN   GPIO_PIN_13  // Green LED
+#define LED_RED_PIN     GPIO_PIN_14  // Red LED
 
 /* USER CODE END Includes */
 
@@ -152,8 +158,8 @@ void MX_FREERTOS_Init(void) {
   ledTaskHandle = osThreadCreate(osThread(ledTask), NULL);
 
   // UART task: low priority, 128 words stack
-  osThreadDef(uartTask, StartUartTask, osPriorityLow, 0, 128);
-  uartTaskHandle = osThreadCreate(osThread(uartTask), NULL);
+  osThreadDef(ButtonTask, StartButtonTask, osPriorityNormal, 0, 128);
+  ButtonaskHandle = osThreadCreate(osThread(ButtonTask), NULL);
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
@@ -205,21 +211,42 @@ void StartLedTask(void const * argument)
 
   for (;;)
   {
-    HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_13); // or whatever LED pin you used
-    osDelay(500); // 500 ms
+      HAL_GPIO_TogglePin(LED_PORT, LED_GREEN_PIN);
+
+      // Print status
+      static uint32_t tick_count = 0;
+      tick_count++;
+      printf("[LED Task] Toggle #%lu\r\n", tick_count);
+      osDelay(500);
   }
 }
 
-void StartUartTask(void const * argument)
+void StartButtonTask(void const * argument)
 {
-  (void)argument;
-  const char *msg = "Hello from FreeRTOS\r\n";
+ printf("Button task started\r\n");
+ static uint32_t press_count = 0;
+ uint8_t last_state = 0;
+ uint32_t last_press_time = 0;
 
-  for (;;)
-  {
-    HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
-    osDelay(1000); // 1 s
+ for(;;){
+
+  uint8_t current_state = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
+  uint32_t now = osKernelSysTick();
+
+  if(current_state == 1 && last_state == 0){
+    // Debounce check
+    if(now - last_press_time > 50){
+      press_count++;
+      printf("Button count = %lu\r\n", press_count);
+      HAL_GPIO_TogglePin(LED_PORT, LED_RED_PIN);
+      last_press_time = now;
+    }
   }
+  last_state = current_state;
+
+  osDelay(10);
+ }
+
 }
 
 /* USER CODE END Application */
