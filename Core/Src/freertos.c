@@ -35,6 +35,7 @@ osThreadId ledTaskHandle;
 osThreadId ButtonaskHandle;
 
 void StartLedTask(void const * argument);
+void StartLedTaskHigh(void const * argument);
 void StartButtonTask(void const * argument);
 
 // LED definitions for STM32F429I-Discovery
@@ -157,6 +158,9 @@ void MX_FREERTOS_Init(void) {
   osThreadDef(ledTask, StartLedTask, osPriorityNormal, 0, 128);
   ledTaskHandle = osThreadCreate(osThread(ledTask), NULL);
 
+  osThreadDef(ledTaskhigh, StartLedTaskHigh, osPriorityHigh, 0, 128);
+  ledTaskHandle = osThreadCreate(osThread(ledTaskhigh), NULL);
+
   // UART task: low priority, 128 words stack
   osThreadDef(ButtonTask, StartButtonTask, osPriorityNormal, 0, 128);
   ButtonaskHandle = osThreadCreate(osThread(ButtonTask), NULL);
@@ -248,5 +252,22 @@ void StartButtonTask(void const * argument)
  }
 
 }
+
+void StartLedTaskHigh(void const * argument)
+{
+  (void)argument;
+
+  for (;;)
+  {
+      HAL_GPIO_TogglePin(LED_PORT, LED_RED_PIN);
+
+      // Print status
+      static uint32_t tick_count = 0;
+      tick_count++;
+      printf("[LED HIGH Task] Toggle #%lu\r\n", tick_count);
+      osDelay(100);
+  }
+}
+
 
 /* USER CODE END Application */
