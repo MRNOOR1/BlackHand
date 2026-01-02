@@ -126,7 +126,7 @@ int main(void)
   printf("Starting bare-metal LED blink...\r\n");
   printf("\r\n");
 
-  printf("FreeRTOS started");
+  printf("FreeRTOS started\r\n");
 
   /* USER CODE END 2 */
 

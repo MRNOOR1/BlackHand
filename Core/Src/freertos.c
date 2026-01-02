@@ -33,10 +33,11 @@ SemaphoreHandle_t ButtonSemaphore;
 
 osThreadId PeriodicTaskHandle;
 osThreadId EventTaskHandle;
+osThreadId OverflowTaskHandle;
 
 void PeriodicTask(void const * argument);
 void EventTask(void const * argument);
-
+void OverflowTask(void const * argument);
 // LED definitions for STM32F429I-Discovery
 #define LED_PORT        GPIOG
 #define LED_GREEN_PIN   GPIO_PIN_13  // Green LED
@@ -99,12 +100,23 @@ __weak void vApplicationIdleHook( void )
 /* USER CODE END 2 */
 
 /* USER CODE BEGIN 4 */
-__weak void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName)
+void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName)
 {
    /* Run time stack overflow checking is performed if
    configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2. This hook function is
    called if a stack overflow is detected. */
+
+   // CRITICAL: Cannot use printf() in hooks! ISR context - not safe!
+   // Just blink red LED rapidly to indicate stack overflow
+   (void)xTask;        // Unused parameter
+   (void)pcTaskName;   // Unused parameter
+
+   while(1) {
+      HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_14);  // Red LED
+      for(volatile uint32_t i = 0; i < 500000; i++);  // Delay
+   }
 }
+
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN 5 */
@@ -161,6 +173,9 @@ void MX_FREERTOS_Init(void) {
   // Button task: normal priority, 128 words stack
   osThreadDef(Event, EventTask, osPriorityNormal, 0, 128);
   EventTaskHandle = osThreadCreate(osThread(Event), NULL);
+
+  osThreadDef(stackoverflow, OverflowTask, osPriorityNormal , 0, 128);
+  OverflowTaskHandle = osThreadCreate(osThread(stackoverflow),NULL);
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
@@ -232,7 +247,23 @@ void PeriodicTask(void const * argument){
           HAL_GPIO_TogglePin(LED_PORT, LED_RED_PIN);
       }
   }
+  void OverflowTask(void const * argument)
+  {
+     vTaskDelay(pdMS_TO_TICKS(5000)); 
+      // Huge array that doesn't fit in 256-byte stack
+      uint32_t hugeArray[100];  // 100 × 4 = 400 bytes (exceeds 256!)
 
+      // Use it to prevent optimization
+      for(uint32_t i = 0; i < 100; i++) {
+          hugeArray[i] = i;
+      }
+
+      printf("OverflowTask: Array sum = %lu\n", hugeArray[0] + hugeArray[99]);
+
+      for(;;) {
+          vTaskDelay(pdMS_TO_TICKS(1000));
+      }
+  }
 
 
 
