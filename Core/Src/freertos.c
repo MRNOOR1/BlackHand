@@ -29,15 +29,20 @@
 #include "usart.h"
 #include <stdio.h>
 
+
 SemaphoreHandle_t ButtonSemaphore;
+SemaphoreHandle_t counterMutex;
 
-osThreadId PeriodicTaskHandle;
+
 osThreadId EventTaskHandle;
-osThreadId OverflowTaskHandle;
+osThreadId CounterAHandle;
+osThreadId CounterBHandle;
 
-void PeriodicTask(void const * argument);
+
 void EventTask(void const * argument);
-void OverflowTask(void const * argument);
+void FirstCounter(void const * argument);
+void SecondCounter(void const * argument);
+
 // LED definitions for STM32F429I-Discovery
 #define LED_PORT        GPIOG
 #define LED_GREEN_PIN   GPIO_PIN_13  // Green LED
@@ -156,26 +161,32 @@ void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackTy
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
   ButtonSemaphore = xSemaphoreCreateBinary();
+
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
+  counterMutex = xSemaphoreCreateMutex();
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
     // LED task: normal priority, 128 words stack
-  osThreadDef(Periodic, PeriodicTask, osPriorityNormal, 0, 128);
-  PeriodicTaskHandle = osThreadCreate(osThread(Periodic), NULL);
+
 
 
   // Button task: normal priority, 128 words stack
   osThreadDef(Event, EventTask, osPriorityNormal, 0, 128);
   EventTaskHandle = osThreadCreate(osThread(Event), NULL);
 
-  osThreadDef(stackoverflow, OverflowTask, osPriorityNormal , 0, 128);
-  OverflowTaskHandle = osThreadCreate(osThread(stackoverflow),NULL);
+  osThreadDef(TaskA, FirstCounter, osPriorityNormal, 0, 128);
+  CounterAHandle = osThreadCreate(osThread(TaskA), NULL);
+
+  osThreadDef(TaskB, SecondCounter, osPriorityNormal,0,128);
+  CounterBHandle = osThreadCreate(osThread(TaskB), NULL);
+
+
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
@@ -219,17 +230,31 @@ void StartDefaultTask(void const * argument)
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
+uint32_t counter = 0;
 
-void PeriodicTask(void const * argument){
-  TickType_t lastWakeTime = xTaskGetTickCount();
-  const TickType_t frequency = pdMS_TO_TICKS(1000);
-  uint32_t count = 0;
-
-  for(;;){
-    count++;
-    printf("[%lu] Periodic tick #%lu\r\n", HAL_GetTick(), count);
-    vTaskDelayUntil(&lastWakeTime, frequency);
+void FirstCounter(void const * argument){
+  
+  for(int i = 0; i < 10; i++){
+    xSemaphoreTake(counterMutex, portMAX_DELAY);
+    counter++;
+    printf("[TaskA] Updated the counter: %lu\r\n", counter);
+    xSemaphoreGive(counterMutex);
+     vTaskDelay(pdMS_TO_TICKS(100));
   }
+  printf("[TaskA] Done! Final counter: %lu\r\n", counter);
+    vTaskDelete(NULL);
+}
+
+void SecondCounter(void const * argument){
+  for(int i = 0; i < 10; i++){
+     xSemaphoreTake(counterMutex, portMAX_DELAY);
+    counter++;
+    printf("[TaskB] Updated the counter: %lu\r\n", counter);
+    xSemaphoreGive(counterMutex);
+     vTaskDelay(pdMS_TO_TICKS(100));
+  }
+  printf("[TaskB] Done! Final counter: %lu\r\n", counter);
+    vTaskDelete(NULL);
 }
 
   void EventTask(void const * argument)
@@ -247,23 +272,10 @@ void PeriodicTask(void const * argument){
           HAL_GPIO_TogglePin(LED_PORT, LED_RED_PIN);
       }
   }
-  void OverflowTask(void const * argument)
-  {
-     vTaskDelay(pdMS_TO_TICKS(5000)); 
-      // Huge array that doesn't fit in 256-byte stack
-      uint32_t hugeArray[100];  // 100 × 4 = 400 bytes (exceeds 256!)
 
-      // Use it to prevent optimization
-      for(uint32_t i = 0; i < 100; i++) {
-          hugeArray[i] = i;
-      }
+ 
 
-      printf("OverflowTask: Array sum = %lu\n", hugeArray[0] + hugeArray[99]);
 
-      for(;;) {
-          vTaskDelay(pdMS_TO_TICKS(1000));
-      }
-  }
 
 
 
