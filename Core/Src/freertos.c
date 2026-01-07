@@ -28,8 +28,9 @@
 #include <string.h>
 #include "usart.h"
 #include <stdio.h>
+#include "adc.h"
 
-
+extern ADC_HandleTypeDef hadc1;
 
 /* USER CODE END Includes */
 
@@ -269,9 +270,26 @@ void StartDefaultTask(void const * argument)
 void StartAdcProcessTask(void const *argument)
 {
   /* USER CODE BEGIN StartAdcProcessTask */
-  
-  printf("[AdcTask] Started - waiting for data\n\n");
-  
+
+  printf("[AdcTask] Started\n");
+
+  // Start ADC with DMA
+  HAL_StatusTypeDef status = HAL_ADC_Start_DMA(
+      &hadc1,
+      (uint32_t*)adc_dma_buffer,
+      ADC_BUFFER_SIZE
+  );
+
+  if (status != HAL_OK) {
+    printf("ERROR: Failed to start ADC DMA! Status: %d\n", status);
+    Error_Handler();
+  }
+
+  printf("✓ ADC DMA started successfully!\n");
+  printf("  Continuous conversions running...\n");
+  printf("  DMA circular mode active\n");
+  printf("  Waiting for data...\n\n");
+
   for(;;)
   {
     /* ============================================

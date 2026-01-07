@@ -135,25 +135,8 @@ int main(void)
   printf("   STM32F429I-Discovery Boot\r\n");
   printf("========================================\r\n");
   printf("System Clock: %lu MHz\r\n", HAL_RCC_GetSysClockFreq() / 1000000);
-  printf("Starting bare-metal LED blink...\r\n");
+  printf("Initializing peripherals...\r\n");
   printf("\r\n");
-
-  HAL_StatusTypeDef status = HAL_ADC_Start_DMA(
-      &hadc1,                          // ADC handle
-      (uint32_t*)adc_dma_buffer,       // Destination buffer
-      ADC_BUFFER_SIZE                  // Number of samples
-  );
-  
-  if (status != HAL_OK) {
-    printf("ERROR: Failed to start ADC DMA! Status: %d\n", status);
-    Error_Handler();
-  }
-  
-  printf("✓ ADC DMA started successfully!\n");
-  printf("  Continuous conversions running...\n");
-  printf("  DMA circular mode active\n");
-  printf("  Waiting for data...\n\n");
-  printf("FreeRTOS started\r\n");
 
   /* USER CODE END 2 */
 
