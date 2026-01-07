@@ -61,8 +61,8 @@ extern uint8_t uart_rx_buffer[];
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-ADC_HandleTypeDef hadc1;
-DMA_HandleTypeDef hdma_adc1;
+extern ADC_HandleTypeDef hadc1;
+extern DMA_HandleTypeDef hdma_adc1;
 extern uint16_t adc_dma_buffer[];
 extern SemaphoreHandle_t adcHalfCpltSem;
 extern SemaphoreHandle_t adcFullCpltSem;
@@ -238,27 +238,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
       }
   }
 
-  /**
-  * @brief  UART RX complete callback (called when DMA buffer full)
-  * @param  huart: UART handle
-  * @retval None
-  */
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-  if (huart->Instance == USART1)
-  {
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    
-    // Send buffer to queue (copy data)
-    xQueueSendFromISR(uartRxQueue, uart_rx_buffer, &xHigherPriorityTaskWoken);
-    
-    // Restart DMA reception for next buffer
-    HAL_UART_Receive_DMA(&huart1, uart_rx_buffer, UART_RX_BUFFER_SIZE);
-    
-    // Yield if higher priority task woken
-    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-  }
-}
 
 /**
   * @brief  ADC DMA Half-Transfer Complete Callback
