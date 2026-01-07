@@ -30,22 +30,6 @@
 #include <stdio.h>
 
 
-SemaphoreHandle_t ButtonSemaphore;
-
-
-osThreadId EventTaskHandle;
-osThreadId CounterAHandle;
-osThreadId CounterBHandle;
-
-
-void EventTask(void const * argument);
-
-
-
-// LED definitions for STM32F429I-Discovery
-#define LED_PORT        GPIOG
-#define LED_GREEN_PIN   GPIO_PIN_13  // Green LED
-#define LED_RED_PIN     GPIO_PIN_14  // Red LED
 
 /* USER CODE END Includes */
 
@@ -67,12 +51,31 @@ void EventTask(void const * argument);
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
 
+
+// LED definitions for STM32F429I-Discovery
+#define LED_PORT        GPIOG
+#define LED_GREEN_PIN   GPIO_PIN_13  // Green LED
+#define LED_RED_PIN     GPIO_PIN_14  // Red LED
+
+#define ADC_BUFFER_SIZE 256
+uint16_t adc_dma_buffer[ADC_BUFFER_SIZE];
+
+SemaphoreHandle_t ButtonSemaphore;
+// Semaphores for synchronization
+SemaphoreHandle_t adcHalfCpltSem;   // Signaled when buffer half full
+SemaphoreHandle_t adcFullCpltSem;   // Signaled when buffer full
+// Statistics
+uint32_t half_transfer_count = 0;
+uint32_t full_transfer_count = 0;
+
+osThreadId EventTaskHandle;
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-
+void EventTask(void const * argument);
+void StartAdcProcessTask(void const * argument);
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void const * argument);
@@ -159,7 +162,21 @@ void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackTy
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-
+/* Create semaphore for half-transfer interrupt */
+  adcHalfCpltSem = xSemaphoreCreateBinary();
+  if (adcHalfCpltSem == NULL) {
+    printf("ERROR: Failed to create adcHalfCpltSem!\n");
+  } else {
+    printf("✓ Half-transfer semaphore created\n");
+  }
+  
+  /* Create semaphore for full-transfer interrupt */
+  adcFullCpltSem = xSemaphoreCreateBinary();
+  if (adcFullCpltSem == NULL) {
+    printf("ERROR: Failed to create adcFullCpltSem!\n");
+  } else {
+    printf("✓ Full-transfer semaphore created\n");
+  }
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -170,16 +187,6 @@ void MX_FREERTOS_Init(void) {
   /* add semaphores, ... */
     ButtonSemaphore = xSemaphoreCreateBinary();
   /* USER CODE END RTOS_SEMAPHORES */
-    // LED task: normal priority, 128 words stack
-
-
-
-  // Button task: normal priority, 128 words stack
-  osThreadDef(Event, EventTask, osPriorityNormal, 0, 128);
-  EventTaskHandle = osThreadCreate(osThread(Event), NULL);
-
-
-
 
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
@@ -187,6 +194,7 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
+
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -194,12 +202,19 @@ void MX_FREERTOS_Init(void) {
   osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 4096);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
+
+  osThreadDef(adcTask, StartAdcProcessTask, osPriorityNormal, 0, 256);
+  osThreadCreate(osThread(adcTask), NULL);
+  printf("✓ ADC processing task created\n");
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+
+
+
   /* USER CODE END RTOS_THREADS */
 
 }
-
 
 /* USER CODE BEGIN Header_StartDefaultTask */
 /**
@@ -216,8 +231,7 @@ void StartDefaultTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-
-    //osDelay(1);
+    osDelay(1);  // Yield to other tasks
   }
   /* USER CODE END StartDefaultTask */
 }
@@ -238,17 +252,98 @@ void StartDefaultTask(void const * argument)
           // Instant response!
           count++;
           printf("[%lu] Button event! Count: %lu\r\n", HAL_GetTick(), count);
-          vTaskDelay(pdMS_TO_TICKS(1000));
+
+          // Simulate slow processing work (100ms as per Task 3.4)
+          vTaskDelay(pdMS_TO_TICKS(100));
+
           HAL_GPIO_TogglePin(LED_PORT, LED_RED_PIN);
           
       }
   }
 
- 
-
-
-
-
+/**
+  * @brief  ADC processing task
+  * @param  argument: Not used
+  * @retval None
+  */
+void StartAdcProcessTask(void const *argument)
+{
+  /* USER CODE BEGIN StartAdcProcessTask */
+  
+  printf("[AdcTask] Started - waiting for data\n\n");
+  
+  for(;;)
+  {
+    /* ============================================
+       Wait for EITHER half-complete OR full-complete
+       ============================================ */
+    
+    // Check half-transfer first (non-blocking)
+    if (xSemaphoreTake(adcHalfCpltSem, 0) == pdPASS)
+    {
+      /* ────────────────────────────────────────
+         HALF-TRANSFER: Process first half [0-127]
+         DMA is currently filling second half [128-255]
+         ──────────────────────────────────────── */
+      
+      half_transfer_count++;
+      
+      printf("\n[HALF-TRANSFER #%lu]\n", half_transfer_count);
+      printf("Processing samples [0-127] while DMA fills [128-255]\n");
+      
+      // Calculate average of first half
+      uint32_t sum = 0;
+      for (int i = 0; i < ADC_BUFFER_SIZE / 2; i++) {
+        sum += adc_dma_buffer[i];
+      }
+      float average = sum / (ADC_BUFFER_SIZE / 2.0);
+      float voltage = (average / 4095.0) * 3.3;
+      
+      printf("  Average ADC: %.1f\n", average);
+      printf("  Average Voltage: %.3fV\n", voltage);
+      
+      // YOUR PROCESSING HERE
+      // Example: Check if voltage in range, trigger actions, etc.
+    }
+    
+    // Check full-transfer (non-blocking)
+    if (xSemaphoreTake(adcFullCpltSem, 0) == pdPASS)
+    {
+      /* ────────────────────────────────────────
+         FULL-TRANSFER: Process second half [128-255]
+         DMA wrapped around, filling first half [0-127]
+         ──────────────────────────────────────── */
+      
+      full_transfer_count++;
+      
+      printf("\n[FULL-TRANSFER #%lu]\n", full_transfer_count);
+      printf("Processing samples [128-255] while DMA fills [0-127]\n");
+      
+      // Calculate average of second half
+      uint32_t sum = 0;
+      for (int i = ADC_BUFFER_SIZE / 2; i < ADC_BUFFER_SIZE; i++) {
+        sum += adc_dma_buffer[i];
+      }
+      float average = sum / (ADC_BUFFER_SIZE / 2.0);
+      float voltage = (average / 4095.0) * 3.3;
+      
+      printf("  Average ADC: %.1f\n", average);
+      printf("  Average Voltage: %.3fV\n", voltage);
+      
+      // YOUR PROCESSING HERE
+    }
+    
+    /* If neither semaphore available, wait a bit */
+    if (xSemaphoreTake(adcHalfCpltSem, pdMS_TO_TICKS(100)) != pdPASS &&
+        xSemaphoreTake(adcFullCpltSem, 0) != pdPASS)
+    {
+      // Timeout - no data in 100ms (shouldn't happen in continuous mode)
+      printf("[AdcTask] Waiting for data...\n");
+    }
+  }
+  
+  /* USER CODE END StartAdcProcessTask */
+}
 
 
 /* USER CODE END Application */

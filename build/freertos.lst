@@ -1,4 +1,4 @@
-ARM GAS  C:\Users\moham\AppData\Local\Temp\cc8nrtza.s 			page 1
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 1
 
 
    1              		.cpu cortex-m4
@@ -28,7 +28,7 @@ ARM GAS  C:\Users\moham\AppData\Local\Temp\cc8nrtza.s 			page 1
   25              		.thumb_func
   27              	StartDefaultTask:
   28              	.LVL0:
-  29              	.LFB147:
+  29              	.LFB252:
    1:Core/Src/freertos.c **** /* USER CODE BEGIN Header */
    2:Core/Src/freertos.c **** /**
    3:Core/Src/freertos.c ****   ******************************************************************************
@@ -58,723 +58,1426 @@ ARM GAS  C:\Users\moham\AppData\Local\Temp\cc8nrtza.s 			page 1
   27:Core/Src/freertos.c **** /* USER CODE BEGIN Includes */
   28:Core/Src/freertos.c **** #include <string.h>
   29:Core/Src/freertos.c **** #include "usart.h"
-ARM GAS  C:\Users\moham\AppData\Local\Temp\cc8nrtza.s 			page 2
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 2
 
 
   30:Core/Src/freertos.c **** #include <stdio.h>
   31:Core/Src/freertos.c **** 
   32:Core/Src/freertos.c **** 
-  33:Core/Src/freertos.c **** SemaphoreHandle_t ButtonSemaphore;
-  34:Core/Src/freertos.c **** 
+  33:Core/Src/freertos.c **** 
+  34:Core/Src/freertos.c **** /* USER CODE END Includes */
   35:Core/Src/freertos.c **** 
-  36:Core/Src/freertos.c **** osThreadId EventTaskHandle;
-  37:Core/Src/freertos.c **** osThreadId CounterAHandle;
-  38:Core/Src/freertos.c **** osThreadId CounterBHandle;
-  39:Core/Src/freertos.c **** 
+  36:Core/Src/freertos.c **** /* Private typedef -----------------------------------------------------------*/
+  37:Core/Src/freertos.c **** /* USER CODE BEGIN PTD */
+  38:Core/Src/freertos.c **** 
+  39:Core/Src/freertos.c **** /* USER CODE END PTD */
   40:Core/Src/freertos.c **** 
-  41:Core/Src/freertos.c **** void EventTask(void const * argument);
-  42:Core/Src/freertos.c **** 
+  41:Core/Src/freertos.c **** /* Private define ------------------------------------------------------------*/
+  42:Core/Src/freertos.c **** /* USER CODE BEGIN PD */
   43:Core/Src/freertos.c **** 
-  44:Core/Src/freertos.c **** 
-  45:Core/Src/freertos.c **** // LED definitions for STM32F429I-Discovery
-  46:Core/Src/freertos.c **** #define LED_PORT        GPIOG
-  47:Core/Src/freertos.c **** #define LED_GREEN_PIN   GPIO_PIN_13  // Green LED
-  48:Core/Src/freertos.c **** #define LED_RED_PIN     GPIO_PIN_14  // Red LED
-  49:Core/Src/freertos.c **** 
-  50:Core/Src/freertos.c **** /* USER CODE END Includes */
-  51:Core/Src/freertos.c **** 
-  52:Core/Src/freertos.c **** /* Private typedef -----------------------------------------------------------*/
-  53:Core/Src/freertos.c **** /* USER CODE BEGIN PTD */
+  44:Core/Src/freertos.c **** /* USER CODE END PD */
+  45:Core/Src/freertos.c **** 
+  46:Core/Src/freertos.c **** /* Private macro -------------------------------------------------------------*/
+  47:Core/Src/freertos.c **** /* USER CODE BEGIN PM */
+  48:Core/Src/freertos.c **** 
+  49:Core/Src/freertos.c **** /* USER CODE END PM */
+  50:Core/Src/freertos.c **** 
+  51:Core/Src/freertos.c **** /* Private variables ---------------------------------------------------------*/
+  52:Core/Src/freertos.c **** /* USER CODE BEGIN Variables */
+  53:Core/Src/freertos.c **** 
   54:Core/Src/freertos.c **** 
-  55:Core/Src/freertos.c **** /* USER CODE END PTD */
-  56:Core/Src/freertos.c **** 
-  57:Core/Src/freertos.c **** /* Private define ------------------------------------------------------------*/
-  58:Core/Src/freertos.c **** /* USER CODE BEGIN PD */
+  55:Core/Src/freertos.c **** // LED definitions for STM32F429I-Discovery
+  56:Core/Src/freertos.c **** #define LED_PORT        GPIOG
+  57:Core/Src/freertos.c **** #define LED_GREEN_PIN   GPIO_PIN_13  // Green LED
+  58:Core/Src/freertos.c **** #define LED_RED_PIN     GPIO_PIN_14  // Red LED
   59:Core/Src/freertos.c **** 
-  60:Core/Src/freertos.c **** /* USER CODE END PD */
-  61:Core/Src/freertos.c **** 
-  62:Core/Src/freertos.c **** /* Private macro -------------------------------------------------------------*/
-  63:Core/Src/freertos.c **** /* USER CODE BEGIN PM */
-  64:Core/Src/freertos.c **** 
-  65:Core/Src/freertos.c **** /* USER CODE END PM */
-  66:Core/Src/freertos.c **** 
-  67:Core/Src/freertos.c **** /* Private variables ---------------------------------------------------------*/
-  68:Core/Src/freertos.c **** /* USER CODE BEGIN Variables */
-  69:Core/Src/freertos.c **** 
-  70:Core/Src/freertos.c **** /* USER CODE END Variables */
-  71:Core/Src/freertos.c **** osThreadId defaultTaskHandle;
-  72:Core/Src/freertos.c **** 
-  73:Core/Src/freertos.c **** /* Private function prototypes -----------------------------------------------*/
-  74:Core/Src/freertos.c **** /* USER CODE BEGIN FunctionPrototypes */
-  75:Core/Src/freertos.c **** 
-  76:Core/Src/freertos.c **** /* USER CODE END FunctionPrototypes */
-  77:Core/Src/freertos.c **** 
-  78:Core/Src/freertos.c **** void StartDefaultTask(void const * argument);
-  79:Core/Src/freertos.c **** 
-  80:Core/Src/freertos.c **** extern void MX_USB_HOST_Init(void);
-  81:Core/Src/freertos.c **** void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
+  60:Core/Src/freertos.c **** #define ADC_BUFFER_SIZE 256
+  61:Core/Src/freertos.c **** uint16_t adc_dma_buffer[ADC_BUFFER_SIZE];
+  62:Core/Src/freertos.c **** 
+  63:Core/Src/freertos.c **** SemaphoreHandle_t ButtonSemaphore;
+  64:Core/Src/freertos.c **** // Semaphores for synchronization
+  65:Core/Src/freertos.c **** SemaphoreHandle_t adcHalfCpltSem;   // Signaled when buffer half full
+  66:Core/Src/freertos.c **** SemaphoreHandle_t adcFullCpltSem;   // Signaled when buffer full
+  67:Core/Src/freertos.c **** // Statistics
+  68:Core/Src/freertos.c **** uint32_t half_transfer_count = 0;
+  69:Core/Src/freertos.c **** uint32_t full_transfer_count = 0;
+  70:Core/Src/freertos.c **** 
+  71:Core/Src/freertos.c **** osThreadId EventTaskHandle;
+  72:Core/Src/freertos.c **** /* USER CODE END Variables */
+  73:Core/Src/freertos.c **** osThreadId defaultTaskHandle;
+  74:Core/Src/freertos.c **** 
+  75:Core/Src/freertos.c **** /* Private function prototypes -----------------------------------------------*/
+  76:Core/Src/freertos.c **** /* USER CODE BEGIN FunctionPrototypes */
+  77:Core/Src/freertos.c **** void EventTask(void const * argument);
+  78:Core/Src/freertos.c **** void StartAdcProcessTask(void const * argument);
+  79:Core/Src/freertos.c **** /* USER CODE END FunctionPrototypes */
+  80:Core/Src/freertos.c **** 
+  81:Core/Src/freertos.c **** void StartDefaultTask(void const * argument);
   82:Core/Src/freertos.c **** 
-  83:Core/Src/freertos.c **** /* GetIdleTaskMemory prototype (linked to static allocation support) */
-  84:Core/Src/freertos.c **** void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskS
+  83:Core/Src/freertos.c **** extern void MX_USB_HOST_Init(void);
+  84:Core/Src/freertos.c **** void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
   85:Core/Src/freertos.c **** 
-  86:Core/Src/freertos.c **** /* Hook prototypes */
-ARM GAS  C:\Users\moham\AppData\Local\Temp\cc8nrtza.s 			page 3
+  86:Core/Src/freertos.c **** /* GetIdleTaskMemory prototype (linked to static allocation support) */
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 3
 
 
-  87:Core/Src/freertos.c **** void vApplicationIdleHook(void);
-  88:Core/Src/freertos.c **** void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName);
-  89:Core/Src/freertos.c **** void vApplicationMallocFailedHook(void);
-  90:Core/Src/freertos.c **** 
-  91:Core/Src/freertos.c **** /* USER CODE BEGIN 2 */
-  92:Core/Src/freertos.c **** __weak void vApplicationIdleHook( void )
-  93:Core/Src/freertos.c **** {
-  94:Core/Src/freertos.c ****    /* vApplicationIdleHook() will only be called if configUSE_IDLE_HOOK is set
-  95:Core/Src/freertos.c ****    to 1 in FreeRTOSConfig.h. It will be called on each iteration of the idle
-  96:Core/Src/freertos.c ****    task. It is essential that code added to this hook function never attempts
-  97:Core/Src/freertos.c ****    to block in any way (for example, call xQueueReceive() with a block time
-  98:Core/Src/freertos.c ****    specified, or call vTaskDelay()). If the application makes use of the
-  99:Core/Src/freertos.c ****    vTaskDelete() API function (as this demo application does) then it is also
- 100:Core/Src/freertos.c ****    important that vApplicationIdleHook() is permitted to return to its calling
- 101:Core/Src/freertos.c ****    function, because it is the responsibility of the idle task to clean up
- 102:Core/Src/freertos.c ****    memory allocated by the kernel to any task that has since been deleted. */
- 103:Core/Src/freertos.c **** }
- 104:Core/Src/freertos.c **** /* USER CODE END 2 */
- 105:Core/Src/freertos.c **** 
- 106:Core/Src/freertos.c **** /* USER CODE BEGIN 4 */
- 107:Core/Src/freertos.c **** void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName)
- 108:Core/Src/freertos.c **** {
- 109:Core/Src/freertos.c ****    /* Run time stack overflow checking is performed if
- 110:Core/Src/freertos.c ****    configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2. This hook function is
- 111:Core/Src/freertos.c ****    called if a stack overflow is detected. */
- 112:Core/Src/freertos.c **** 
- 113:Core/Src/freertos.c ****    // CRITICAL: Cannot use printf() in hooks! ISR context - not safe!
- 114:Core/Src/freertos.c ****    // Just blink red LED rapidly to indicate stack overflow
- 115:Core/Src/freertos.c ****    (void)xTask;        // Unused parameter
- 116:Core/Src/freertos.c ****    (void)pcTaskName;   // Unused parameter
- 117:Core/Src/freertos.c **** 
- 118:Core/Src/freertos.c ****    while(1) {
- 119:Core/Src/freertos.c ****       HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_14);  // Red LED
- 120:Core/Src/freertos.c ****       for(volatile uint32_t i = 0; i < 500000; i++);  // Delay
- 121:Core/Src/freertos.c ****    }
- 122:Core/Src/freertos.c **** }
- 123:Core/Src/freertos.c **** 
- 124:Core/Src/freertos.c **** /* USER CODE END 4 */
- 125:Core/Src/freertos.c **** 
- 126:Core/Src/freertos.c **** /* USER CODE BEGIN 5 */
- 127:Core/Src/freertos.c **** __weak void vApplicationMallocFailedHook(void)
- 128:Core/Src/freertos.c **** {
- 129:Core/Src/freertos.c ****    /* vApplicationMallocFailedHook() will only be called if
- 130:Core/Src/freertos.c ****    configUSE_MALLOC_FAILED_HOOK is set to 1 in FreeRTOSConfig.h. It is a hook
- 131:Core/Src/freertos.c ****    function that will get called if a call to pvPortMalloc() fails.
- 132:Core/Src/freertos.c ****    pvPortMalloc() is called internally by the kernel whenever a task, queue,
- 133:Core/Src/freertos.c ****    timer or semaphore is created. It is also called by various parts of the
- 134:Core/Src/freertos.c ****    demo application. If heap_1.c or heap_2.c are used, then the size of the
- 135:Core/Src/freertos.c ****    heap available to pvPortMalloc() is defined by configTOTAL_HEAP_SIZE in
- 136:Core/Src/freertos.c ****    FreeRTOSConfig.h, and the xPortGetFreeHeapSize() API function can be used
- 137:Core/Src/freertos.c ****    to query the size of free heap space that remains (although it does not
- 138:Core/Src/freertos.c ****    provide information on how the remaining heap might be fragmented). */
- 139:Core/Src/freertos.c **** }
- 140:Core/Src/freertos.c **** /* USER CODE END 5 */
- 141:Core/Src/freertos.c **** 
- 142:Core/Src/freertos.c **** /* USER CODE BEGIN GET_IDLE_TASK_MEMORY */
- 143:Core/Src/freertos.c **** static StaticTask_t xIdleTaskTCBBuffer;
-ARM GAS  C:\Users\moham\AppData\Local\Temp\cc8nrtza.s 			page 4
+  87:Core/Src/freertos.c **** void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskS
+  88:Core/Src/freertos.c **** 
+  89:Core/Src/freertos.c **** /* Hook prototypes */
+  90:Core/Src/freertos.c **** void vApplicationIdleHook(void);
+  91:Core/Src/freertos.c **** void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName);
+  92:Core/Src/freertos.c **** void vApplicationMallocFailedHook(void);
+  93:Core/Src/freertos.c **** 
+  94:Core/Src/freertos.c **** /* USER CODE BEGIN 2 */
+  95:Core/Src/freertos.c **** __weak void vApplicationIdleHook( void )
+  96:Core/Src/freertos.c **** {
+  97:Core/Src/freertos.c ****    /* vApplicationIdleHook() will only be called if configUSE_IDLE_HOOK is set
+  98:Core/Src/freertos.c ****    to 1 in FreeRTOSConfig.h. It will be called on each iteration of the idle
+  99:Core/Src/freertos.c ****    task. It is essential that code added to this hook function never attempts
+ 100:Core/Src/freertos.c ****    to block in any way (for example, call xQueueReceive() with a block time
+ 101:Core/Src/freertos.c ****    specified, or call vTaskDelay()). If the application makes use of the
+ 102:Core/Src/freertos.c ****    vTaskDelete() API function (as this demo application does) then it is also
+ 103:Core/Src/freertos.c ****    important that vApplicationIdleHook() is permitted to return to its calling
+ 104:Core/Src/freertos.c ****    function, because it is the responsibility of the idle task to clean up
+ 105:Core/Src/freertos.c ****    memory allocated by the kernel to any task that has since been deleted. */
+ 106:Core/Src/freertos.c **** }
+ 107:Core/Src/freertos.c **** /* USER CODE END 2 */
+ 108:Core/Src/freertos.c **** 
+ 109:Core/Src/freertos.c **** /* USER CODE BEGIN 4 */
+ 110:Core/Src/freertos.c **** void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName)
+ 111:Core/Src/freertos.c **** {
+ 112:Core/Src/freertos.c ****    /* Run time stack overflow checking is performed if
+ 113:Core/Src/freertos.c ****    configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2. This hook function is
+ 114:Core/Src/freertos.c ****    called if a stack overflow is detected. */
+ 115:Core/Src/freertos.c **** 
+ 116:Core/Src/freertos.c ****    // CRITICAL: Cannot use printf() in hooks! ISR context - not safe!
+ 117:Core/Src/freertos.c ****    // Just blink red LED rapidly to indicate stack overflow
+ 118:Core/Src/freertos.c ****    (void)xTask;        // Unused parameter
+ 119:Core/Src/freertos.c ****    (void)pcTaskName;   // Unused parameter
+ 120:Core/Src/freertos.c **** 
+ 121:Core/Src/freertos.c ****    while(1) {
+ 122:Core/Src/freertos.c ****       HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_14);  // Red LED
+ 123:Core/Src/freertos.c ****       for(volatile uint32_t i = 0; i < 500000; i++);  // Delay
+ 124:Core/Src/freertos.c ****    }
+ 125:Core/Src/freertos.c **** }
+ 126:Core/Src/freertos.c **** 
+ 127:Core/Src/freertos.c **** /* USER CODE END 4 */
+ 128:Core/Src/freertos.c **** 
+ 129:Core/Src/freertos.c **** /* USER CODE BEGIN 5 */
+ 130:Core/Src/freertos.c **** __weak void vApplicationMallocFailedHook(void)
+ 131:Core/Src/freertos.c **** {
+ 132:Core/Src/freertos.c ****    /* vApplicationMallocFailedHook() will only be called if
+ 133:Core/Src/freertos.c ****    configUSE_MALLOC_FAILED_HOOK is set to 1 in FreeRTOSConfig.h. It is a hook
+ 134:Core/Src/freertos.c ****    function that will get called if a call to pvPortMalloc() fails.
+ 135:Core/Src/freertos.c ****    pvPortMalloc() is called internally by the kernel whenever a task, queue,
+ 136:Core/Src/freertos.c ****    timer or semaphore is created. It is also called by various parts of the
+ 137:Core/Src/freertos.c ****    demo application. If heap_1.c or heap_2.c are used, then the size of the
+ 138:Core/Src/freertos.c ****    heap available to pvPortMalloc() is defined by configTOTAL_HEAP_SIZE in
+ 139:Core/Src/freertos.c ****    FreeRTOSConfig.h, and the xPortGetFreeHeapSize() API function can be used
+ 140:Core/Src/freertos.c ****    to query the size of free heap space that remains (although it does not
+ 141:Core/Src/freertos.c ****    provide information on how the remaining heap might be fragmented). */
+ 142:Core/Src/freertos.c **** }
+ 143:Core/Src/freertos.c **** /* USER CODE END 5 */
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 4
 
 
- 144:Core/Src/freertos.c **** static StackType_t xIdleStack[configMINIMAL_STACK_SIZE];
- 145:Core/Src/freertos.c **** 
- 146:Core/Src/freertos.c **** void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskS
- 147:Core/Src/freertos.c **** {
- 148:Core/Src/freertos.c ****   *ppxIdleTaskTCBBuffer = &xIdleTaskTCBBuffer;
- 149:Core/Src/freertos.c ****   *ppxIdleTaskStackBuffer = &xIdleStack[0];
- 150:Core/Src/freertos.c ****   *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
- 151:Core/Src/freertos.c ****   /* place for user code */
- 152:Core/Src/freertos.c **** }
- 153:Core/Src/freertos.c **** /* USER CODE END GET_IDLE_TASK_MEMORY */
- 154:Core/Src/freertos.c **** 
- 155:Core/Src/freertos.c **** /**
- 156:Core/Src/freertos.c ****   * @brief  FreeRTOS initialization
- 157:Core/Src/freertos.c ****   * @param  None
- 158:Core/Src/freertos.c ****   * @retval None
- 159:Core/Src/freertos.c ****   */
- 160:Core/Src/freertos.c **** void MX_FREERTOS_Init(void) {
- 161:Core/Src/freertos.c ****   /* USER CODE BEGIN Init */
- 162:Core/Src/freertos.c **** 
- 163:Core/Src/freertos.c ****   /* USER CODE END Init */
- 164:Core/Src/freertos.c **** 
- 165:Core/Src/freertos.c ****   /* USER CODE BEGIN RTOS_MUTEX */
- 166:Core/Src/freertos.c ****   /* add mutexes, ... */
- 167:Core/Src/freertos.c ****   /* USER CODE END RTOS_MUTEX */
- 168:Core/Src/freertos.c **** 
- 169:Core/Src/freertos.c ****   /* USER CODE BEGIN RTOS_SEMAPHORES */
- 170:Core/Src/freertos.c ****   /* add semaphores, ... */
- 171:Core/Src/freertos.c ****     ButtonSemaphore = xSemaphoreCreateBinary();
- 172:Core/Src/freertos.c ****   /* USER CODE END RTOS_SEMAPHORES */
- 173:Core/Src/freertos.c ****     // LED task: normal priority, 128 words stack
- 174:Core/Src/freertos.c **** 
- 175:Core/Src/freertos.c **** 
- 176:Core/Src/freertos.c **** 
- 177:Core/Src/freertos.c ****   // Button task: normal priority, 128 words stack
- 178:Core/Src/freertos.c ****   osThreadDef(Event, EventTask, osPriorityNormal, 0, 128);
- 179:Core/Src/freertos.c ****   EventTaskHandle = osThreadCreate(osThread(Event), NULL);
- 180:Core/Src/freertos.c **** 
+ 144:Core/Src/freertos.c **** 
+ 145:Core/Src/freertos.c **** /* USER CODE BEGIN GET_IDLE_TASK_MEMORY */
+ 146:Core/Src/freertos.c **** static StaticTask_t xIdleTaskTCBBuffer;
+ 147:Core/Src/freertos.c **** static StackType_t xIdleStack[configMINIMAL_STACK_SIZE];
+ 148:Core/Src/freertos.c **** 
+ 149:Core/Src/freertos.c **** void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskS
+ 150:Core/Src/freertos.c **** {
+ 151:Core/Src/freertos.c ****   *ppxIdleTaskTCBBuffer = &xIdleTaskTCBBuffer;
+ 152:Core/Src/freertos.c ****   *ppxIdleTaskStackBuffer = &xIdleStack[0];
+ 153:Core/Src/freertos.c ****   *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+ 154:Core/Src/freertos.c ****   /* place for user code */
+ 155:Core/Src/freertos.c **** }
+ 156:Core/Src/freertos.c **** /* USER CODE END GET_IDLE_TASK_MEMORY */
+ 157:Core/Src/freertos.c **** 
+ 158:Core/Src/freertos.c **** /**
+ 159:Core/Src/freertos.c ****   * @brief  FreeRTOS initialization
+ 160:Core/Src/freertos.c ****   * @param  None
+ 161:Core/Src/freertos.c ****   * @retval None
+ 162:Core/Src/freertos.c ****   */
+ 163:Core/Src/freertos.c **** void MX_FREERTOS_Init(void) {
+ 164:Core/Src/freertos.c ****   /* USER CODE BEGIN Init */
+ 165:Core/Src/freertos.c **** /* Create semaphore for half-transfer interrupt */
+ 166:Core/Src/freertos.c ****   adcHalfCpltSem = xSemaphoreCreateBinary();
+ 167:Core/Src/freertos.c ****   if (adcHalfCpltSem == NULL) {
+ 168:Core/Src/freertos.c ****     printf("ERROR: Failed to create adcHalfCpltSem!\n");
+ 169:Core/Src/freertos.c ****   } else {
+ 170:Core/Src/freertos.c ****     printf("✓ Half-transfer semaphore created\n");
+ 171:Core/Src/freertos.c ****   }
+ 172:Core/Src/freertos.c ****   
+ 173:Core/Src/freertos.c ****   /* Create semaphore for full-transfer interrupt */
+ 174:Core/Src/freertos.c ****   adcFullCpltSem = xSemaphoreCreateBinary();
+ 175:Core/Src/freertos.c ****   if (adcFullCpltSem == NULL) {
+ 176:Core/Src/freertos.c ****     printf("ERROR: Failed to create adcFullCpltSem!\n");
+ 177:Core/Src/freertos.c ****   } else {
+ 178:Core/Src/freertos.c ****     printf("✓ Full-transfer semaphore created\n");
+ 179:Core/Src/freertos.c ****   }
+ 180:Core/Src/freertos.c ****   /* USER CODE END Init */
  181:Core/Src/freertos.c **** 
- 182:Core/Src/freertos.c **** 
- 183:Core/Src/freertos.c **** 
- 184:Core/Src/freertos.c ****   /* USER CODE BEGIN RTOS_TIMERS */
- 185:Core/Src/freertos.c ****   /* start timers, add new ones, ... */
- 186:Core/Src/freertos.c ****   /* USER CODE END RTOS_TIMERS */
- 187:Core/Src/freertos.c **** 
- 188:Core/Src/freertos.c ****   /* USER CODE BEGIN RTOS_QUEUES */
- 189:Core/Src/freertos.c ****   /* add queues, ... */
- 190:Core/Src/freertos.c ****   /* USER CODE END RTOS_QUEUES */
- 191:Core/Src/freertos.c **** 
- 192:Core/Src/freertos.c ****   /* Create the thread(s) */
- 193:Core/Src/freertos.c ****   /* definition and creation of defaultTask */
- 194:Core/Src/freertos.c ****   osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 4096);
- 195:Core/Src/freertos.c ****   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
- 196:Core/Src/freertos.c **** 
- 197:Core/Src/freertos.c ****   /* USER CODE BEGIN RTOS_THREADS */
- 198:Core/Src/freertos.c ****   /* add threads, ... */
- 199:Core/Src/freertos.c ****   /* USER CODE END RTOS_THREADS */
- 200:Core/Src/freertos.c **** 
-ARM GAS  C:\Users\moham\AppData\Local\Temp\cc8nrtza.s 			page 5
+ 182:Core/Src/freertos.c ****   /* USER CODE BEGIN RTOS_MUTEX */
+ 183:Core/Src/freertos.c ****   /* add mutexes, ... */
+ 184:Core/Src/freertos.c ****   /* USER CODE END RTOS_MUTEX */
+ 185:Core/Src/freertos.c **** 
+ 186:Core/Src/freertos.c ****   /* USER CODE BEGIN RTOS_SEMAPHORES */
+ 187:Core/Src/freertos.c ****   /* add semaphores, ... */
+ 188:Core/Src/freertos.c ****     ButtonSemaphore = xSemaphoreCreateBinary();
+ 189:Core/Src/freertos.c ****   /* USER CODE END RTOS_SEMAPHORES */
+ 190:Core/Src/freertos.c **** 
+ 191:Core/Src/freertos.c ****   /* USER CODE BEGIN RTOS_TIMERS */
+ 192:Core/Src/freertos.c ****   /* start timers, add new ones, ... */
+ 193:Core/Src/freertos.c ****   /* USER CODE END RTOS_TIMERS */
+ 194:Core/Src/freertos.c **** 
+ 195:Core/Src/freertos.c ****   /* USER CODE BEGIN RTOS_QUEUES */
+ 196:Core/Src/freertos.c ****   /* add queues, ... */
+ 197:Core/Src/freertos.c **** 
+ 198:Core/Src/freertos.c ****   /* USER CODE END RTOS_QUEUES */
+ 199:Core/Src/freertos.c **** 
+ 200:Core/Src/freertos.c ****   /* Create the thread(s) */
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 5
 
 
- 201:Core/Src/freertos.c **** }
- 202:Core/Src/freertos.c **** 
- 203:Core/Src/freertos.c **** 
- 204:Core/Src/freertos.c **** /* USER CODE BEGIN Header_StartDefaultTask */
- 205:Core/Src/freertos.c **** /**
- 206:Core/Src/freertos.c ****   * @brief  Function implementing the defaultTask thread.
- 207:Core/Src/freertos.c ****   * @param  argument: Not used
- 208:Core/Src/freertos.c ****   * @retval None
- 209:Core/Src/freertos.c ****   */
- 210:Core/Src/freertos.c **** /* USER CODE END Header_StartDefaultTask */
- 211:Core/Src/freertos.c **** void StartDefaultTask(void const * argument)
- 212:Core/Src/freertos.c **** {
-  30              		.loc 1 212 1 view -0
+ 201:Core/Src/freertos.c ****   /* definition and creation of defaultTask */
+ 202:Core/Src/freertos.c ****   osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 4096);
+ 203:Core/Src/freertos.c ****   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+ 204:Core/Src/freertos.c **** 
+ 205:Core/Src/freertos.c **** 
+ 206:Core/Src/freertos.c ****   osThreadDef(adcTask, StartAdcProcessTask, osPriorityNormal, 0, 256);
+ 207:Core/Src/freertos.c ****   osThreadCreate(osThread(adcTask), NULL);
+ 208:Core/Src/freertos.c ****   printf("✓ ADC processing task created\n");
+ 209:Core/Src/freertos.c **** 
+ 210:Core/Src/freertos.c ****   /* USER CODE BEGIN RTOS_THREADS */
+ 211:Core/Src/freertos.c ****   /* add threads, ... */
+ 212:Core/Src/freertos.c **** 
+ 213:Core/Src/freertos.c **** 
+ 214:Core/Src/freertos.c **** 
+ 215:Core/Src/freertos.c ****   /* USER CODE END RTOS_THREADS */
+ 216:Core/Src/freertos.c **** 
+ 217:Core/Src/freertos.c **** }
+ 218:Core/Src/freertos.c **** 
+ 219:Core/Src/freertos.c **** /* USER CODE BEGIN Header_StartDefaultTask */
+ 220:Core/Src/freertos.c **** /**
+ 221:Core/Src/freertos.c ****   * @brief  Function implementing the defaultTask thread.
+ 222:Core/Src/freertos.c ****   * @param  argument: Not used
+ 223:Core/Src/freertos.c ****   * @retval None
+ 224:Core/Src/freertos.c ****   */
+ 225:Core/Src/freertos.c **** /* USER CODE END Header_StartDefaultTask */
+ 226:Core/Src/freertos.c **** void StartDefaultTask(void const * argument)
+ 227:Core/Src/freertos.c **** {
+  30              		.loc 1 227 1 view -0
   31              		.cfi_startproc
   32              		@ Volatile: function does not return.
   33              		@ args = 0, pretend = 0, frame = 0
   34              		@ frame_needed = 0, uses_anonymous_args = 0
-  35              		.loc 1 212 1 is_stmt 0 view .LVU1
+  35              		.loc 1 227 1 is_stmt 0 view .LVU1
   36 0000 08B5     		push	{r3, lr}
   37              	.LCFI0:
   38              		.cfi_def_cfa_offset 8
   39              		.cfi_offset 3, -8
   40              		.cfi_offset 14, -4
- 213:Core/Src/freertos.c ****   /* init code for USB_HOST */
- 214:Core/Src/freertos.c ****   MX_USB_HOST_Init();
-  41              		.loc 1 214 3 is_stmt 1 view .LVU2
+ 228:Core/Src/freertos.c ****   /* init code for USB_HOST */
+ 229:Core/Src/freertos.c ****   MX_USB_HOST_Init();
+  41              		.loc 1 229 3 is_stmt 1 view .LVU2
   42 0002 FFF7FEFF 		bl	MX_USB_HOST_Init
   43              	.LVL1:
   44              	.L2:
- 215:Core/Src/freertos.c ****   /* USER CODE BEGIN StartDefaultTask */
- 216:Core/Src/freertos.c ****   /* Infinite loop */
- 217:Core/Src/freertos.c ****   for(;;)
-  45              		.loc 1 217 3 view .LVU3
- 218:Core/Src/freertos.c ****   {
- 219:Core/Src/freertos.c **** 
- 220:Core/Src/freertos.c ****     //osDelay(1);
- 221:Core/Src/freertos.c ****   }
-  46              		.loc 1 221 3 view .LVU4
- 217:Core/Src/freertos.c ****   {
-  47              		.loc 1 217 3 view .LVU5
-  48 0006 FEE7     		b	.L2
-  49              		.cfi_endproc
-  50              	.LFE147:
-  52              		.section	.rodata.EventTask.str1.4,"aMS",%progbits,1
-  53              		.align	2
-  54              	.LC4:
-  55 0000 5B256C75 		.ascii	"[%lu] Button event! Count: %lu\015\012\000"
-  55      5D204275 
-  55      74746F6E 
-  55      20657665 
-  55      6E742120 
-  56              		.section	.text.EventTask,"ax",%progbits
-  57              		.align	1
-  58              		.global	EventTask
-  59              		.syntax unified
-  60              		.thumb
-  61              		.thumb_func
-ARM GAS  C:\Users\moham\AppData\Local\Temp\cc8nrtza.s 			page 6
+ 230:Core/Src/freertos.c ****   /* USER CODE BEGIN StartDefaultTask */
+ 231:Core/Src/freertos.c ****   /* Infinite loop */
+ 232:Core/Src/freertos.c ****   for(;;)
+  45              		.loc 1 232 3 view .LVU3
+ 233:Core/Src/freertos.c ****   {
+ 234:Core/Src/freertos.c ****     osDelay(1);  // Yield to other tasks
+  46              		.loc 1 234 5 discriminator 1 view .LVU4
+  47 0006 0120     		movs	r0, #1
+  48 0008 FFF7FEFF 		bl	osDelay
+  49              	.LVL2:
+ 232:Core/Src/freertos.c ****   {
+  50              		.loc 1 232 3 view .LVU5
+  51 000c FBE7     		b	.L2
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 6
 
 
-  63              	EventTask:
-  64              	.LVL2:
-  65              	.LFB148:
- 222:Core/Src/freertos.c ****   /* USER CODE END StartDefaultTask */
- 223:Core/Src/freertos.c **** }
- 224:Core/Src/freertos.c **** 
- 225:Core/Src/freertos.c **** /* Private application code --------------------------------------------------*/
- 226:Core/Src/freertos.c **** /* USER CODE BEGIN Application */
- 227:Core/Src/freertos.c **** 
- 228:Core/Src/freertos.c **** 
- 229:Core/Src/freertos.c ****   void EventTask(void const * argument)
- 230:Core/Src/freertos.c ****   {
-  66              		.loc 1 230 3 view -0
-  67              		.cfi_startproc
-  68              		@ args = 0, pretend = 0, frame = 0
-  69              		@ frame_needed = 0, uses_anonymous_args = 0
-  70              		.loc 1 230 3 is_stmt 0 view .LVU7
-  71 0000 10B5     		push	{r4, lr}
-  72              	.LCFI1:
-  73              		.cfi_def_cfa_offset 8
-  74              		.cfi_offset 4, -8
-  75              		.cfi_offset 14, -4
- 231:Core/Src/freertos.c ****       uint32_t count = 0;
-  76              		.loc 1 231 7 is_stmt 1 view .LVU8
-  77              	.LVL3:
-  78              		.loc 1 231 16 is_stmt 0 view .LVU9
-  79 0002 0024     		movs	r4, #0
-  80              	.LVL4:
-  81              	.L5:
- 232:Core/Src/freertos.c **** 
- 233:Core/Src/freertos.c ****       for(;;)
-  82              		.loc 1 233 7 is_stmt 1 view .LVU10
- 234:Core/Src/freertos.c ****       {
- 235:Core/Src/freertos.c ****           // Block until semaphore given (button pressed)
- 236:Core/Src/freertos.c ****           xSemaphoreTake(ButtonSemaphore, portMAX_DELAY);
-  83              		.loc 1 236 11 view .LVU11
-  84 0004 4FF0FF31 		mov	r1, #-1
-  85 0008 0A4B     		ldr	r3, .L7
-  86 000a 1868     		ldr	r0, [r3]
-  87 000c FFF7FEFF 		bl	xQueueSemaphoreTake
-  88              	.LVL5:
- 237:Core/Src/freertos.c **** 
- 238:Core/Src/freertos.c ****           // Instant response!
- 239:Core/Src/freertos.c ****           count++;
-  89              		.loc 1 239 11 view .LVU12
-  90              		.loc 1 239 16 is_stmt 0 view .LVU13
-  91 0010 0134     		adds	r4, r4, #1
-  92              	.LVL6:
- 240:Core/Src/freertos.c ****           printf("[%lu] Button event! Count: %lu\r\n", HAL_GetTick(), count);
-  93              		.loc 1 240 11 is_stmt 1 view .LVU14
-  94 0012 FFF7FEFF 		bl	HAL_GetTick
-  95              	.LVL7:
-  96 0016 0146     		mov	r1, r0
-  97              		.loc 1 240 11 is_stmt 0 discriminator 1 view .LVU15
-  98 0018 2246     		mov	r2, r4
-  99 001a 0748     		ldr	r0, .L7+4
- 100 001c FFF7FEFF 		bl	printf
-ARM GAS  C:\Users\moham\AppData\Local\Temp\cc8nrtza.s 			page 7
+  52              		.cfi_endproc
+  53              	.LFE252:
+  55              		.section	.rodata.StartAdcProcessTask.str1.4,"aMS",%progbits,1
+  56              		.align	2
+  57              	.LC4:
+  58 0000 5B416463 		.ascii	"[AdcTask] Started - waiting for data\012\000"
+  58      5461736B 
+  58      5D205374 
+  58      61727465 
+  58      64202D20 
+  59 0026 0000     		.align	2
+  60              	.LC5:
+  61 0028 0A5B4841 		.ascii	"\012[HALF-TRANSFER #%lu]\012\000"
+  61      4C462D54 
+  61      52414E53 
+  61      46455220 
+  61      23256C75 
+  62 003f 00       		.align	2
+  63              	.LC6:
+  64 0040 50726F63 		.ascii	"Processing samples [0-127] while DMA fills [128-255"
+  64      65737369 
+  64      6E672073 
+  64      616D706C 
+  64      6573205B 
+  65 0073 5D00     		.ascii	"]\000"
+  66 0075 000000   		.align	2
+  67              	.LC7:
+  68 0078 20204176 		.ascii	"  Average ADC: %.1f\012\000"
+  68      65726167 
+  68      65204144 
+  68      433A2025 
+  68      2E31660A 
+  69 008d 000000   		.align	2
+  70              	.LC8:
+  71 0090 20204176 		.ascii	"  Average Voltage: %.3fV\012\000"
+  71      65726167 
+  71      6520566F 
+  71      6C746167 
+  71      653A2025 
+  72 00aa 0000     		.align	2
+  73              	.LC9:
+  74 00ac 0A5B4655 		.ascii	"\012[FULL-TRANSFER #%lu]\012\000"
+  74      4C4C2D54 
+  74      52414E53 
+  74      46455220 
+  74      23256C75 
+  75 00c3 00       		.align	2
+  76              	.LC10:
+  77 00c4 50726F63 		.ascii	"Processing samples [128-255] while DMA fills [0-127"
+  77      65737369 
+  77      6E672073 
+  77      616D706C 
+  77      6573205B 
+  78 00f7 5D00     		.ascii	"]\000"
+  79 00f9 000000   		.align	2
+  80              	.LC11:
+  81 00fc 5B416463 		.ascii	"[AdcTask] Waiting for data...\000"
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 7
 
 
- 101              	.LVL8:
- 241:Core/Src/freertos.c ****           vTaskDelay(pdMS_TO_TICKS(1000));
- 102              		.loc 1 241 11 is_stmt 1 view .LVU16
- 103 0020 4FF47A70 		mov	r0, #1000
- 104 0024 FFF7FEFF 		bl	vTaskDelay
- 105              	.LVL9:
- 242:Core/Src/freertos.c ****           HAL_GPIO_TogglePin(LED_PORT, LED_RED_PIN);
- 106              		.loc 1 242 11 discriminator 1 view .LVU17
- 107 0028 4FF48041 		mov	r1, #16384
- 108 002c 0348     		ldr	r0, .L7+8
- 109 002e FFF7FEFF 		bl	HAL_GPIO_TogglePin
- 110              	.LVL10:
- 233:Core/Src/freertos.c ****       {
- 111              		.loc 1 233 7 view .LVU18
- 112 0032 E7E7     		b	.L5
- 113              	.L8:
- 114              		.align	2
- 115              	.L7:
- 116 0034 00000000 		.word	ButtonSemaphore
- 117 0038 00000000 		.word	.LC4
- 118 003c 00180240 		.word	1073879040
- 119              		.cfi_endproc
- 120              	.LFE148:
- 122              		.section	.text.vApplicationIdleHook,"ax",%progbits
- 123              		.align	1
- 124              		.weak	vApplicationIdleHook
- 125              		.syntax unified
- 126              		.thumb
- 127              		.thumb_func
- 129              	vApplicationIdleHook:
- 130              	.LFB142:
-  93:Core/Src/freertos.c ****    /* vApplicationIdleHook() will only be called if configUSE_IDLE_HOOK is set
- 131              		.loc 1 93 1 view -0
- 132              		.cfi_startproc
- 133              		@ args = 0, pretend = 0, frame = 0
- 134              		@ frame_needed = 0, uses_anonymous_args = 0
- 135              		@ link register save eliminated.
- 103:Core/Src/freertos.c **** /* USER CODE END 2 */
- 136              		.loc 1 103 1 view .LVU20
- 137 0000 7047     		bx	lr
- 138              		.cfi_endproc
- 139              	.LFE142:
- 141              		.section	.text.vApplicationStackOverflowHook,"ax",%progbits
- 142              		.align	1
- 143              		.global	vApplicationStackOverflowHook
- 144              		.syntax unified
- 145              		.thumb
- 146              		.thumb_func
- 148              	vApplicationStackOverflowHook:
- 149              	.LFB143:
- 108:Core/Src/freertos.c ****    /* Run time stack overflow checking is performed if
- 150              		.loc 1 108 1 view -0
- 151              		.cfi_startproc
- 152              		@ Volatile: function does not return.
- 153              		@ args = 0, pretend = 0, frame = 8
- 154              		@ frame_needed = 0, uses_anonymous_args = 0
- 155              	.LVL11:
-ARM GAS  C:\Users\moham\AppData\Local\Temp\cc8nrtza.s 			page 8
+  81      5461736B 
+  81      5D205761 
+  81      6974696E 
+  81      6720666F 
+  82              		.section	.text.StartAdcProcessTask,"ax",%progbits
+  83              		.align	1
+  84              		.global	StartAdcProcessTask
+  85              		.syntax unified
+  86              		.thumb
+  87              		.thumb_func
+  89              	StartAdcProcessTask:
+  90              	.LVL3:
+  91              	.LFB254:
+ 235:Core/Src/freertos.c ****   }
+ 236:Core/Src/freertos.c ****   /* USER CODE END StartDefaultTask */
+ 237:Core/Src/freertos.c **** }
+ 238:Core/Src/freertos.c **** 
+ 239:Core/Src/freertos.c **** /* Private application code --------------------------------------------------*/
+ 240:Core/Src/freertos.c **** /* USER CODE BEGIN Application */
+ 241:Core/Src/freertos.c **** 
+ 242:Core/Src/freertos.c **** 
+ 243:Core/Src/freertos.c ****   void EventTask(void const * argument)
+ 244:Core/Src/freertos.c ****   {
+ 245:Core/Src/freertos.c ****       uint32_t count = 0;
+ 246:Core/Src/freertos.c **** 
+ 247:Core/Src/freertos.c ****       for(;;)
+ 248:Core/Src/freertos.c ****       {
+ 249:Core/Src/freertos.c ****           // Block until semaphore given (button pressed)
+ 250:Core/Src/freertos.c ****           xSemaphoreTake(ButtonSemaphore, portMAX_DELAY);
+ 251:Core/Src/freertos.c **** 
+ 252:Core/Src/freertos.c ****           // Instant response!
+ 253:Core/Src/freertos.c ****           count++;
+ 254:Core/Src/freertos.c ****           printf("[%lu] Button event! Count: %lu\r\n", HAL_GetTick(), count);
+ 255:Core/Src/freertos.c **** 
+ 256:Core/Src/freertos.c ****           // Simulate slow processing work (100ms as per Task 3.4)
+ 257:Core/Src/freertos.c ****           vTaskDelay(pdMS_TO_TICKS(100));
+ 258:Core/Src/freertos.c **** 
+ 259:Core/Src/freertos.c ****           HAL_GPIO_TogglePin(LED_PORT, LED_RED_PIN);
+ 260:Core/Src/freertos.c ****           
+ 261:Core/Src/freertos.c ****       }
+ 262:Core/Src/freertos.c ****   }
+ 263:Core/Src/freertos.c **** 
+ 264:Core/Src/freertos.c **** /**
+ 265:Core/Src/freertos.c ****   * @brief  ADC processing task
+ 266:Core/Src/freertos.c ****   * @param  argument: Not used
+ 267:Core/Src/freertos.c ****   * @retval None
+ 268:Core/Src/freertos.c ****   */
+ 269:Core/Src/freertos.c **** void StartAdcProcessTask(void const *argument)
+ 270:Core/Src/freertos.c **** {
+  92              		.loc 1 270 1 view -0
+  93              		.cfi_startproc
+  94              		@ args = 0, pretend = 0, frame = 0
+  95              		@ frame_needed = 0, uses_anonymous_args = 0
+  96              		.loc 1 270 1 is_stmt 0 view .LVU7
+  97 0000 D0B5     		push	{r4, r6, r7, lr}
+  98              	.LCFI1:
+  99              		.cfi_def_cfa_offset 16
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 8
 
 
- 108:Core/Src/freertos.c ****    /* Run time stack overflow checking is performed if
- 156              		.loc 1 108 1 is_stmt 0 view .LVU22
- 157 0000 00B5     		push	{lr}
- 158              	.LCFI2:
- 159              		.cfi_def_cfa_offset 4
- 160              		.cfi_offset 14, -4
- 161 0002 83B0     		sub	sp, sp, #12
- 162              	.LCFI3:
- 163              		.cfi_def_cfa_offset 16
- 164              	.LVL12:
- 165              	.L13:
- 115:Core/Src/freertos.c ****    (void)pcTaskName;   // Unused parameter
- 166              		.loc 1 115 4 is_stmt 1 view .LVU23
- 116:Core/Src/freertos.c **** 
- 167              		.loc 1 116 4 view .LVU24
- 118:Core/Src/freertos.c ****       HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_14);  // Red LED
- 168              		.loc 1 118 4 view .LVU25
- 119:Core/Src/freertos.c ****       for(volatile uint32_t i = 0; i < 500000; i++);  // Delay
- 169              		.loc 1 119 7 view .LVU26
- 170 0004 4FF48041 		mov	r1, #16384
- 171 0008 0648     		ldr	r0, .L15
- 172 000a FFF7FEFF 		bl	HAL_GPIO_TogglePin
- 173              	.LVL13:
- 120:Core/Src/freertos.c ****    }
- 174              		.loc 1 120 7 view .LVU27
- 175              	.LBB2:
- 120:Core/Src/freertos.c ****    }
- 176              		.loc 1 120 11 view .LVU28
- 120:Core/Src/freertos.c ****    }
- 177              		.loc 1 120 29 is_stmt 0 view .LVU29
- 178 000e 0023     		movs	r3, #0
- 179 0010 0193     		str	r3, [sp, #4]
- 180              	.L11:
- 120:Core/Src/freertos.c ****    }
- 181              		.loc 1 120 38 is_stmt 1 discriminator 1 view .LVU30
- 182 0012 019A     		ldr	r2, [sp, #4]
- 183 0014 044B     		ldr	r3, .L15+4
- 184 0016 9A42     		cmp	r2, r3
- 185 0018 F4D8     		bhi	.L13
- 120:Core/Src/freertos.c ****    }
- 186              		.loc 1 120 49 discriminator 3 view .LVU31
- 187 001a 019B     		ldr	r3, [sp, #4]
- 188 001c 0133     		adds	r3, r3, #1
- 189 001e 0193     		str	r3, [sp, #4]
- 190 0020 F7E7     		b	.L11
- 191              	.L16:
- 192 0022 00BF     		.align	2
- 193              	.L15:
- 194 0024 00180240 		.word	1073879040
- 195 0028 1FA10700 		.word	499999
- 196              	.LBE2:
- 197              		.cfi_endproc
- 198              	.LFE143:
- 200              		.section	.text.vApplicationMallocFailedHook,"ax",%progbits
- 201              		.align	1
- 202              		.weak	vApplicationMallocFailedHook
- 203              		.syntax unified
-ARM GAS  C:\Users\moham\AppData\Local\Temp\cc8nrtza.s 			page 9
+ 100              		.cfi_offset 4, -16
+ 101              		.cfi_offset 6, -12
+ 102              		.cfi_offset 7, -8
+ 103              		.cfi_offset 14, -4
+ 271:Core/Src/freertos.c ****   /* USER CODE BEGIN StartAdcProcessTask */
+ 272:Core/Src/freertos.c ****   
+ 273:Core/Src/freertos.c ****   printf("[AdcTask] Started - waiting for data\n\n");
+ 104              		.loc 1 273 3 is_stmt 1 view .LVU8
+ 105 0002 5148     		ldr	r0, .L17+16
+ 106              	.LVL4:
+ 107              		.loc 1 273 3 is_stmt 0 view .LVU9
+ 108 0004 FFF7FEFF 		bl	puts
+ 109              	.LVL5:
+ 110              	.L11:
+ 274:Core/Src/freertos.c ****   
+ 275:Core/Src/freertos.c ****   for(;;)
+ 111              		.loc 1 275 3 is_stmt 1 view .LVU10
+ 276:Core/Src/freertos.c ****   {
+ 277:Core/Src/freertos.c ****     /* ============================================
+ 278:Core/Src/freertos.c ****        Wait for EITHER half-complete OR full-complete
+ 279:Core/Src/freertos.c ****        ============================================ */
+ 280:Core/Src/freertos.c ****     
+ 281:Core/Src/freertos.c ****     // Check half-transfer first (non-blocking)
+ 282:Core/Src/freertos.c ****     if (xSemaphoreTake(adcHalfCpltSem, 0) == pdPASS)
+ 112              		.loc 1 282 5 view .LVU11
+ 113              		.loc 1 282 9 is_stmt 0 view .LVU12
+ 114 0008 0021     		movs	r1, #0
+ 115 000a 504B     		ldr	r3, .L17+20
+ 116 000c 1868     		ldr	r0, [r3]
+ 117 000e FFF7FEFF 		bl	xQueueSemaphoreTake
+ 118              	.LVL6:
+ 119              		.loc 1 282 8 discriminator 1 view .LVU13
+ 120 0012 0128     		cmp	r0, #1
+ 121 0014 18D0     		beq	.L15
+ 122              	.L5:
+ 283:Core/Src/freertos.c ****     {
+ 284:Core/Src/freertos.c ****       /* ──────────────────────────────
+ 285:Core/Src/freertos.c ****          HALF-TRANSFER: Process first half [0-127]
+ 286:Core/Src/freertos.c ****          DMA is currently filling second half [128-255]
+ 287:Core/Src/freertos.c ****          ──────────────────────────────
+ 288:Core/Src/freertos.c ****       
+ 289:Core/Src/freertos.c ****       half_transfer_count++;
+ 290:Core/Src/freertos.c ****       
+ 291:Core/Src/freertos.c ****       printf("\n[HALF-TRANSFER #%lu]\n", half_transfer_count);
+ 292:Core/Src/freertos.c ****       printf("Processing samples [0-127] while DMA fills [128-255]\n");
+ 293:Core/Src/freertos.c ****       
+ 294:Core/Src/freertos.c ****       // Calculate average of first half
+ 295:Core/Src/freertos.c ****       uint32_t sum = 0;
+ 296:Core/Src/freertos.c ****       for (int i = 0; i < ADC_BUFFER_SIZE / 2; i++) {
+ 297:Core/Src/freertos.c ****         sum += adc_dma_buffer[i];
+ 298:Core/Src/freertos.c ****       }
+ 299:Core/Src/freertos.c ****       float average = sum / (ADC_BUFFER_SIZE / 2.0);
+ 300:Core/Src/freertos.c ****       float voltage = (average / 4095.0) * 3.3;
+ 301:Core/Src/freertos.c ****       
+ 302:Core/Src/freertos.c ****       printf("  Average ADC: %.1f\n", average);
+ 303:Core/Src/freertos.c ****       printf("  Average Voltage: %.3fV\n", voltage);
+ 304:Core/Src/freertos.c ****       
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 9
 
 
- 204              		.thumb
- 205              		.thumb_func
- 207              	vApplicationMallocFailedHook:
- 208              	.LFB144:
- 128:Core/Src/freertos.c ****    /* vApplicationMallocFailedHook() will only be called if
- 209              		.loc 1 128 1 view -0
- 210              		.cfi_startproc
- 211              		@ args = 0, pretend = 0, frame = 0
- 212              		@ frame_needed = 0, uses_anonymous_args = 0
- 213              		@ link register save eliminated.
- 139:Core/Src/freertos.c **** /* USER CODE END 5 */
- 214              		.loc 1 139 1 view .LVU33
- 215 0000 7047     		bx	lr
- 216              		.cfi_endproc
- 217              	.LFE144:
- 219              		.section	.text.vApplicationGetIdleTaskMemory,"ax",%progbits
- 220              		.align	1
- 221              		.global	vApplicationGetIdleTaskMemory
- 222              		.syntax unified
- 223              		.thumb
- 224              		.thumb_func
- 226              	vApplicationGetIdleTaskMemory:
- 227              	.LVL14:
- 228              	.LFB145:
- 147:Core/Src/freertos.c ****   *ppxIdleTaskTCBBuffer = &xIdleTaskTCBBuffer;
- 229              		.loc 1 147 1 view -0
- 230              		.cfi_startproc
- 231              		@ args = 0, pretend = 0, frame = 0
- 232              		@ frame_needed = 0, uses_anonymous_args = 0
- 233              		@ link register save eliminated.
- 148:Core/Src/freertos.c ****   *ppxIdleTaskStackBuffer = &xIdleStack[0];
- 234              		.loc 1 148 3 view .LVU35
- 148:Core/Src/freertos.c ****   *ppxIdleTaskStackBuffer = &xIdleStack[0];
- 235              		.loc 1 148 25 is_stmt 0 view .LVU36
- 236 0000 034B     		ldr	r3, .L19
- 237 0002 0360     		str	r3, [r0]
- 149:Core/Src/freertos.c ****   *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
- 238              		.loc 1 149 3 is_stmt 1 view .LVU37
- 149:Core/Src/freertos.c ****   *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
- 239              		.loc 1 149 27 is_stmt 0 view .LVU38
- 240 0004 034B     		ldr	r3, .L19+4
- 241 0006 0B60     		str	r3, [r1]
- 150:Core/Src/freertos.c ****   /* place for user code */
- 242              		.loc 1 150 3 is_stmt 1 view .LVU39
- 150:Core/Src/freertos.c ****   /* place for user code */
- 243              		.loc 1 150 25 is_stmt 0 view .LVU40
- 244 0008 8023     		movs	r3, #128
- 245 000a 1360     		str	r3, [r2]
- 152:Core/Src/freertos.c **** /* USER CODE END GET_IDLE_TASK_MEMORY */
- 246              		.loc 1 152 1 view .LVU41
- 247 000c 7047     		bx	lr
- 248              	.L20:
- 249 000e 00BF     		.align	2
- 250              	.L19:
- 251 0010 00000000 		.word	xIdleTaskTCBBuffer
- 252 0014 00000000 		.word	xIdleStack
- 253              		.cfi_endproc
-ARM GAS  C:\Users\moham\AppData\Local\Temp\cc8nrtza.s 			page 10
+ 305:Core/Src/freertos.c ****       // YOUR PROCESSING HERE
+ 306:Core/Src/freertos.c ****       // Example: Check if voltage in range, trigger actions, etc.
+ 307:Core/Src/freertos.c ****     }
+ 308:Core/Src/freertos.c ****     
+ 309:Core/Src/freertos.c ****     // Check full-transfer (non-blocking)
+ 310:Core/Src/freertos.c ****     if (xSemaphoreTake(adcFullCpltSem, 0) == pdPASS)
+ 123              		.loc 1 310 5 is_stmt 1 view .LVU14
+ 124              		.loc 1 310 9 is_stmt 0 view .LVU15
+ 125 0016 0021     		movs	r1, #0
+ 126 0018 4D4B     		ldr	r3, .L17+24
+ 127 001a 1868     		ldr	r0, [r3]
+ 128 001c FFF7FEFF 		bl	xQueueSemaphoreTake
+ 129              	.LVL7:
+ 130              		.loc 1 310 8 discriminator 1 view .LVU16
+ 131 0020 0128     		cmp	r0, #1
+ 132 0022 4DD0     		beq	.L16
+ 133              	.L8:
+ 311:Core/Src/freertos.c ****     {
+ 312:Core/Src/freertos.c ****       /* ──────────────────────────────
+ 313:Core/Src/freertos.c ****          FULL-TRANSFER: Process second half [128-255]
+ 314:Core/Src/freertos.c ****          DMA wrapped around, filling first half [0-127]
+ 315:Core/Src/freertos.c ****          ──────────────────────────────
+ 316:Core/Src/freertos.c ****       
+ 317:Core/Src/freertos.c ****       full_transfer_count++;
+ 318:Core/Src/freertos.c ****       
+ 319:Core/Src/freertos.c ****       printf("\n[FULL-TRANSFER #%lu]\n", full_transfer_count);
+ 320:Core/Src/freertos.c ****       printf("Processing samples [128-255] while DMA fills [0-127]\n");
+ 321:Core/Src/freertos.c ****       
+ 322:Core/Src/freertos.c ****       // Calculate average of second half
+ 323:Core/Src/freertos.c ****       uint32_t sum = 0;
+ 324:Core/Src/freertos.c ****       for (int i = ADC_BUFFER_SIZE / 2; i < ADC_BUFFER_SIZE; i++) {
+ 325:Core/Src/freertos.c ****         sum += adc_dma_buffer[i];
+ 326:Core/Src/freertos.c ****       }
+ 327:Core/Src/freertos.c ****       float average = sum / (ADC_BUFFER_SIZE / 2.0);
+ 328:Core/Src/freertos.c ****       float voltage = (average / 4095.0) * 3.3;
+ 329:Core/Src/freertos.c ****       
+ 330:Core/Src/freertos.c ****       printf("  Average ADC: %.1f\n", average);
+ 331:Core/Src/freertos.c ****       printf("  Average Voltage: %.3fV\n", voltage);
+ 332:Core/Src/freertos.c ****       
+ 333:Core/Src/freertos.c ****       // YOUR PROCESSING HERE
+ 334:Core/Src/freertos.c ****     }
+ 335:Core/Src/freertos.c ****     
+ 336:Core/Src/freertos.c ****     /* If neither semaphore available, wait a bit */
+ 337:Core/Src/freertos.c ****     if (xSemaphoreTake(adcHalfCpltSem, pdMS_TO_TICKS(100)) != pdPASS &&
+ 134              		.loc 1 337 5 is_stmt 1 view .LVU17
+ 135              		.loc 1 337 9 is_stmt 0 view .LVU18
+ 136 0024 6421     		movs	r1, #100
+ 137 0026 494B     		ldr	r3, .L17+20
+ 138 0028 1868     		ldr	r0, [r3]
+ 139 002a FFF7FEFF 		bl	xQueueSemaphoreTake
+ 140              	.LVL8:
+ 141              		.loc 1 337 8 discriminator 1 view .LVU19
+ 142 002e 0128     		cmp	r0, #1
+ 143 0030 EAD0     		beq	.L11
+ 338:Core/Src/freertos.c ****         xSemaphoreTake(adcFullCpltSem, 0) != pdPASS)
+ 144              		.loc 1 338 9 view .LVU20
+ 145 0032 0021     		movs	r1, #0
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 10
 
 
- 254              	.LFE145:
- 256              		.section	.text.MX_FREERTOS_Init,"ax",%progbits
- 257              		.align	1
- 258              		.global	MX_FREERTOS_Init
- 259              		.syntax unified
- 260              		.thumb
- 261              		.thumb_func
- 263              	MX_FREERTOS_Init:
- 264              	.LFB146:
- 160:Core/Src/freertos.c ****   /* USER CODE BEGIN Init */
- 265              		.loc 1 160 29 is_stmt 1 view -0
- 266              		.cfi_startproc
- 267              		@ args = 0, pretend = 0, frame = 56
- 268              		@ frame_needed = 0, uses_anonymous_args = 0
- 269 0000 10B5     		push	{r4, lr}
- 270              	.LCFI4:
- 271              		.cfi_def_cfa_offset 8
- 272              		.cfi_offset 4, -8
- 273              		.cfi_offset 14, -4
- 274 0002 8EB0     		sub	sp, sp, #56
- 275              	.LCFI5:
- 276              		.cfi_def_cfa_offset 64
- 171:Core/Src/freertos.c ****   /* USER CODE END RTOS_SEMAPHORES */
- 277              		.loc 1 171 5 view .LVU43
- 171:Core/Src/freertos.c ****   /* USER CODE END RTOS_SEMAPHORES */
- 278              		.loc 1 171 23 is_stmt 0 view .LVU44
- 279 0004 0322     		movs	r2, #3
- 280 0006 0021     		movs	r1, #0
- 281 0008 0120     		movs	r0, #1
- 282 000a FFF7FEFF 		bl	xQueueGenericCreate
- 283              	.LVL15:
- 171:Core/Src/freertos.c ****   /* USER CODE END RTOS_SEMAPHORES */
- 284              		.loc 1 171 21 discriminator 1 view .LVU45
- 285 000e 134B     		ldr	r3, .L23
- 286 0010 1860     		str	r0, [r3]
- 178:Core/Src/freertos.c ****   EventTaskHandle = osThreadCreate(osThread(Event), NULL);
- 287              		.loc 1 178 3 is_stmt 1 view .LVU46
- 288 0012 134C     		ldr	r4, .L23+4
- 289 0014 0DF11C0C 		add	ip, sp, #28
- 290 0018 A646     		mov	lr, r4
- 291 001a BEE80F00 		ldmia	lr!, {r0, r1, r2, r3}
- 292 001e ACE80F00 		stmia	ip!, {r0, r1, r2, r3}
- 293 0022 9EE80700 		ldm	lr, {r0, r1, r2}
- 294 0026 8CE80700 		stm	ip, {r0, r1, r2}
- 179:Core/Src/freertos.c **** 
- 295              		.loc 1 179 3 view .LVU47
- 179:Core/Src/freertos.c **** 
- 296              		.loc 1 179 21 is_stmt 0 view .LVU48
- 297 002a 0021     		movs	r1, #0
- 298 002c 07A8     		add	r0, sp, #28
- 299 002e FFF7FEFF 		bl	osThreadCreate
- 300              	.LVL16:
- 179:Core/Src/freertos.c **** 
- 301              		.loc 1 179 19 discriminator 1 view .LVU49
- 302 0032 0C4B     		ldr	r3, .L23+8
- 303 0034 1860     		str	r0, [r3]
- 194:Core/Src/freertos.c ****   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
-ARM GAS  C:\Users\moham\AppData\Local\Temp\cc8nrtza.s 			page 11
+ 146 0034 464B     		ldr	r3, .L17+24
+ 147 0036 1868     		ldr	r0, [r3]
+ 148 0038 FFF7FEFF 		bl	xQueueSemaphoreTake
+ 149              	.LVL9:
+ 337:Core/Src/freertos.c ****         xSemaphoreTake(adcFullCpltSem, 0) != pdPASS)
+ 150              		.loc 1 337 70 discriminator 1 view .LVU21
+ 151 003c 0128     		cmp	r0, #1
+ 152 003e E3D0     		beq	.L11
+ 339:Core/Src/freertos.c ****     {
+ 340:Core/Src/freertos.c ****       // Timeout - no data in 100ms (shouldn't happen in continuous mode)
+ 341:Core/Src/freertos.c ****       printf("[AdcTask] Waiting for data...\n");
+ 153              		.loc 1 341 7 is_stmt 1 view .LVU22
+ 154 0040 4448     		ldr	r0, .L17+28
+ 155 0042 FFF7FEFF 		bl	puts
+ 156              	.LVL10:
+ 157 0046 DFE7     		b	.L11
+ 158              	.L15:
+ 159              	.LBB2:
+ 289:Core/Src/freertos.c ****       
+ 160              		.loc 1 289 7 view .LVU23
+ 289:Core/Src/freertos.c ****       
+ 161              		.loc 1 289 26 is_stmt 0 view .LVU24
+ 162 0048 434B     		ldr	r3, .L17+32
+ 163 004a 1968     		ldr	r1, [r3]
+ 164 004c 0131     		adds	r1, r1, #1
+ 165 004e 1960     		str	r1, [r3]
+ 291:Core/Src/freertos.c ****       printf("Processing samples [0-127] while DMA fills [128-255]\n");
+ 166              		.loc 1 291 7 is_stmt 1 view .LVU25
+ 167 0050 4248     		ldr	r0, .L17+36
+ 168 0052 FFF7FEFF 		bl	printf
+ 169              	.LVL11:
+ 292:Core/Src/freertos.c ****       
+ 170              		.loc 1 292 7 view .LVU26
+ 171 0056 4248     		ldr	r0, .L17+40
+ 172 0058 FFF7FEFF 		bl	puts
+ 173              	.LVL12:
+ 295:Core/Src/freertos.c ****       for (int i = 0; i < ADC_BUFFER_SIZE / 2; i++) {
+ 174              		.loc 1 295 7 view .LVU27
+ 296:Core/Src/freertos.c ****         sum += adc_dma_buffer[i];
+ 175              		.loc 1 296 7 view .LVU28
+ 176              	.LBB3:
+ 296:Core/Src/freertos.c ****         sum += adc_dma_buffer[i];
+ 177              		.loc 1 296 12 view .LVU29
+ 296:Core/Src/freertos.c ****         sum += adc_dma_buffer[i];
+ 178              		.loc 1 296 16 is_stmt 0 view .LVU30
+ 179 005c 0023     		movs	r3, #0
+ 180              	.LBE3:
+ 295:Core/Src/freertos.c ****       for (int i = 0; i < ADC_BUFFER_SIZE / 2; i++) {
+ 181              		.loc 1 295 16 view .LVU31
+ 182 005e 1846     		mov	r0, r3
+ 183              	.LBB4:
+ 296:Core/Src/freertos.c ****         sum += adc_dma_buffer[i];
+ 184              		.loc 1 296 7 view .LVU32
+ 185 0060 04E0     		b	.L6
+ 186              	.LVL13:
+ 187              	.L7:
+ 297:Core/Src/freertos.c ****       }
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 11
 
 
- 304              		.loc 1 194 3 is_stmt 1 view .LVU50
- 305 0036 EE46     		mov	lr, sp
- 306 0038 04F11C0C 		add	ip, r4, #28
- 307 003c BCE80F00 		ldmia	ip!, {r0, r1, r2, r3}
- 308 0040 AEE80F00 		stmia	lr!, {r0, r1, r2, r3}
- 309 0044 9CE80700 		ldm	ip, {r0, r1, r2}
- 310 0048 8EE80700 		stm	lr, {r0, r1, r2}
- 195:Core/Src/freertos.c **** 
- 311              		.loc 1 195 3 view .LVU51
- 195:Core/Src/freertos.c **** 
- 312              		.loc 1 195 23 is_stmt 0 view .LVU52
- 313 004c 0021     		movs	r1, #0
- 314 004e 6846     		mov	r0, sp
- 315 0050 FFF7FEFF 		bl	osThreadCreate
- 316              	.LVL17:
- 195:Core/Src/freertos.c **** 
- 317              		.loc 1 195 21 discriminator 1 view .LVU53
- 318 0054 044B     		ldr	r3, .L23+12
- 319 0056 1860     		str	r0, [r3]
- 201:Core/Src/freertos.c **** 
- 320              		.loc 1 201 1 view .LVU54
- 321 0058 0EB0     		add	sp, sp, #56
- 322              	.LCFI6:
- 323              		.cfi_def_cfa_offset 8
- 324              		@ sp needed
- 325 005a 10BD     		pop	{r4, pc}
- 326              	.L24:
- 327              		.align	2
- 328              	.L23:
- 329 005c 00000000 		.word	ButtonSemaphore
- 330 0060 00000000 		.word	.LANCHOR0
- 331 0064 00000000 		.word	EventTaskHandle
- 332 0068 00000000 		.word	defaultTaskHandle
- 333              		.cfi_endproc
- 334              	.LFE146:
- 336              		.section	.rodata.str1.4,"aMS",%progbits,1
- 337              		.align	2
- 338              	.LC2:
- 339 0000 64656661 		.ascii	"defaultTask\000"
- 339      756C7454 
- 339      61736B00 
- 340              		.align	2
- 341              	.LC0:
- 342 000c 4576656E 		.ascii	"Event\000"
- 342      7400
- 343              		.section	.bss.xIdleStack,"aw",%nobits
- 344              		.align	2
- 347              	xIdleStack:
- 348 0000 00000000 		.space	512
- 348      00000000 
- 348      00000000 
- 348      00000000 
- 348      00000000 
- 349              		.section	.bss.xIdleTaskTCBBuffer,"aw",%nobits
- 350              		.align	2
- 353              	xIdleTaskTCBBuffer:
- 354 0000 00000000 		.space	88
-ARM GAS  C:\Users\moham\AppData\Local\Temp\cc8nrtza.s 			page 12
+ 188              		.loc 1 297 9 is_stmt 1 view .LVU33
+ 297:Core/Src/freertos.c ****       }
+ 189              		.loc 1 297 30 is_stmt 0 view .LVU34
+ 190 0062 404A     		ldr	r2, .L17+44
+ 191 0064 32F81320 		ldrh	r2, [r2, r3, lsl #1]
+ 297:Core/Src/freertos.c ****       }
+ 192              		.loc 1 297 13 view .LVU35
+ 193 0068 1044     		add	r0, r0, r2
+ 194              	.LVL14:
+ 296:Core/Src/freertos.c ****         sum += adc_dma_buffer[i];
+ 195              		.loc 1 296 49 is_stmt 1 discriminator 3 view .LVU36
+ 196 006a 0133     		adds	r3, r3, #1
+ 197              	.LVL15:
+ 198              	.L6:
+ 296:Core/Src/freertos.c ****         sum += adc_dma_buffer[i];
+ 199              		.loc 1 296 25 discriminator 1 view .LVU37
+ 200 006c 7F2B     		cmp	r3, #127
+ 201 006e F8DD     		ble	.L7
+ 202              	.LBE4:
+ 299:Core/Src/freertos.c ****       float voltage = (average / 4095.0) * 3.3;
+ 203              		.loc 1 299 7 view .LVU38
+ 299:Core/Src/freertos.c ****       float voltage = (average / 4095.0) * 3.3;
+ 204              		.loc 1 299 27 is_stmt 0 view .LVU39
+ 205 0070 FFF7FEFF 		bl	__aeabi_ui2d
+ 206              	.LVL16:
+ 299:Core/Src/freertos.c ****       float voltage = (average / 4095.0) * 3.3;
+ 207              		.loc 1 299 27 view .LVU40
+ 208 0074 0022     		movs	r2, #0
+ 209 0076 4FF07E53 		mov	r3, #1065353216
+ 210 007a FFF7FEFF 		bl	__aeabi_dmul
+ 211              	.LVL17:
+ 299:Core/Src/freertos.c ****       float voltage = (average / 4095.0) * 3.3;
+ 212              		.loc 1 299 13 view .LVU41
+ 213 007e FFF7FEFF 		bl	__aeabi_d2f
+ 214              	.LVL18:
+ 300:Core/Src/freertos.c ****       
+ 215              		.loc 1 300 7 is_stmt 1 view .LVU42
+ 300:Core/Src/freertos.c ****       
+ 216              		.loc 1 300 32 is_stmt 0 view .LVU43
+ 217 0082 FFF7FEFF 		bl	__aeabi_f2d
+ 218              	.LVL19:
+ 300:Core/Src/freertos.c ****       
+ 219              		.loc 1 300 32 view .LVU44
+ 220 0086 0646     		mov	r6, r0
+ 221 0088 0F46     		mov	r7, r1
+ 222 008a 2BA3     		adr	r3, .L17
+ 223 008c D3E90023 		ldrd	r2, [r3]
+ 224 0090 FFF7FEFF 		bl	__aeabi_ddiv
+ 225              	.LVL20:
+ 300:Core/Src/freertos.c ****       
+ 226              		.loc 1 300 42 view .LVU45
+ 227 0094 2AA3     		adr	r3, .L17+8
+ 228 0096 D3E90023 		ldrd	r2, [r3]
+ 229 009a FFF7FEFF 		bl	__aeabi_dmul
+ 230              	.LVL21:
+ 300:Core/Src/freertos.c ****       
+ 231              		.loc 1 300 13 view .LVU46
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 12
 
 
- 354      00000000 
- 354      00000000 
- 354      00000000 
- 354      00000000 
- 355              		.global	defaultTaskHandle
- 356              		.section	.bss.defaultTaskHandle,"aw",%nobits
- 357              		.align	2
- 360              	defaultTaskHandle:
- 361 0000 00000000 		.space	4
- 362              		.global	CounterBHandle
- 363              		.section	.bss.CounterBHandle,"aw",%nobits
- 364              		.align	2
- 367              	CounterBHandle:
- 368 0000 00000000 		.space	4
- 369              		.global	CounterAHandle
- 370              		.section	.bss.CounterAHandle,"aw",%nobits
- 371              		.align	2
- 374              	CounterAHandle:
- 375 0000 00000000 		.space	4
- 376              		.global	EventTaskHandle
- 377              		.section	.bss.EventTaskHandle,"aw",%nobits
- 378              		.align	2
- 381              	EventTaskHandle:
- 382 0000 00000000 		.space	4
- 383              		.global	ButtonSemaphore
- 384              		.section	.bss.ButtonSemaphore,"aw",%nobits
- 385              		.align	2
- 388              	ButtonSemaphore:
- 389 0000 00000000 		.space	4
- 390              		.section	.rodata
- 391              		.align	2
- 392              		.set	.LANCHOR0,. + 0
- 393              	.LC5:
- 394 0000 0C000000 		.word	.LC0
- 395 0004 00000000 		.word	EventTask
- 396 0008 0000     		.short	0
- 397 000a 0000     		.space	2
- 398 000c 00000000 		.word	0
- 399 0010 80000000 		.word	128
- 400 0014 00000000 		.word	0
- 401 0018 00000000 		.word	0
- 402              	.LC6:
- 403 001c 00000000 		.word	.LC2
- 404 0020 00000000 		.word	StartDefaultTask
- 405 0024 0000     		.short	0
- 406 0026 0000     		.space	2
- 407 0028 00000000 		.word	0
- 408 002c 00100000 		.word	4096
- 409 0030 00000000 		.word	0
- 410 0034 00000000 		.word	0
- 411              		.text
- 412              	.Letext0:
- 413              		.file 2 "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.3 rel1/arm-none-eabi/include/ma
- 414              		.file 3 "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.3 rel1/arm-none-eabi/include/sy
- 415              		.file 4 "Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/portmacro.h"
- 416              		.file 5 "Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h"
- 417              		.file 6 "Middlewares/Third_Party/FreeRTOS/Source/include/task.h"
-ARM GAS  C:\Users\moham\AppData\Local\Temp\cc8nrtza.s 			page 13
+ 232 009e FFF7FEFF 		bl	__aeabi_d2f
+ 233              	.LVL22:
+ 234 00a2 0446     		mov	r4, r0	@ float
+ 235              	.LVL23:
+ 302:Core/Src/freertos.c ****       printf("  Average Voltage: %.3fV\n", voltage);
+ 236              		.loc 1 302 7 is_stmt 1 view .LVU47
+ 237 00a4 3246     		mov	r2, r6
+ 238 00a6 3B46     		mov	r3, r7
+ 239 00a8 2F48     		ldr	r0, .L17+48
+ 240              	.LVL24:
+ 302:Core/Src/freertos.c ****       printf("  Average Voltage: %.3fV\n", voltage);
+ 241              		.loc 1 302 7 is_stmt 0 view .LVU48
+ 242 00aa FFF7FEFF 		bl	printf
+ 243              	.LVL25:
+ 303:Core/Src/freertos.c ****       
+ 244              		.loc 1 303 7 is_stmt 1 view .LVU49
+ 245 00ae 2046     		mov	r0, r4	@ float
+ 246 00b0 FFF7FEFF 		bl	__aeabi_f2d
+ 247              	.LVL26:
+ 248 00b4 0246     		mov	r2, r0
+ 249 00b6 0B46     		mov	r3, r1
+ 250 00b8 2C48     		ldr	r0, .L17+52
+ 251 00ba FFF7FEFF 		bl	printf
+ 252              	.LVL27:
+ 253 00be AAE7     		b	.L5
+ 254              	.LVL28:
+ 255              	.L16:
+ 303:Core/Src/freertos.c ****       
+ 256              		.loc 1 303 7 is_stmt 0 view .LVU50
+ 257              	.LBE2:
+ 258              	.LBB5:
+ 317:Core/Src/freertos.c ****       
+ 259              		.loc 1 317 7 is_stmt 1 view .LVU51
+ 317:Core/Src/freertos.c ****       
+ 260              		.loc 1 317 26 is_stmt 0 view .LVU52
+ 261 00c0 2B4B     		ldr	r3, .L17+56
+ 262 00c2 1968     		ldr	r1, [r3]
+ 263 00c4 0131     		adds	r1, r1, #1
+ 264 00c6 1960     		str	r1, [r3]
+ 319:Core/Src/freertos.c ****       printf("Processing samples [128-255] while DMA fills [0-127]\n");
+ 265              		.loc 1 319 7 is_stmt 1 view .LVU53
+ 266 00c8 2A48     		ldr	r0, .L17+60
+ 267 00ca FFF7FEFF 		bl	printf
+ 268              	.LVL29:
+ 320:Core/Src/freertos.c ****       
+ 269              		.loc 1 320 7 view .LVU54
+ 270 00ce 2A48     		ldr	r0, .L17+64
+ 271 00d0 FFF7FEFF 		bl	puts
+ 272              	.LVL30:
+ 323:Core/Src/freertos.c ****       for (int i = ADC_BUFFER_SIZE / 2; i < ADC_BUFFER_SIZE; i++) {
+ 273              		.loc 1 323 7 view .LVU55
+ 324:Core/Src/freertos.c ****         sum += adc_dma_buffer[i];
+ 274              		.loc 1 324 7 view .LVU56
+ 275              	.LBB6:
+ 324:Core/Src/freertos.c ****         sum += adc_dma_buffer[i];
+ 276              		.loc 1 324 12 view .LVU57
+ 324:Core/Src/freertos.c ****         sum += adc_dma_buffer[i];
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 13
 
 
- 418              		.file 7 "Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f429xx.h"
- 419              		.file 8 "Middlewares/Third_Party/FreeRTOS/Source/include/queue.h"
- 420              		.file 9 "Middlewares/Third_Party/FreeRTOS/Source/include/semphr.h"
- 421              		.file 10 "Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.h"
- 422              		.file 11 "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.3 rel1/arm-none-eabi/include/s
- 423              		.file 12 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_gpio.h"
- 424              		.file 13 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h"
-ARM GAS  C:\Users\moham\AppData\Local\Temp\cc8nrtza.s 			page 14
+ 277              		.loc 1 324 16 is_stmt 0 view .LVU58
+ 278 00d4 8023     		movs	r3, #128
+ 279              	.LBE6:
+ 323:Core/Src/freertos.c ****       for (int i = ADC_BUFFER_SIZE / 2; i < ADC_BUFFER_SIZE; i++) {
+ 280              		.loc 1 323 16 view .LVU59
+ 281 00d6 0020     		movs	r0, #0
+ 282              	.LBB7:
+ 324:Core/Src/freertos.c ****         sum += adc_dma_buffer[i];
+ 283              		.loc 1 324 7 view .LVU60
+ 284 00d8 04E0     		b	.L9
+ 285              	.LVL31:
+ 286              	.L10:
+ 325:Core/Src/freertos.c ****       }
+ 287              		.loc 1 325 9 is_stmt 1 view .LVU61
+ 325:Core/Src/freertos.c ****       }
+ 288              		.loc 1 325 30 is_stmt 0 view .LVU62
+ 289 00da 224A     		ldr	r2, .L17+44
+ 290 00dc 32F81320 		ldrh	r2, [r2, r3, lsl #1]
+ 325:Core/Src/freertos.c ****       }
+ 291              		.loc 1 325 13 view .LVU63
+ 292 00e0 1044     		add	r0, r0, r2
+ 293              	.LVL32:
+ 324:Core/Src/freertos.c ****         sum += adc_dma_buffer[i];
+ 294              		.loc 1 324 63 is_stmt 1 discriminator 3 view .LVU64
+ 295 00e2 0133     		adds	r3, r3, #1
+ 296              	.LVL33:
+ 297              	.L9:
+ 324:Core/Src/freertos.c ****         sum += adc_dma_buffer[i];
+ 298              		.loc 1 324 43 discriminator 1 view .LVU65
+ 299 00e4 FF2B     		cmp	r3, #255
+ 300 00e6 F8DD     		ble	.L10
+ 301              	.LBE7:
+ 327:Core/Src/freertos.c ****       float voltage = (average / 4095.0) * 3.3;
+ 302              		.loc 1 327 7 view .LVU66
+ 327:Core/Src/freertos.c ****       float voltage = (average / 4095.0) * 3.3;
+ 303              		.loc 1 327 27 is_stmt 0 view .LVU67
+ 304 00e8 FFF7FEFF 		bl	__aeabi_ui2d
+ 305              	.LVL34:
+ 327:Core/Src/freertos.c ****       float voltage = (average / 4095.0) * 3.3;
+ 306              		.loc 1 327 27 view .LVU68
+ 307 00ec 0022     		movs	r2, #0
+ 308 00ee 4FF07E53 		mov	r3, #1065353216
+ 309 00f2 FFF7FEFF 		bl	__aeabi_dmul
+ 310              	.LVL35:
+ 327:Core/Src/freertos.c ****       float voltage = (average / 4095.0) * 3.3;
+ 311              		.loc 1 327 13 view .LVU69
+ 312 00f6 FFF7FEFF 		bl	__aeabi_d2f
+ 313              	.LVL36:
+ 328:Core/Src/freertos.c ****       
+ 314              		.loc 1 328 7 is_stmt 1 view .LVU70
+ 328:Core/Src/freertos.c ****       
+ 315              		.loc 1 328 32 is_stmt 0 view .LVU71
+ 316 00fa FFF7FEFF 		bl	__aeabi_f2d
+ 317              	.LVL37:
+ 328:Core/Src/freertos.c ****       
+ 318              		.loc 1 328 32 view .LVU72
+ 319 00fe 0646     		mov	r6, r0
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 14
+
+
+ 320 0100 0F46     		mov	r7, r1
+ 321 0102 0DA3     		adr	r3, .L17
+ 322 0104 D3E90023 		ldrd	r2, [r3]
+ 323 0108 FFF7FEFF 		bl	__aeabi_ddiv
+ 324              	.LVL38:
+ 328:Core/Src/freertos.c ****       
+ 325              		.loc 1 328 42 view .LVU73
+ 326 010c 0CA3     		adr	r3, .L17+8
+ 327 010e D3E90023 		ldrd	r2, [r3]
+ 328 0112 FFF7FEFF 		bl	__aeabi_dmul
+ 329              	.LVL39:
+ 328:Core/Src/freertos.c ****       
+ 330              		.loc 1 328 13 view .LVU74
+ 331 0116 FFF7FEFF 		bl	__aeabi_d2f
+ 332              	.LVL40:
+ 333 011a 0446     		mov	r4, r0	@ float
+ 334              	.LVL41:
+ 330:Core/Src/freertos.c ****       printf("  Average Voltage: %.3fV\n", voltage);
+ 335              		.loc 1 330 7 is_stmt 1 view .LVU75
+ 336 011c 3246     		mov	r2, r6
+ 337 011e 3B46     		mov	r3, r7
+ 338 0120 1148     		ldr	r0, .L17+48
+ 339              	.LVL42:
+ 330:Core/Src/freertos.c ****       printf("  Average Voltage: %.3fV\n", voltage);
+ 340              		.loc 1 330 7 is_stmt 0 view .LVU76
+ 341 0122 FFF7FEFF 		bl	printf
+ 342              	.LVL43:
+ 331:Core/Src/freertos.c ****       
+ 343              		.loc 1 331 7 is_stmt 1 view .LVU77
+ 344 0126 2046     		mov	r0, r4	@ float
+ 345 0128 FFF7FEFF 		bl	__aeabi_f2d
+ 346              	.LVL44:
+ 347 012c 0246     		mov	r2, r0
+ 348 012e 0B46     		mov	r3, r1
+ 349 0130 0E48     		ldr	r0, .L17+52
+ 350 0132 FFF7FEFF 		bl	printf
+ 351              	.LVL45:
+ 352 0136 75E7     		b	.L8
+ 353              	.L18:
+ 354              		.align	3
+ 355              	.L17:
+ 356 0138 00000000 		.word	0
+ 357 013c 00FEAF40 		.word	1085275648
+ 358 0140 66666666 		.word	1717986918
+ 359 0144 66660A40 		.word	1074423398
+ 360 0148 00000000 		.word	.LC4
+ 361 014c 00000000 		.word	adcHalfCpltSem
+ 362 0150 00000000 		.word	adcFullCpltSem
+ 363 0154 FC000000 		.word	.LC11
+ 364 0158 00000000 		.word	half_transfer_count
+ 365 015c 28000000 		.word	.LC5
+ 366 0160 40000000 		.word	.LC6
+ 367 0164 00000000 		.word	adc_dma_buffer
+ 368 0168 78000000 		.word	.LC7
+ 369 016c 90000000 		.word	.LC8
+ 370 0170 00000000 		.word	full_transfer_count
+ 371 0174 AC000000 		.word	.LC9
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 15
+
+
+ 372 0178 C4000000 		.word	.LC10
+ 373              	.LBE5:
+ 374              		.cfi_endproc
+ 375              	.LFE254:
+ 377              		.section	.text.vApplicationIdleHook,"ax",%progbits
+ 378              		.align	1
+ 379              		.weak	vApplicationIdleHook
+ 380              		.syntax unified
+ 381              		.thumb
+ 382              		.thumb_func
+ 384              	vApplicationIdleHook:
+ 385              	.LFB247:
+  96:Core/Src/freertos.c ****    /* vApplicationIdleHook() will only be called if configUSE_IDLE_HOOK is set
+ 386              		.loc 1 96 1 view -0
+ 387              		.cfi_startproc
+ 388              		@ args = 0, pretend = 0, frame = 0
+ 389              		@ frame_needed = 0, uses_anonymous_args = 0
+ 390              		@ link register save eliminated.
+ 106:Core/Src/freertos.c **** /* USER CODE END 2 */
+ 391              		.loc 1 106 1 view .LVU79
+ 392 0000 7047     		bx	lr
+ 393              		.cfi_endproc
+ 394              	.LFE247:
+ 396              		.section	.text.vApplicationStackOverflowHook,"ax",%progbits
+ 397              		.align	1
+ 398              		.global	vApplicationStackOverflowHook
+ 399              		.syntax unified
+ 400              		.thumb
+ 401              		.thumb_func
+ 403              	vApplicationStackOverflowHook:
+ 404              	.LFB248:
+ 111:Core/Src/freertos.c ****    /* Run time stack overflow checking is performed if
+ 405              		.loc 1 111 1 view -0
+ 406              		.cfi_startproc
+ 407              		@ Volatile: function does not return.
+ 408              		@ args = 0, pretend = 0, frame = 8
+ 409              		@ frame_needed = 0, uses_anonymous_args = 0
+ 410              	.LVL46:
+ 111:Core/Src/freertos.c ****    /* Run time stack overflow checking is performed if
+ 411              		.loc 1 111 1 is_stmt 0 view .LVU81
+ 412 0000 00B5     		push	{lr}
+ 413              	.LCFI2:
+ 414              		.cfi_def_cfa_offset 4
+ 415              		.cfi_offset 14, -4
+ 416 0002 83B0     		sub	sp, sp, #12
+ 417              	.LCFI3:
+ 418              		.cfi_def_cfa_offset 16
+ 419              	.LVL47:
+ 420              	.L23:
+ 118:Core/Src/freertos.c ****    (void)pcTaskName;   // Unused parameter
+ 421              		.loc 1 118 4 is_stmt 1 view .LVU82
+ 119:Core/Src/freertos.c **** 
+ 422              		.loc 1 119 4 view .LVU83
+ 121:Core/Src/freertos.c ****       HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_14);  // Red LED
+ 423              		.loc 1 121 4 view .LVU84
+ 122:Core/Src/freertos.c ****       for(volatile uint32_t i = 0; i < 500000; i++);  // Delay
+ 424              		.loc 1 122 7 view .LVU85
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 16
+
+
+ 425 0004 4FF48041 		mov	r1, #16384
+ 426 0008 0648     		ldr	r0, .L25
+ 427 000a FFF7FEFF 		bl	HAL_GPIO_TogglePin
+ 428              	.LVL48:
+ 123:Core/Src/freertos.c ****    }
+ 429              		.loc 1 123 7 view .LVU86
+ 430              	.LBB8:
+ 123:Core/Src/freertos.c ****    }
+ 431              		.loc 1 123 11 view .LVU87
+ 123:Core/Src/freertos.c ****    }
+ 432              		.loc 1 123 29 is_stmt 0 view .LVU88
+ 433 000e 0023     		movs	r3, #0
+ 434 0010 0193     		str	r3, [sp, #4]
+ 435              	.L21:
+ 123:Core/Src/freertos.c ****    }
+ 436              		.loc 1 123 38 is_stmt 1 discriminator 1 view .LVU89
+ 437 0012 019A     		ldr	r2, [sp, #4]
+ 438 0014 044B     		ldr	r3, .L25+4
+ 439 0016 9A42     		cmp	r2, r3
+ 440 0018 F4D8     		bhi	.L23
+ 123:Core/Src/freertos.c ****    }
+ 441              		.loc 1 123 49 discriminator 3 view .LVU90
+ 442 001a 019B     		ldr	r3, [sp, #4]
+ 443 001c 0133     		adds	r3, r3, #1
+ 444 001e 0193     		str	r3, [sp, #4]
+ 445 0020 F7E7     		b	.L21
+ 446              	.L26:
+ 447 0022 00BF     		.align	2
+ 448              	.L25:
+ 449 0024 00180240 		.word	1073879040
+ 450 0028 1FA10700 		.word	499999
+ 451              	.LBE8:
+ 452              		.cfi_endproc
+ 453              	.LFE248:
+ 455              		.section	.text.vApplicationMallocFailedHook,"ax",%progbits
+ 456              		.align	1
+ 457              		.weak	vApplicationMallocFailedHook
+ 458              		.syntax unified
+ 459              		.thumb
+ 460              		.thumb_func
+ 462              	vApplicationMallocFailedHook:
+ 463              	.LFB249:
+ 131:Core/Src/freertos.c ****    /* vApplicationMallocFailedHook() will only be called if
+ 464              		.loc 1 131 1 view -0
+ 465              		.cfi_startproc
+ 466              		@ args = 0, pretend = 0, frame = 0
+ 467              		@ frame_needed = 0, uses_anonymous_args = 0
+ 468              		@ link register save eliminated.
+ 142:Core/Src/freertos.c **** /* USER CODE END 5 */
+ 469              		.loc 1 142 1 view .LVU92
+ 470 0000 7047     		bx	lr
+ 471              		.cfi_endproc
+ 472              	.LFE249:
+ 474              		.section	.text.vApplicationGetIdleTaskMemory,"ax",%progbits
+ 475              		.align	1
+ 476              		.global	vApplicationGetIdleTaskMemory
+ 477              		.syntax unified
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 17
+
+
+ 478              		.thumb
+ 479              		.thumb_func
+ 481              	vApplicationGetIdleTaskMemory:
+ 482              	.LVL49:
+ 483              	.LFB250:
+ 150:Core/Src/freertos.c ****   *ppxIdleTaskTCBBuffer = &xIdleTaskTCBBuffer;
+ 484              		.loc 1 150 1 view -0
+ 485              		.cfi_startproc
+ 486              		@ args = 0, pretend = 0, frame = 0
+ 487              		@ frame_needed = 0, uses_anonymous_args = 0
+ 488              		@ link register save eliminated.
+ 151:Core/Src/freertos.c ****   *ppxIdleTaskStackBuffer = &xIdleStack[0];
+ 489              		.loc 1 151 3 view .LVU94
+ 151:Core/Src/freertos.c ****   *ppxIdleTaskStackBuffer = &xIdleStack[0];
+ 490              		.loc 1 151 25 is_stmt 0 view .LVU95
+ 491 0000 034B     		ldr	r3, .L29
+ 492 0002 0360     		str	r3, [r0]
+ 152:Core/Src/freertos.c ****   *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+ 493              		.loc 1 152 3 is_stmt 1 view .LVU96
+ 152:Core/Src/freertos.c ****   *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+ 494              		.loc 1 152 27 is_stmt 0 view .LVU97
+ 495 0004 034B     		ldr	r3, .L29+4
+ 496 0006 0B60     		str	r3, [r1]
+ 153:Core/Src/freertos.c ****   /* place for user code */
+ 497              		.loc 1 153 3 is_stmt 1 view .LVU98
+ 153:Core/Src/freertos.c ****   /* place for user code */
+ 498              		.loc 1 153 25 is_stmt 0 view .LVU99
+ 499 0008 8023     		movs	r3, #128
+ 500 000a 1360     		str	r3, [r2]
+ 155:Core/Src/freertos.c **** /* USER CODE END GET_IDLE_TASK_MEMORY */
+ 501              		.loc 1 155 1 view .LVU100
+ 502 000c 7047     		bx	lr
+ 503              	.L30:
+ 504 000e 00BF     		.align	2
+ 505              	.L29:
+ 506 0010 00000000 		.word	xIdleTaskTCBBuffer
+ 507 0014 00000000 		.word	xIdleStack
+ 508              		.cfi_endproc
+ 509              	.LFE250:
+ 511              		.section	.rodata.MX_FREERTOS_Init.str1.4,"aMS",%progbits,1
+ 512              		.align	2
+ 513              	.LC12:
+ 514 0000 4552524F 		.ascii	"ERROR: Failed to create adcHalfCpltSem!\000"
+ 514      523A2046 
+ 514      61696C65 
+ 514      6420746F 
+ 514      20637265 
+ 515              		.align	2
+ 516              	.LC13:
+ 517 0028 E29C9320 		.ascii	"\342\234\223 Half-transfer semaphore created\000"
+ 517      48616C66 
+ 517      2D747261 
+ 517      6E736665 
+ 517      72207365 
+ 518              		.align	2
+ 519              	.LC14:
+ 520 004c 4552524F 		.ascii	"ERROR: Failed to create adcFullCpltSem!\000"
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 18
+
+
+ 520      523A2046 
+ 520      61696C65 
+ 520      6420746F 
+ 520      20637265 
+ 521              		.align	2
+ 522              	.LC15:
+ 523 0074 E29C9320 		.ascii	"\342\234\223 Full-transfer semaphore created\000"
+ 523      46756C6C 
+ 523      2D747261 
+ 523      6E736665 
+ 523      72207365 
+ 524              		.align	2
+ 525              	.LC18:
+ 526 0098 E29C9320 		.ascii	"\342\234\223 ADC processing task created\000"
+ 526      41444320 
+ 526      70726F63 
+ 526      65737369 
+ 526      6E672074 
+ 527              		.section	.text.MX_FREERTOS_Init,"ax",%progbits
+ 528              		.align	1
+ 529              		.global	MX_FREERTOS_Init
+ 530              		.syntax unified
+ 531              		.thumb
+ 532              		.thumb_func
+ 534              	MX_FREERTOS_Init:
+ 535              	.LFB251:
+ 163:Core/Src/freertos.c ****   /* USER CODE BEGIN Init */
+ 536              		.loc 1 163 29 is_stmt 1 view -0
+ 537              		.cfi_startproc
+ 538              		@ args = 0, pretend = 0, frame = 56
+ 539              		@ frame_needed = 0, uses_anonymous_args = 0
+ 540 0000 10B5     		push	{r4, lr}
+ 541              	.LCFI4:
+ 542              		.cfi_def_cfa_offset 8
+ 543              		.cfi_offset 4, -8
+ 544              		.cfi_offset 14, -4
+ 545 0002 8EB0     		sub	sp, sp, #56
+ 546              	.LCFI5:
+ 547              		.cfi_def_cfa_offset 64
+ 166:Core/Src/freertos.c ****   if (adcHalfCpltSem == NULL) {
+ 548              		.loc 1 166 3 view .LVU102
+ 166:Core/Src/freertos.c ****   if (adcHalfCpltSem == NULL) {
+ 549              		.loc 1 166 20 is_stmt 0 view .LVU103
+ 550 0004 0322     		movs	r2, #3
+ 551 0006 0021     		movs	r1, #0
+ 552 0008 0120     		movs	r0, #1
+ 553 000a FFF7FEFF 		bl	xQueueGenericCreate
+ 554              	.LVL50:
+ 166:Core/Src/freertos.c ****   if (adcHalfCpltSem == NULL) {
+ 555              		.loc 1 166 18 discriminator 1 view .LVU104
+ 556 000e 234B     		ldr	r3, .L39
+ 557 0010 1860     		str	r0, [r3]
+ 167:Core/Src/freertos.c ****     printf("ERROR: Failed to create adcHalfCpltSem!\n");
+ 558              		.loc 1 167 3 is_stmt 1 view .LVU105
+ 167:Core/Src/freertos.c ****     printf("ERROR: Failed to create adcHalfCpltSem!\n");
+ 559              		.loc 1 167 6 is_stmt 0 view .LVU106
+ 560 0012 0028     		cmp	r0, #0
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 19
+
+
+ 561 0014 3AD0     		beq	.L37
+ 170:Core/Src/freertos.c ****   }
+ 562              		.loc 1 170 5 is_stmt 1 view .LVU107
+ 563 0016 2248     		ldr	r0, .L39+4
+ 564 0018 FFF7FEFF 		bl	puts
+ 565              	.LVL51:
+ 566              	.L33:
+ 174:Core/Src/freertos.c ****   if (adcFullCpltSem == NULL) {
+ 567              		.loc 1 174 3 view .LVU108
+ 174:Core/Src/freertos.c ****   if (adcFullCpltSem == NULL) {
+ 568              		.loc 1 174 20 is_stmt 0 view .LVU109
+ 569 001c 0322     		movs	r2, #3
+ 570 001e 0021     		movs	r1, #0
+ 571 0020 0120     		movs	r0, #1
+ 572 0022 FFF7FEFF 		bl	xQueueGenericCreate
+ 573              	.LVL52:
+ 174:Core/Src/freertos.c ****   if (adcFullCpltSem == NULL) {
+ 574              		.loc 1 174 18 discriminator 1 view .LVU110
+ 575 0026 1F4B     		ldr	r3, .L39+8
+ 576 0028 1860     		str	r0, [r3]
+ 175:Core/Src/freertos.c ****     printf("ERROR: Failed to create adcFullCpltSem!\n");
+ 577              		.loc 1 175 3 is_stmt 1 view .LVU111
+ 175:Core/Src/freertos.c ****     printf("ERROR: Failed to create adcFullCpltSem!\n");
+ 578              		.loc 1 175 6 is_stmt 0 view .LVU112
+ 579 002a 98B3     		cbz	r0, .L38
+ 178:Core/Src/freertos.c ****   }
+ 580              		.loc 1 178 5 is_stmt 1 view .LVU113
+ 581 002c 1E48     		ldr	r0, .L39+12
+ 582 002e FFF7FEFF 		bl	puts
+ 583              	.LVL53:
+ 584              	.L35:
+ 188:Core/Src/freertos.c ****   /* USER CODE END RTOS_SEMAPHORES */
+ 585              		.loc 1 188 5 view .LVU114
+ 188:Core/Src/freertos.c ****   /* USER CODE END RTOS_SEMAPHORES */
+ 586              		.loc 1 188 23 is_stmt 0 view .LVU115
+ 587 0032 0322     		movs	r2, #3
+ 588 0034 0021     		movs	r1, #0
+ 589 0036 0120     		movs	r0, #1
+ 590 0038 FFF7FEFF 		bl	xQueueGenericCreate
+ 591              	.LVL54:
+ 188:Core/Src/freertos.c ****   /* USER CODE END RTOS_SEMAPHORES */
+ 592              		.loc 1 188 21 discriminator 1 view .LVU116
+ 593 003c 1B4B     		ldr	r3, .L39+16
+ 594 003e 1860     		str	r0, [r3]
+ 202:Core/Src/freertos.c ****   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+ 595              		.loc 1 202 3 is_stmt 1 view .LVU117
+ 596 0040 1B4C     		ldr	r4, .L39+20
+ 597 0042 0DF11C0C 		add	ip, sp, #28
+ 598 0046 A646     		mov	lr, r4
+ 599 0048 BEE80F00 		ldmia	lr!, {r0, r1, r2, r3}
+ 600 004c ACE80F00 		stmia	ip!, {r0, r1, r2, r3}
+ 601 0050 9EE80700 		ldm	lr, {r0, r1, r2}
+ 602 0054 8CE80700 		stm	ip, {r0, r1, r2}
+ 203:Core/Src/freertos.c **** 
+ 603              		.loc 1 203 3 view .LVU118
+ 203:Core/Src/freertos.c **** 
+ 604              		.loc 1 203 23 is_stmt 0 view .LVU119
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 20
+
+
+ 605 0058 0021     		movs	r1, #0
+ 606 005a 07A8     		add	r0, sp, #28
+ 607 005c FFF7FEFF 		bl	osThreadCreate
+ 608              	.LVL55:
+ 203:Core/Src/freertos.c **** 
+ 609              		.loc 1 203 21 discriminator 1 view .LVU120
+ 610 0060 144B     		ldr	r3, .L39+24
+ 611 0062 1860     		str	r0, [r3]
+ 206:Core/Src/freertos.c ****   osThreadCreate(osThread(adcTask), NULL);
+ 612              		.loc 1 206 3 is_stmt 1 view .LVU121
+ 613 0064 EE46     		mov	lr, sp
+ 614 0066 04F11C0C 		add	ip, r4, #28
+ 615 006a BCE80F00 		ldmia	ip!, {r0, r1, r2, r3}
+ 616 006e AEE80F00 		stmia	lr!, {r0, r1, r2, r3}
+ 617 0072 9CE80700 		ldm	ip, {r0, r1, r2}
+ 618 0076 8EE80700 		stm	lr, {r0, r1, r2}
+ 207:Core/Src/freertos.c ****   printf("✓ ADC processing task created\n");
+ 619              		.loc 1 207 3 view .LVU122
+ 620 007a 0021     		movs	r1, #0
+ 621 007c 6846     		mov	r0, sp
+ 622 007e FFF7FEFF 		bl	osThreadCreate
+ 623              	.LVL56:
+ 208:Core/Src/freertos.c **** 
+ 624              		.loc 1 208 3 view .LVU123
+ 625 0082 0D48     		ldr	r0, .L39+28
+ 626 0084 FFF7FEFF 		bl	puts
+ 627              	.LVL57:
+ 217:Core/Src/freertos.c **** 
+ 628              		.loc 1 217 1 is_stmt 0 view .LVU124
+ 629 0088 0EB0     		add	sp, sp, #56
+ 630              	.LCFI6:
+ 631              		.cfi_remember_state
+ 632              		.cfi_def_cfa_offset 8
+ 633              		@ sp needed
+ 634 008a 10BD     		pop	{r4, pc}
+ 635              	.L37:
+ 636              	.LCFI7:
+ 637              		.cfi_restore_state
+ 168:Core/Src/freertos.c ****   } else {
+ 638              		.loc 1 168 5 is_stmt 1 view .LVU125
+ 639 008c 0B48     		ldr	r0, .L39+32
+ 640 008e FFF7FEFF 		bl	puts
+ 641              	.LVL58:
+ 642 0092 C3E7     		b	.L33
+ 643              	.L38:
+ 176:Core/Src/freertos.c ****   } else {
+ 644              		.loc 1 176 5 view .LVU126
+ 645 0094 0A48     		ldr	r0, .L39+36
+ 646 0096 FFF7FEFF 		bl	puts
+ 647              	.LVL59:
+ 648 009a CAE7     		b	.L35
+ 649              	.L40:
+ 650              		.align	2
+ 651              	.L39:
+ 652 009c 00000000 		.word	adcHalfCpltSem
+ 653 00a0 28000000 		.word	.LC13
+ 654 00a4 00000000 		.word	adcFullCpltSem
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 21
+
+
+ 655 00a8 74000000 		.word	.LC15
+ 656 00ac 00000000 		.word	ButtonSemaphore
+ 657 00b0 00000000 		.word	.LANCHOR0
+ 658 00b4 00000000 		.word	defaultTaskHandle
+ 659 00b8 98000000 		.word	.LC18
+ 660 00bc 00000000 		.word	.LC12
+ 661 00c0 4C000000 		.word	.LC14
+ 662              		.cfi_endproc
+ 663              	.LFE251:
+ 665              		.section	.rodata.EventTask.str1.4,"aMS",%progbits,1
+ 666              		.align	2
+ 667              	.LC19:
+ 668 0000 5B256C75 		.ascii	"[%lu] Button event! Count: %lu\015\012\000"
+ 668      5D204275 
+ 668      74746F6E 
+ 668      20657665 
+ 668      6E742120 
+ 669              		.section	.text.EventTask,"ax",%progbits
+ 670              		.align	1
+ 671              		.global	EventTask
+ 672              		.syntax unified
+ 673              		.thumb
+ 674              		.thumb_func
+ 676              	EventTask:
+ 677              	.LVL60:
+ 678              	.LFB253:
+ 244:Core/Src/freertos.c ****       uint32_t count = 0;
+ 679              		.loc 1 244 3 view -0
+ 680              		.cfi_startproc
+ 681              		@ args = 0, pretend = 0, frame = 0
+ 682              		@ frame_needed = 0, uses_anonymous_args = 0
+ 244:Core/Src/freertos.c ****       uint32_t count = 0;
+ 683              		.loc 1 244 3 is_stmt 0 view .LVU128
+ 684 0000 10B5     		push	{r4, lr}
+ 685              	.LCFI8:
+ 686              		.cfi_def_cfa_offset 8
+ 687              		.cfi_offset 4, -8
+ 688              		.cfi_offset 14, -4
+ 245:Core/Src/freertos.c **** 
+ 689              		.loc 1 245 7 is_stmt 1 view .LVU129
+ 690              	.LVL61:
+ 245:Core/Src/freertos.c **** 
+ 691              		.loc 1 245 16 is_stmt 0 view .LVU130
+ 692 0002 0024     		movs	r4, #0
+ 693              	.LVL62:
+ 694              	.L42:
+ 247:Core/Src/freertos.c ****       {
+ 695              		.loc 1 247 7 is_stmt 1 view .LVU131
+ 250:Core/Src/freertos.c **** 
+ 696              		.loc 1 250 11 view .LVU132
+ 697 0004 4FF0FF31 		mov	r1, #-1
+ 698 0008 0A4B     		ldr	r3, .L44
+ 699 000a 1868     		ldr	r0, [r3]
+ 700 000c FFF7FEFF 		bl	xQueueSemaphoreTake
+ 701              	.LVL63:
+ 253:Core/Src/freertos.c ****           printf("[%lu] Button event! Count: %lu\r\n", HAL_GetTick(), count);
+ 702              		.loc 1 253 11 view .LVU133
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 22
+
+
+ 253:Core/Src/freertos.c ****           printf("[%lu] Button event! Count: %lu\r\n", HAL_GetTick(), count);
+ 703              		.loc 1 253 16 is_stmt 0 view .LVU134
+ 704 0010 0134     		adds	r4, r4, #1
+ 705              	.LVL64:
+ 254:Core/Src/freertos.c **** 
+ 706              		.loc 1 254 11 is_stmt 1 view .LVU135
+ 707 0012 FFF7FEFF 		bl	HAL_GetTick
+ 708              	.LVL65:
+ 709 0016 0146     		mov	r1, r0
+ 254:Core/Src/freertos.c **** 
+ 710              		.loc 1 254 11 is_stmt 0 discriminator 1 view .LVU136
+ 711 0018 2246     		mov	r2, r4
+ 712 001a 0748     		ldr	r0, .L44+4
+ 713 001c FFF7FEFF 		bl	printf
+ 714              	.LVL66:
+ 257:Core/Src/freertos.c **** 
+ 715              		.loc 1 257 11 is_stmt 1 view .LVU137
+ 716 0020 6420     		movs	r0, #100
+ 717 0022 FFF7FEFF 		bl	vTaskDelay
+ 718              	.LVL67:
+ 259:Core/Src/freertos.c ****           
+ 719              		.loc 1 259 11 discriminator 1 view .LVU138
+ 720 0026 4FF48041 		mov	r1, #16384
+ 721 002a 0448     		ldr	r0, .L44+8
+ 722 002c FFF7FEFF 		bl	HAL_GPIO_TogglePin
+ 723              	.LVL68:
+ 247:Core/Src/freertos.c ****       {
+ 724              		.loc 1 247 7 view .LVU139
+ 725 0030 E8E7     		b	.L42
+ 726              	.L45:
+ 727 0032 00BF     		.align	2
+ 728              	.L44:
+ 729 0034 00000000 		.word	ButtonSemaphore
+ 730 0038 00000000 		.word	.LC19
+ 731 003c 00180240 		.word	1073879040
+ 732              		.cfi_endproc
+ 733              	.LFE253:
+ 735              		.section	.rodata.str1.4,"aMS",%progbits,1
+ 736              		.align	2
+ 737              	.LC2:
+ 738 0000 61646354 		.ascii	"adcTask\000"
+ 738      61736B00 
+ 739              		.align	2
+ 740              	.LC0:
+ 741 0008 64656661 		.ascii	"defaultTask\000"
+ 741      756C7454 
+ 741      61736B00 
+ 742              		.section	.bss.xIdleStack,"aw",%nobits
+ 743              		.align	2
+ 746              	xIdleStack:
+ 747 0000 00000000 		.space	512
+ 747      00000000 
+ 747      00000000 
+ 747      00000000 
+ 747      00000000 
+ 748              		.section	.bss.xIdleTaskTCBBuffer,"aw",%nobits
+ 749              		.align	2
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 23
+
+
+ 752              	xIdleTaskTCBBuffer:
+ 753 0000 00000000 		.space	88
+ 753      00000000 
+ 753      00000000 
+ 753      00000000 
+ 753      00000000 
+ 754              		.global	defaultTaskHandle
+ 755              		.section	.bss.defaultTaskHandle,"aw",%nobits
+ 756              		.align	2
+ 759              	defaultTaskHandle:
+ 760 0000 00000000 		.space	4
+ 761              		.global	EventTaskHandle
+ 762              		.section	.bss.EventTaskHandle,"aw",%nobits
+ 763              		.align	2
+ 766              	EventTaskHandle:
+ 767 0000 00000000 		.space	4
+ 768              		.global	full_transfer_count
+ 769              		.section	.bss.full_transfer_count,"aw",%nobits
+ 770              		.align	2
+ 773              	full_transfer_count:
+ 774 0000 00000000 		.space	4
+ 775              		.global	half_transfer_count
+ 776              		.section	.bss.half_transfer_count,"aw",%nobits
+ 777              		.align	2
+ 780              	half_transfer_count:
+ 781 0000 00000000 		.space	4
+ 782              		.global	adcFullCpltSem
+ 783              		.section	.bss.adcFullCpltSem,"aw",%nobits
+ 784              		.align	2
+ 787              	adcFullCpltSem:
+ 788 0000 00000000 		.space	4
+ 789              		.global	adcHalfCpltSem
+ 790              		.section	.bss.adcHalfCpltSem,"aw",%nobits
+ 791              		.align	2
+ 794              	adcHalfCpltSem:
+ 795 0000 00000000 		.space	4
+ 796              		.global	ButtonSemaphore
+ 797              		.section	.bss.ButtonSemaphore,"aw",%nobits
+ 798              		.align	2
+ 801              	ButtonSemaphore:
+ 802 0000 00000000 		.space	4
+ 803              		.global	adc_dma_buffer
+ 804              		.section	.bss.adc_dma_buffer,"aw",%nobits
+ 805              		.align	2
+ 808              	adc_dma_buffer:
+ 809 0000 00000000 		.space	512
+ 809      00000000 
+ 809      00000000 
+ 809      00000000 
+ 809      00000000 
+ 810              		.section	.rodata
+ 811              		.align	2
+ 812              		.set	.LANCHOR0,. + 0
+ 813              	.LC16:
+ 814 0000 08000000 		.word	.LC0
+ 815 0004 00000000 		.word	StartDefaultTask
+ 816 0008 0000     		.short	0
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 24
+
+
+ 817 000a 0000     		.space	2
+ 818 000c 00000000 		.word	0
+ 819 0010 00100000 		.word	4096
+ 820 0014 00000000 		.word	0
+ 821 0018 00000000 		.word	0
+ 822              	.LC17:
+ 823 001c 00000000 		.word	.LC2
+ 824 0020 00000000 		.word	StartAdcProcessTask
+ 825 0024 0000     		.short	0
+ 826 0026 0000     		.space	2
+ 827 0028 00000000 		.word	0
+ 828 002c 00010000 		.word	256
+ 829 0030 00000000 		.word	0
+ 830 0034 00000000 		.word	0
+ 831              		.text
+ 832              	.Letext0:
+ 833              		.file 2 "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.3 rel1/arm-none-eabi/include/ma
+ 834              		.file 3 "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.3 rel1/arm-none-eabi/include/sy
+ 835              		.file 4 "Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/portmacro.h"
+ 836              		.file 5 "Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h"
+ 837              		.file 6 "Middlewares/Third_Party/FreeRTOS/Source/include/task.h"
+ 838              		.file 7 "Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f429xx.h"
+ 839              		.file 8 "Middlewares/Third_Party/FreeRTOS/Source/include/queue.h"
+ 840              		.file 9 "Middlewares/Third_Party/FreeRTOS/Source/include/semphr.h"
+ 841              		.file 10 "Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.h"
+ 842              		.file 11 "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.3 rel1/arm-none-eabi/include/s
+ 843              		.file 12 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_gpio.h"
+ 844              		.file 13 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h"
+ 845              		.file 14 "<built-in>"
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 25
 
 
 DEFINED SYMBOLS
                             *ABS*:00000000 freertos.c
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:21     .text.StartDefaultTask:00000000 $t
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:27     .text.StartDefaultTask:00000000 StartDefaultTask
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:53     .rodata.EventTask.str1.4:00000000 $d
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:57     .text.EventTask:00000000 $t
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:63     .text.EventTask:00000000 EventTask
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:116    .text.EventTask:00000034 $d
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:388    .bss.ButtonSemaphore:00000000 ButtonSemaphore
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:123    .text.vApplicationIdleHook:00000000 $t
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:129    .text.vApplicationIdleHook:00000000 vApplicationIdleHook
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:142    .text.vApplicationStackOverflowHook:00000000 $t
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:148    .text.vApplicationStackOverflowHook:00000000 vApplicationStackOverflowHook
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:194    .text.vApplicationStackOverflowHook:00000024 $d
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:201    .text.vApplicationMallocFailedHook:00000000 $t
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:207    .text.vApplicationMallocFailedHook:00000000 vApplicationMallocFailedHook
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:220    .text.vApplicationGetIdleTaskMemory:00000000 $t
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:226    .text.vApplicationGetIdleTaskMemory:00000000 vApplicationGetIdleTaskMemory
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:251    .text.vApplicationGetIdleTaskMemory:00000010 $d
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:353    .bss.xIdleTaskTCBBuffer:00000000 xIdleTaskTCBBuffer
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:347    .bss.xIdleStack:00000000 xIdleStack
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:257    .text.MX_FREERTOS_Init:00000000 $t
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:263    .text.MX_FREERTOS_Init:00000000 MX_FREERTOS_Init
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:329    .text.MX_FREERTOS_Init:0000005c $d
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:381    .bss.EventTaskHandle:00000000 EventTaskHandle
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:360    .bss.defaultTaskHandle:00000000 defaultTaskHandle
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:337    .rodata.str1.4:00000000 $d
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:344    .bss.xIdleStack:00000000 $d
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:350    .bss.xIdleTaskTCBBuffer:00000000 $d
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:357    .bss.defaultTaskHandle:00000000 $d
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:367    .bss.CounterBHandle:00000000 CounterBHandle
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:364    .bss.CounterBHandle:00000000 $d
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:374    .bss.CounterAHandle:00000000 CounterAHandle
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:371    .bss.CounterAHandle:00000000 $d
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:378    .bss.EventTaskHandle:00000000 $d
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:385    .bss.ButtonSemaphore:00000000 $d
-C:\Users\moham\AppData\Local\Temp\cc8nrtza.s:391    .rodata:00000000 $d
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:21     .text.StartDefaultTask:00000000 $t
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:27     .text.StartDefaultTask:00000000 StartDefaultTask
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:56     .rodata.StartAdcProcessTask.str1.4:00000000 $d
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:83     .text.StartAdcProcessTask:00000000 $t
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:89     .text.StartAdcProcessTask:00000000 StartAdcProcessTask
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:356    .text.StartAdcProcessTask:00000138 $d
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:794    .bss.adcHalfCpltSem:00000000 adcHalfCpltSem
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:787    .bss.adcFullCpltSem:00000000 adcFullCpltSem
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:780    .bss.half_transfer_count:00000000 half_transfer_count
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:808    .bss.adc_dma_buffer:00000000 adc_dma_buffer
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:773    .bss.full_transfer_count:00000000 full_transfer_count
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:378    .text.vApplicationIdleHook:00000000 $t
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:384    .text.vApplicationIdleHook:00000000 vApplicationIdleHook
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:397    .text.vApplicationStackOverflowHook:00000000 $t
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:403    .text.vApplicationStackOverflowHook:00000000 vApplicationStackOverflowHook
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:449    .text.vApplicationStackOverflowHook:00000024 $d
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:456    .text.vApplicationMallocFailedHook:00000000 $t
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:462    .text.vApplicationMallocFailedHook:00000000 vApplicationMallocFailedHook
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:475    .text.vApplicationGetIdleTaskMemory:00000000 $t
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:481    .text.vApplicationGetIdleTaskMemory:00000000 vApplicationGetIdleTaskMemory
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:506    .text.vApplicationGetIdleTaskMemory:00000010 $d
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:752    .bss.xIdleTaskTCBBuffer:00000000 xIdleTaskTCBBuffer
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:746    .bss.xIdleStack:00000000 xIdleStack
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:512    .rodata.MX_FREERTOS_Init.str1.4:00000000 $d
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:528    .text.MX_FREERTOS_Init:00000000 $t
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:534    .text.MX_FREERTOS_Init:00000000 MX_FREERTOS_Init
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:652    .text.MX_FREERTOS_Init:0000009c $d
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:801    .bss.ButtonSemaphore:00000000 ButtonSemaphore
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:759    .bss.defaultTaskHandle:00000000 defaultTaskHandle
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:666    .rodata.EventTask.str1.4:00000000 $d
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:670    .text.EventTask:00000000 $t
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:676    .text.EventTask:00000000 EventTask
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:729    .text.EventTask:00000034 $d
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:736    .rodata.str1.4:00000000 $d
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:743    .bss.xIdleStack:00000000 $d
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:749    .bss.xIdleTaskTCBBuffer:00000000 $d
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:756    .bss.defaultTaskHandle:00000000 $d
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:766    .bss.EventTaskHandle:00000000 EventTaskHandle
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:763    .bss.EventTaskHandle:00000000 $d
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:770    .bss.full_transfer_count:00000000 $d
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:777    .bss.half_transfer_count:00000000 $d
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:784    .bss.adcFullCpltSem:00000000 $d
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:791    .bss.adcHalfCpltSem:00000000 $d
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:798    .bss.ButtonSemaphore:00000000 $d
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:805    .bss.adc_dma_buffer:00000000 $d
+C:\Users\moham\AppData\Local\Temp\ccAq9agA.s:811    .rodata:00000000 $d
 
 UNDEFINED SYMBOLS
 MX_USB_HOST_Init
+osDelay
+puts
 xQueueSemaphoreTake
-HAL_GetTick
 printf
-vTaskDelay
+__aeabi_ui2d
+__aeabi_dmul
+ARM GAS  C:\Users\moham\AppData\Local\Temp\ccAq9agA.s 			page 26
+
+
+__aeabi_d2f
+__aeabi_f2d
+__aeabi_ddiv
 HAL_GPIO_TogglePin
 xQueueGenericCreate
 osThreadCreate
+HAL_GetTick
+vTaskDelay

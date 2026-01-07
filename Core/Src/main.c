@@ -19,7 +19,9 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "adc.h"
 #include "crc.h"
+#include "dma.h"
 #include "dma2d.h"
 #include "i2c.h"
 #include "ltdc.h"
@@ -34,6 +36,11 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <string.h>
+extern QueueHandle_t uartRxQueue;
+extern SemaphoreHandle_t ButtonSemaphore;
+extern uint8_t uart_rx_buffer[];
+#define UART_RX_BUFFER_SIZE 64
+#define ADC_BUFFER_SIZE 256
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,7 +61,11 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
+extern uint16_t adc_dma_buffer[];
+extern SemaphoreHandle_t adcHalfCpltSem;
+extern SemaphoreHandle_t adcFullCpltSem;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -106,6 +117,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_CRC_Init();
   MX_DMA2D_Init();
   MX_FMC_Init();
@@ -114,27 +126,42 @@ int main(void)
   MX_SPI5_Init();
   MX_TIM1_Init();
   MX_USART1_UART_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-
+  
   // Print boot message
   printf("\r\n");
   printf("========================================\r\n");
   printf("   STM32F429I-Discovery Boot\r\n");
-  printf("   Phase 1 - Level 1: Boot & Control\r\n");
   printf("========================================\r\n");
   printf("System Clock: %lu MHz\r\n", HAL_RCC_GetSysClockFreq() / 1000000);
   printf("Starting bare-metal LED blink...\r\n");
   printf("\r\n");
 
+  HAL_StatusTypeDef status = HAL_ADC_Start_DMA(
+      &hadc1,                          // ADC handle
+      (uint32_t*)adc_dma_buffer,       // Destination buffer
+      ADC_BUFFER_SIZE                  // Number of samples
+  );
+  
+  if (status != HAL_OK) {
+    printf("ERROR: Failed to start ADC DMA! Status: %d\n", status);
+    Error_Handler();
+  }
+  
+  printf("✓ ADC DMA started successfully!\n");
+  printf("  Continuous conversions running...\n");
+  printf("  DMA circular mode active\n");
+  printf("  Waiting for data...\n\n");
   printf("FreeRTOS started\r\n");
 
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in cmsis_os2.c) */
-   MX_FREERTOS_Init();  // DISABLED for Level 1 - bare-metal learning
+  MX_FREERTOS_Init();
 
   /* Start scheduler */
-   osKernelStart();  // DISABLED for Level 1 - bare-metal learning
+  osKernelStart();
 
   /* We should never get here as control is now taken by the scheduler */
 
@@ -196,7 +223,6 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-extern SemaphoreHandle_t ButtonSemaphore;
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   {
@@ -211,6 +237,117 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
           portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
       }
   }
+
+  /**
+  * @brief  UART RX complete callback (called when DMA buffer full)
+  * @param  huart: UART handle
+  * @retval None
+  */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  if (huart->Instance == USART1)
+  {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    
+    // Send buffer to queue (copy data)
+    xQueueSendFromISR(uartRxQueue, uart_rx_buffer, &xHigherPriorityTaskWoken);
+    
+    // Restart DMA reception for next buffer
+    HAL_UART_Receive_DMA(&huart1, uart_rx_buffer, UART_RX_BUFFER_SIZE);
+    
+    // Yield if higher priority task woken
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+  }
+}
+
+/**
+  * @brief  ADC DMA Half-Transfer Complete Callback
+  * @param  hadc: ADC handle
+  * @retval None
+  * 
+  * @note   Called by DMA interrupt when FIRST HALF of buffer filled
+  *         First half = samples [0] to [127]
+  *         DMA is now filling second half [128-255]
+  */
+void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc)
+{
+  if (hadc->Instance == ADC1)
+  {
+    /* ────────────────────────────────────────
+       DMA just filled first half [0-127]
+       DMA is NOW filling second half [128-255]
+       Signal task to process first half
+       ──────────────────────────────────────── */
+    
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    
+    // Give semaphore to wake task
+    xSemaphoreGiveFromISR(adcHalfCpltSem, &xHigherPriorityTaskWoken);
+    
+    // Immediate context switch if task has higher priority
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+  }
+}
+
+
+/**
+  * @brief  ADC DMA Transfer Complete Callback
+  * @param  hadc: ADC handle
+  * @retval None
+  * 
+  * @note   Called by DMA interrupt when SECOND HALF of buffer filled
+  *         Second half = samples [128] to [255]
+  *         DMA wraps around, now filling first half [0-127] again
+  */
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+{
+  if (hadc->Instance == ADC1)
+  {
+    /* ────────────────────────────────────────
+       DMA just filled second half [128-255]
+       DMA wrapped around, NOW filling [0-127]
+       Signal task to process second half
+       ──────────────────────────────────────── */
+    
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    
+    // Give semaphore to wake task
+    xSemaphoreGiveFromISR(adcFullCpltSem, &xHigherPriorityTaskWoken);
+    
+    // Immediate context switch if task has higher priority
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+  }
+}
+
+/**
+  * @brief  ADC Error Callback
+  * @param  hadc: ADC handle
+  * @retval None
+  * 
+  * @note   Called if ADC error occurs (overrun, etc.)
+  */
+void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc)
+{
+  if (hadc->Instance == ADC1)
+  {
+    printf("\n!!! ADC ERROR !!!\n");
+    printf("Error Code: 0x%08lX\n", hadc->ErrorCode);
+    
+    /* Common errors:
+       HAL_ADC_ERROR_OVR (0x01) = Overrun (data not read fast enough)
+       HAL_ADC_ERROR_DMA (0x04) = DMA error
+    */
+    
+    // Attempt recovery: Stop and restart
+    HAL_ADC_Stop_DMA(hadc);
+    HAL_Delay(10);
+    HAL_ADC_Start_DMA(hadc, (uint32_t*)adc_dma_buffer, ADC_BUFFER_SIZE);
+    printf("ADC restarted\n\n");
+  }
+}
+
+
+
 /* USER CODE END 4 */
 
 /**
@@ -223,16 +360,16 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-    /* USER CODE BEGIN Callback 0 */
+  /* USER CODE BEGIN Callback 0 */
     
-    /* USER CODE END Callback 0 */
-    if (htim->Instance == TIM6)
-    {
-      HAL_IncTick();
-    }
-    /* USER CODE BEGIN Callback 1 */
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM6)
+  {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
 
-    /* USER CODE END Callback 1 */
+  /* USER CODE END Callback 1 */
 }
 
 /**
