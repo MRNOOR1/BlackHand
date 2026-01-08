@@ -57,17 +57,15 @@ extern ADC_HandleTypeDef hadc1;
 #define LED_PORT        GPIOG
 #define LED_GREEN_PIN   GPIO_PIN_13  // Green LED
 #define LED_RED_PIN     GPIO_PIN_14  // Red LED
+     // Keep for ADC
+#define MEM_TEST_SIZE 1024  
+uint8_t src_buffer[MEM_TEST_SIZE];
+uint8_t dst_buffer[MEM_TEST_SIZE];
 
-#define ADC_BUFFER_SIZE 256
-uint16_t adc_dma_buffer[ADC_BUFFER_SIZE];
+
 
 SemaphoreHandle_t ButtonSemaphore;
-// Semaphores for synchronization
-SemaphoreHandle_t adcHalfCpltSem;   // Signaled when buffer half full
-SemaphoreHandle_t adcFullCpltSem;   // Signaled when buffer full
-// Statistics
-uint32_t half_transfer_count = 0;
-uint32_t full_transfer_count = 0;
+
 
 osThreadId EventTaskHandle;
 /* USER CODE END Variables */
@@ -76,7 +74,7 @@ osThreadId defaultTaskHandle;
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 void EventTask(void const * argument);
-void StartAdcProcessTask(void const * argument);
+void MtMTask(void const * argument);
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void const * argument);
@@ -163,21 +161,7 @@ void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackTy
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-/* Create semaphore for half-transfer interrupt */
-  adcHalfCpltSem = xSemaphoreCreateBinary();
-  if (adcHalfCpltSem == NULL) {
-    printf("ERROR: Failed to create adcHalfCpltSem!\n");
-  } else {
-    printf("✓ Half-transfer semaphore created\n");
-  }
-  
-  /* Create semaphore for full-transfer interrupt */
-  adcFullCpltSem = xSemaphoreCreateBinary();
-  if (adcFullCpltSem == NULL) {
-    printf("ERROR: Failed to create adcFullCpltSem!\n");
-  } else {
-    printf("✓ Full-transfer semaphore created\n");
-  }
+
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -204,8 +188,8 @@ void MX_FREERTOS_Init(void) {
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
 
-  osThreadDef(adcTask, StartAdcProcessTask, osPriorityNormal, 0, 256);
-  osThreadCreate(osThread(adcTask), NULL);
+  osThreadDef(mtmTask, MtMTask, osPriorityNormal, 0, 256);
+  osThreadCreate(osThread(mtmTask), NULL);
   printf("✓ ADC processing task created\n");
 
   /* USER CODE BEGIN RTOS_THREADS */
@@ -267,100 +251,114 @@ void StartDefaultTask(void const * argument)
   * @param  argument: Not used
   * @retval None
   */
-void StartAdcProcessTask(void const *argument)
+void MtMTask(void const *argument)
 {
-  /* USER CODE BEGIN StartAdcProcessTask */
-
-  printf("[AdcTask] Started\n");
-
-  // Start ADC with DMA
-  HAL_StatusTypeDef status = HAL_ADC_Start_DMA(
-      &hadc1,
-      (uint32_t*)adc_dma_buffer,
-      ADC_BUFFER_SIZE
-  );
-
-  if (status != HAL_OK) {
-    printf("ERROR: Failed to start ADC DMA! Status: %d\n", status);
-    Error_Handler();
-  }
-
-  printf("✓ ADC DMA started successfully!\n");
-  printf("  Continuous conversions running...\n");
-  printf("  DMA circular mode active\n");
-  printf("  Waiting for data...\n\n");
-
-  for(;;)
-  {
-    /* ============================================
-       Wait for EITHER half-complete OR full-complete
-       ============================================ */
-    
-    // Check half-transfer first (non-blocking)
-    if (xSemaphoreTake(adcHalfCpltSem, 0) == pdPASS)
-    {
-      /* ────────────────────────────────────────
-         HALF-TRANSFER: Process first half [0-127]
-         DMA is currently filling second half [128-255]
-         ──────────────────────────────────────── */
-      
-      half_transfer_count++;
-      
-      printf("\n[HALF-TRANSFER #%lu]\n", half_transfer_count);
-      printf("Processing samples [0-127] while DMA fills [128-255]\n");
-      
-      // Calculate average of first half
-      uint32_t sum = 0;
-      for (int i = 0; i < ADC_BUFFER_SIZE / 2; i++) {
-        sum += adc_dma_buffer[i];
-      }
-      float average = sum / (ADC_BUFFER_SIZE / 2.0);
-      float voltage = (average / 4095.0) * 3.3;
-      
-      printf("  Average ADC: %.1f\n", average);
-      printf("  Average Voltage: %.3fV\n", voltage);
-      
-      // YOUR PROCESSING HERE
-      // Example: Check if voltage in range, trigger actions, etc.
-    }
-    
-    // Check full-transfer (non-blocking)
-    if (xSemaphoreTake(adcFullCpltSem, 0) == pdPASS)
-    {
-      /* ────────────────────────────────────────
-         FULL-TRANSFER: Process second half [128-255]
-         DMA wrapped around, filling first half [0-127]
-         ──────────────────────────────────────── */
-      
-      full_transfer_count++;
-      
-      printf("\n[FULL-TRANSFER #%lu]\n", full_transfer_count);
-      printf("Processing samples [128-255] while DMA fills [0-127]\n");
-      
-      // Calculate average of second half
-      uint32_t sum = 0;
-      for (int i = ADC_BUFFER_SIZE / 2; i < ADC_BUFFER_SIZE; i++) {
-        sum += adc_dma_buffer[i];
-      }
-      float average = sum / (ADC_BUFFER_SIZE / 2.0);
-      float voltage = (average / 4095.0) * 3.3;
-      
-      printf("  Average ADC: %.1f\n", average);
-      printf("  Average Voltage: %.3fV\n", voltage);
-      
-      // YOUR PROCESSING HERE
-    }
-    
-    /* If neither semaphore available, wait a bit */
-    if (xSemaphoreTake(adcHalfCpltSem, pdMS_TO_TICKS(100)) != pdPASS &&
-        xSemaphoreTake(adcFullCpltSem, 0) != pdPASS)
-    {
-      // Timeout - no data in 100ms (shouldn't happen in continuous mode)
-      printf("[AdcTask] Waiting for data...\n");
-    }
-  }
   
-  /* USER CODE END StartAdcProcessTask */
+  DMA_HandleTypeDef hdma_memtomem;
+  for(int i = 0; i < MEM_TEST_SIZE; i++ ){
+    src_buffer[i] = i;
+  }
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DWT->CYCCNT = 0;
+  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+
+  printf("[MemTest] DWT cycle counter enabled\n");
+
+  // Enable DMA2 clock
+  __HAL_RCC_DMA2_CLK_ENABLE();
+
+  // Configure DMA
+  hdma_memtomem.Instance = DMA2_Stream1;
+  hdma_memtomem.Init.Channel = DMA_CHANNEL_0;
+  hdma_memtomem.Init.Direction = DMA_MEMORY_TO_MEMORY;
+  hdma_memtomem.Init.PeriphInc = DMA_PINC_ENABLE;
+  hdma_memtomem.Init.MemInc = DMA_MINC_ENABLE;
+  hdma_memtomem.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+  hdma_memtomem.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+  hdma_memtomem.Init.Mode = DMA_NORMAL;
+  hdma_memtomem.Init.Priority = DMA_PRIORITY_HIGH;
+  hdma_memtomem.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+
+  // Initialize DMA
+  if (HAL_DMA_Init(&hdma_memtomem) != HAL_OK) {
+      printf("[MemTest] ERROR: DMA init failed!\n");
+      Error_Handler();
+  }
+
+  printf("[MemTest] DMA configured successfully\n");
+  
+  // ========== STEP 4: CPU Copy Test ==========
+  printf("\n[MemTest] Starting CPU copy test...\n");
+
+  // Clear destination buffer
+  memset(dst_buffer, 0, MEM_TEST_SIZE);
+
+  // Measure CPU copy
+  uint32_t start_cpu = DWT->CYCCNT;
+  for (int i = 0; i < MEM_TEST_SIZE; i++) {
+      dst_buffer[i] = src_buffer[i];
+  }
+  uint32_t end_cpu = DWT->CYCCNT;
+
+  uint32_t cycles_cpu = end_cpu - start_cpu;
+  uint32_t time_us_cpu = cycles_cpu / 72;
+
+  printf("[MemTest] CPU Copy: %lu cycles = %lu microseconds\n", cycles_cpu, time_us_cpu);
+
+  // ========== STEP 5: DMA Copy Test ==========
+  printf("\n[MemTest] Starting DMA copy test...\n");
+
+  // Clear destination buffer
+  memset(dst_buffer, 0, MEM_TEST_SIZE);
+
+  // Measure DMA copy
+  uint32_t start_dma = DWT->CYCCNT;
+
+  // Start DMA transfer
+  HAL_DMA_Start(&hdma_memtomem,
+                (uint32_t)src_buffer,
+                (uint32_t)dst_buffer,
+                MEM_TEST_SIZE);
+
+  // Wait for DMA to complete
+  HAL_DMA_PollForTransfer(&hdma_memtomem, HAL_DMA_FULL_TRANSFER, 100);
+
+  uint32_t end_dma = DWT->CYCCNT;
+
+  uint32_t cycles_dma = end_dma - start_dma;
+  uint32_t time_us_dma = cycles_dma / 72;
+
+  printf("[MemTest] DMA Copy: %lu cycles = %lu microseconds\n",
+         cycles_dma, time_us_dma);
+
+         int errors = 0;
+  for (int i = 0; i < MEM_TEST_SIZE; i++) {
+      if (src_buffer[i] != dst_buffer[i]) {
+          errors++;
+      }
+  }
+
+  if (errors == 0) {
+      printf("\n✓ Copy verified - all %d bytes match!\n", MEM_TEST_SIZE);
+  } else {
+      printf("\n✗ Copy FAILED - %d byte mismatches!\n", errors);
+  }
+
+  // Calculate speedup
+  float speedup = (float)time_us_cpu / (float)time_us_dma;
+
+  // Print comparison
+  printf("\n========== PERFORMANCE COMPARISON ==========\n");
+  printf("Data size: %d bytes\n", MEM_TEST_SIZE);
+  printf("CPU copy:  %lu cycles = %lu μs\n", cycles_cpu, time_us_cpu);
+  printf("DMA copy:  %lu cycles = %lu μs\n", cycles_dma, time_us_dma);
+  printf("Speedup:   DMA is %.2fx faster!\n", speedup);
+  printf("============================================\n\n");
+
+  // Task done, delete itself
+  vTaskDelete(NULL);
+
+
 }
 
 
