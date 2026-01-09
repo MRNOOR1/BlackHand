@@ -498,9 +498,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Mohammad** - Embedded Systems Engineer
 
-- GitHub: [@yourusername](https://github.com/yourusername)
-- LinkedIn: [Your LinkedIn](https://linkedin.com/in/yourprofile)
-- Email: your.email@example.com
+- GitHub: [@yourusername](https://github.com/MRNOOR1)
+- LinkedIn: [Your LinkedIn](www.linkedin.com/in/mr-noori)
+- Email: themohammadrasoulnoori@gmail.com
 
 ---
 
