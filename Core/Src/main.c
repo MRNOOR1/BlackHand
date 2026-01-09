@@ -36,11 +36,13 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <string.h>
-extern QueueHandle_t uartRxQueue;
+#include "ili9341.h"
+
+
+
+
 extern SemaphoreHandle_t ButtonSemaphore;
-extern uint8_t uart_rx_buffer[];
-#define UART_RX_BUFFER_SIZE 64
-#define ADC_BUFFER_SIZE 256
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,23 +63,18 @@ extern uint8_t uart_rx_buffer[];
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-extern ADC_HandleTypeDef hadc1;
-extern DMA_HandleTypeDef hdma_adc1;
-extern uint16_t adc_dma_buffer[];
-extern SemaphoreHandle_t adcHalfCpltSem;
-extern SemaphoreHandle_t adcFullCpltSem;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
-extern UART_HandleTypeDef huart1;
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-volatile uint32_t button_count = 0;
 
 // Printf redirection to UART
 int _write(int file, char *ptr, int len)
@@ -125,18 +122,43 @@ int main(void)
   MX_LTDC_Init();
   MX_SPI5_Init();
   MX_TIM1_Init();
-  MX_USART1_UART_Init();
-  MX_ADC1_Init();
-  /* USER CODE BEGIN 2 */
   
+  /* USER CODE BEGIN 2 */
+  MX_SPI5_Init();
+
   // Print boot message
   printf("\r\n");
   printf("========================================\r\n");
   printf("   STM32F429I-Discovery Boot\r\n");
   printf("========================================\r\n");
   printf("System Clock: %lu MHz\r\n", HAL_RCC_GetSysClockFreq() / 1000000);
-  printf("Initializing peripherals...\r\n");
   printf("\r\n");
+  printf("Initializing LCD...\n");
+    ILI9341_Init();
+    printf("LCD initialized!\n");
+    
+    // Demo: Fill screen with colors
+    ILI9341_FillScreen(COLOR_RED);
+    HAL_Delay(1000);
+    
+    ILI9341_FillScreen(COLOR_GREEN);
+    HAL_Delay(1000);
+    
+    ILI9341_FillScreen(COLOR_BLUE);
+    HAL_Delay(1000);
+    
+    // Clear to black
+    ILI9341_FillScreen(COLOR_BLACK);
+    
+    // Draw some shapes
+    ILI9341_DrawRect(10, 10, 100, 50, COLOR_WHITE);
+    ILI9341_FillRect(20, 70, 80, 40, COLOR_YELLOW);
+    ILI9341_DrawCircle(120, 100, 30, COLOR_CYAN);
+    ILI9341_FillCircle(180, 100, 25, COLOR_MAGENTA);
+    
+    // Draw text
+    ILI9341_DrawString(10, 150, "Hello STM32!", COLOR_WHITE, COLOR_BLACK, 2);
+    ILI9341_DrawString(10, 180, "LCD Working!", COLOR_GREEN, COLOR_BLACK, 1);
 
   /* USER CODE END 2 */
 
@@ -209,12 +231,21 @@ void SystemClock_Config(void)
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   {
+      static uint32_t callback_count = 0;
       BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
       if(GPIO_Pin == GPIO_PIN_0)
       {
+          callback_count++;
+
           // Give semaphore from ISR
-          xSemaphoreGiveFromISR(ButtonSemaphore, &xHigherPriorityTaskWoken);
+          BaseType_t result = xSemaphoreGiveFromISR(ButtonSemaphore, &xHigherPriorityTaskWoken);
+
+          // Note: Can't use printf in ISR! This is just for debugging
+          // In production, remove this or use a flag
+          if(result == pdPASS) {
+              // Semaphore given successfully
+          }
 
           // Yield if needed
           portYIELD_FROM_ISR(xHigherPriorityTaskWoken);

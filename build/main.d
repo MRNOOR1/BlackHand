@@ -58,7 +58,8 @@ build/main.o: Core/Src/main.c Core/Inc/main.h \
  Middlewares/Third_Party/FreeRTOS/Source/include/timers.h Core/Inc/adc.h \
  Core/Inc/main.h Core/Inc/crc.h Core/Inc/dma.h Core/Inc/dma2d.h \
  Core/Inc/i2c.h Core/Inc/ltdc.h Core/Inc/spi.h Core/Inc/tim.h \
- Core/Inc/usart.h USB_HOST/App/usb_host.h Core/Inc/gpio.h Core/Inc/fmc.h
+ Core/Inc/usart.h USB_HOST/App/usb_host.h Core/Inc/gpio.h Core/Inc/fmc.h \
+ Core/Inc/ili9341.h
 Core/Inc/main.h:
 Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
 Core/Inc/stm32f4xx_hal_conf.h:
@@ -132,3 +133,4 @@ Core/Inc/usart.h:
 USB_HOST/App/usb_host.h:
 Core/Inc/gpio.h:
 Core/Inc/fmc.h:
+Core/Inc/ili9341.h:

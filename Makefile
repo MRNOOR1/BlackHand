@@ -39,6 +39,7 @@ C_SOURCES =  \
 Core/Src/main.c \
 Core/Src/gpio.c \
 Core/Src/freertos.c \
+Core/Src/ili9341.c \
 Core/Src/crc.c \
 Core/Src/dma2d.c \
 Core/Src/fmc.c \

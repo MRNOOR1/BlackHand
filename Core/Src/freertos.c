@@ -28,7 +28,7 @@
 #include <string.h>
 #include "usart.h"
 #include <stdio.h>
-#include "adc.h"
+#include "ili9341.h"
 
 extern ADC_HandleTypeDef hadc1;
 
@@ -58,9 +58,7 @@ extern ADC_HandleTypeDef hadc1;
 #define LED_GREEN_PIN   GPIO_PIN_13  // Green LED
 #define LED_RED_PIN     GPIO_PIN_14  // Red LED
      // Keep for ADC
-#define MEM_TEST_SIZE 1024  
-uint8_t src_buffer[MEM_TEST_SIZE];
-uint8_t dst_buffer[MEM_TEST_SIZE];
+
 
 
 
@@ -74,7 +72,7 @@ osThreadId defaultTaskHandle;
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 void EventTask(void const * argument);
-void MtMTask(void const * argument);
+void LcdTask(void const * argument);
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void const * argument);
@@ -188,9 +186,9 @@ void MX_FREERTOS_Init(void) {
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
 
-  osThreadDef(mtmTask, MtMTask, osPriorityNormal, 0, 256);
-  osThreadCreate(osThread(mtmTask), NULL);
-  printf("✓ ADC processing task created\n");
+  osThreadDef(draw, LcdTask, osPriorityNormal, 0, 256);
+  osThreadCreate(osThread(draw), NULL);
+  printf("✓ LCD TASK\n");
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -246,120 +244,24 @@ void StartDefaultTask(void const * argument)
       }
   }
 
-/**
-  * @brief  ADC processing task
-  * @param  argument: Not used
-  * @retval None
-  */
-void MtMTask(void const *argument)
+
+void LcdTask(void const *argument)
 {
-  
-  DMA_HandleTypeDef hdma_memtomem;
-  for(int i = 0; i < MEM_TEST_SIZE; i++ ){
-    src_buffer[i] = i;
-  }
-  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-  DWT->CYCCNT = 0;
-  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
-
-  printf("[MemTest] DWT cycle counter enabled\n");
-
-  // Enable DMA2 clock
-  __HAL_RCC_DMA2_CLK_ENABLE();
-
-  // Configure DMA
-  hdma_memtomem.Instance = DMA2_Stream1;
-  hdma_memtomem.Init.Channel = DMA_CHANNEL_0;
-  hdma_memtomem.Init.Direction = DMA_MEMORY_TO_MEMORY;
-  hdma_memtomem.Init.PeriphInc = DMA_PINC_ENABLE;
-  hdma_memtomem.Init.MemInc = DMA_MINC_ENABLE;
-  hdma_memtomem.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-  hdma_memtomem.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-  hdma_memtomem.Init.Mode = DMA_NORMAL;
-  hdma_memtomem.Init.Priority = DMA_PRIORITY_HIGH;
-  hdma_memtomem.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
-
-  // Initialize DMA
-  if (HAL_DMA_Init(&hdma_memtomem) != HAL_OK) {
-      printf("[MemTest] ERROR: DMA init failed!\n");
-      Error_Handler();
-  }
-
-  printf("[MemTest] DMA configured successfully\n");
-  
-  // ========== STEP 4: CPU Copy Test ==========
-  printf("\n[MemTest] Starting CPU copy test...\n");
-
-  // Clear destination buffer
-  memset(dst_buffer, 0, MEM_TEST_SIZE);
-
-  // Measure CPU copy
-  uint32_t start_cpu = DWT->CYCCNT;
-  for (int i = 0; i < MEM_TEST_SIZE; i++) {
-      dst_buffer[i] = src_buffer[i];
-  }
-  uint32_t end_cpu = DWT->CYCCNT;
-
-  uint32_t cycles_cpu = end_cpu - start_cpu;
-  uint32_t time_us_cpu = cycles_cpu / 72;
-
-  printf("[MemTest] CPU Copy: %lu cycles = %lu microseconds\n", cycles_cpu, time_us_cpu);
-
-  // ========== STEP 5: DMA Copy Test ==========
-  printf("\n[MemTest] Starting DMA copy test...\n");
-
-  // Clear destination buffer
-  memset(dst_buffer, 0, MEM_TEST_SIZE);
-
-  // Measure DMA copy
-  uint32_t start_dma = DWT->CYCCNT;
-
-  // Start DMA transfer
-  HAL_DMA_Start(&hdma_memtomem,
-                (uint32_t)src_buffer,
-                (uint32_t)dst_buffer,
-                MEM_TEST_SIZE);
-
-  // Wait for DMA to complete
-  HAL_DMA_PollForTransfer(&hdma_memtomem, HAL_DMA_FULL_TRANSFER, 100);
-
-  uint32_t end_dma = DWT->CYCCNT;
-
-  uint32_t cycles_dma = end_dma - start_dma;
-  uint32_t time_us_dma = cycles_dma / 72;
-
-  printf("[MemTest] DMA Copy: %lu cycles = %lu microseconds\n",
-         cycles_dma, time_us_dma);
-
-         int errors = 0;
-  for (int i = 0; i < MEM_TEST_SIZE; i++) {
-      if (src_buffer[i] != dst_buffer[i]) {
-          errors++;
-      }
-  }
-
-  if (errors == 0) {
-      printf("\n✓ Copy verified - all %d bytes match!\n", MEM_TEST_SIZE);
-  } else {
-      printf("\n✗ Copy FAILED - %d byte mismatches!\n", errors);
-  }
-
-  // Calculate speedup
-  float speedup = (float)time_us_cpu / (float)time_us_dma;
-
-  // Print comparison
-  printf("\n========== PERFORMANCE COMPARISON ==========\n");
-  printf("Data size: %d bytes\n", MEM_TEST_SIZE);
-  printf("CPU copy:  %lu cycles = %lu μs\n", cycles_cpu, time_us_cpu);
-  printf("DMA copy:  %lu cycles = %lu μs\n", cycles_dma, time_us_dma);
-  printf("Speedup:   DMA is %.2fx faster!\n", speedup);
-  printf("============================================\n\n");
-
-  // Task done, delete itself
-  vTaskDelete(NULL);
-
-
+    uint32_t counter = 0;
+    char buffer[32];
+    
+    for(;;)
+    {
+        counter++;
+        
+        // Clear counter area
+        ILI9341_FillRect(10, 200, 200, 20, COLOR_BLACK);
+        
+        // Display counter
+        sprintf(buffer, "Count: %lu", counter);
+        ILI9341_DrawString(10, 200, buffer, COLOR_YELLOW, COLOR_BLACK, 2);
+        
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
 }
-
-
 /* USER CODE END Application */
