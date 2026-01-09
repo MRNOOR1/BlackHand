@@ -5,6 +5,7 @@ A learning-focused embedded operating system project for the STM32F429I-Discover
 ## 🎯 Project Goals
 
 **Primary Objectives:**
+
 - Learn C programming in an embedded context
 - Understand bare-metal microcontroller programming
 - Master Real-Time Operating System (RTOS) concepts
@@ -12,6 +13,7 @@ A learning-focused embedded operating system project for the STM32F429I-Discover
 - Develop professional embedded systems skills through hands-on implementation
 
 **Learning Philosophy:**
+
 - Start from fundamentals (no jumping ahead)
 - Understand concepts before moving to next level
 - Learn by implementing, not just copying code
@@ -31,6 +33,7 @@ A learning-focused embedded operating system project for the STM32F429I-Discover
 ## 📚 Project Phases
 
 ### **Phase 1: Bare-Metal & RTOS (STM32F429I-Discovery)**
+
 **Current Phase - In Progress**
 
 1. ✅ **Level 1 - Task 1.1:** Reliable Boot (Bare-metal LED blink with polling)
@@ -46,6 +49,7 @@ A learning-focused embedded operating system project for the STM32F429I-Discover
 11. ⏳ **Level 8:** Pushing Limits
 
 ### **Phase 2: Embedded Linux (Raspberry Pi / Custom Board)**
+
 **Future Phase**
 
 Details in [Phases.md](Phases.md)
@@ -53,6 +57,7 @@ Details in [Phases.md](Phases.md)
 ## 🚀 Current Implementation (Task 1.2)
 
 ### Features
+
 - **Hardware Timer Interrupt:** TIM2 configured for precise 1 Hz timing
 - **LED Blink:** Green LED (PG13) toggles every 1000ms via timer interrupt
 - **UART Output:** Debug messages via printf redirected to UART1 (115200 baud)
@@ -60,6 +65,7 @@ Details in [Phases.md](Phases.md)
 - **NVIC Configuration:** Priority-based interrupt handling
 
 ### Technical Details
+
 - **System Clock:** 72 MHz (PLL from 8 MHz HSE)
 - **Timer Prescaler:** 7199 (divides 72 MHz to 10 kHz)
 - **Timer Period:** 9999 (counts to 10,000)
@@ -69,6 +75,7 @@ Details in [Phases.md](Phases.md)
 ## 🛠️ Build Instructions
 
 ### Prerequisites
+
 - **Toolchain:** ARM GCC compiler (`arm-none-eabi-gcc`)
 - **Build System:** GNU Make
 - **Programmer:** STM32CubeProgrammer (CLI or GUI)
@@ -91,11 +98,13 @@ make
 ### Flashing to Board
 
 **Option 1: Command Line (if STM32_Programmer_CLI is in PATH)**
+
 ```bash
 make flash
 ```
 
 **Option 2: STM32CubeProgrammer GUI**
+
 1. Open STM32CubeProgrammer
 2. Connect to ST-Link
 3. Select `build/BlackHand.elf`
@@ -113,6 +122,7 @@ make flash
    - Flow Control: None
 3. **Press RESET** button on board
 4. **Expected Output:**
+
    ```
    ========================================
       STM32F429I-Discovery Boot
@@ -157,22 +167,27 @@ BlackHand/
 ## 📖 Key Learning Concepts (Task 1.2)
 
 ### What You'll Learn
+
 1. **Hardware Timers**
+
    - Prescaler and period configuration
    - Auto-reload mode
    - Timer clock sources
 
 2. **Interrupts (NVIC)**
+
    - Interrupt Service Routines (ISR)
    - Interrupt priorities
    - Enabling/disabling interrupts
 
 3. **HAL Callback Pattern**
+
    - Weak function overriding
    - `HAL_TIM_PeriodElapsedCallback()`
    - Callback vs direct ISR implementation
 
 4. **C Programming Concepts**
+
    - Static variables in functions
    - Struct member access
    - Function pointers (implicit in callbacks)
@@ -186,23 +201,27 @@ BlackHand/
 ## 🔍 Troubleshooting
 
 ### Build Fails
+
 - Verify ARM GCC toolchain is installed: `arm-none-eabi-gcc --version`
 - Check Makefile paths are correct
 - Run `make clean` before rebuilding
 
 ### Flash Fails
+
 - Check ST-Link drivers are installed
 - Verify board is connected via USB
 - Try flashing with STM32CubeProgrammer GUI
 - Press RESET button before flashing
 
 ### No Serial Output
+
 - Verify COM port number in Device Manager
 - Check terminal baud rate is 115200
 - Ensure UART TX (PA9) is connected via ST-Link VCP
 - Press RESET button after opening terminal
 
 ### LED Doesn't Blink
+
 - Check if green LED (PG13) is soldered correctly
 - Verify timer interrupt is enabled in code
 - Check `HAL_TIM_Base_Start_IT()` is called
