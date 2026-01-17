@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  buildroot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Match your host user ID to avoid permission issues
+        # Run 'id -u' and 'id -g' on your host to get these values
+        USER_ID: 1000
+        GROUP_ID: 1000
+    
+    image: blackhand-buildroot:latest
+    container_name: blackhand-buildroot
+    
+    # Keep container running for interactive use
+    stdin_open: true
+    tty: true
+    
+    volumes:
+      # Mount buildroot source (will be cloned here)
+      - ./buildroot:/home/builder/buildroot
+      
+      # Mount output directory separately (large files)
+      - ./output:/home/builder/buildroot/output
+      
+      # Mount download cache (persist across rebuilds)
+      - ./dl:/home/builder/buildroot/dl
+      
+      # Mount your custom files (overlays, configs)
+      - ./custom:/home/builder/custom
+    
+    # Increase shared memory for large builds
+    shm_size: '2gb'
+    
+    # Optional: limit resources
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '4'
+    #       memory: 8G
+
+    working_dir: /home/builder/buildroot
