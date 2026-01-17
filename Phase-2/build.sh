@@ -20,31 +20,67 @@ show_help() {
     echo "  distclean   - Full clean (removes config too)"
     echo "  flash       - Show flash instructions"
     echo "  status      - Show build status"
+    echo "  copy        - Copy sdcard.img to Windows"
     echo ""
 }
 
 enter_shell() {
     echo "Entering build container..."
+    echo "Once inside, run: cd buildroot"
     docker-compose run --rm buildroot
 }
 
 run_menuconfig() {
-    docker-compose run --rm buildroot make menuconfig
+    docker-compose run --rm buildroot bash -c 'cd buildroot && make menuconfig'
 }
 
 run_build() {
-    echo "Starting build (this may take 30-90 minutes)..."
-    docker-compose run --rm buildroot make -j$(nproc)
-    echo ""
-    echo "Build complete! Image at: ./output/images/sdcard.img"
+    echo "Starting build..."
+    docker-compose run --rm buildroot bash -c '
+        set -e
+        cd /home/builder/buildroot
+        
+        # Check if configured
+        if [ ! -f ".config" ]; then
+            echo "No .config found. Run menuconfig first:"
+            echo "  ./build.sh shell"
+            echo "  cd buildroot"
+            echo "  make raspberrypi5_defconfig"
+            echo "  make menuconfig"
+            exit 1
+        fi
+        
+        # Build
+        make -j$(nproc)
+        
+        # Copy result to Windows-accessible folder
+        cp output/images/sdcard.img /home/builder/custom/
+        
+        echo ""
+        echo "=========================================="
+        echo "  Build complete!"
+        echo "  Image copied to: custom/sdcard.img"
+        echo "=========================================="
+    '
 }
 
 run_clean() {
-    docker-compose run --rm buildroot make clean
+    docker-compose run --rm buildroot bash -c 'cd buildroot && make clean'
 }
 
 run_distclean() {
-    docker-compose run --rm buildroot make distclean
+    docker-compose run --rm buildroot bash -c 'cd buildroot && make distclean'
+}
+
+copy_image() {
+    docker-compose run --rm buildroot bash -c '
+        if [ -f "/home/builder/buildroot/output/images/sdcard.img" ]; then
+            cp /home/builder/buildroot/output/images/sdcard.img /home/builder/custom/
+            echo "Image copied to: custom/sdcard.img"
+        else
+            echo "No image found. Run build first."
+        fi
+    '
 }
 
 show_flash_instructions() {
@@ -52,57 +88,52 @@ show_flash_instructions() {
     echo "  Flash Instructions"
     echo "=========================================="
     echo ""
-    echo "  1. Find your SD card device:"
-    echo "     Linux:  lsblk"
-    echo "     macOS:  diskutil list"
+    echo "  Image location:"
+    echo "    custom/sdcard.img"
     echo ""
-    echo "  2. Unmount the SD card:"
-    echo "     Linux:  sudo umount /dev/sdX*"
-    echo "     macOS:  diskutil unmountDisk /dev/diskN"
+    echo "  On Windows:"
+    echo "    1. Download balenaEtcher from https://etcher.balena.io/"
+    echo "    2. Open balenaEtcher"
+    echo "    3. Select custom/sdcard.img"
+    echo "    4. Select your SD card"
+    echo "    5. Click Flash"
     echo ""
-    echo "  3. Flash the image:"
-    echo "     Linux:  sudo dd if=./output/images/sdcard.img of=/dev/sdX bs=4M status=progress"
-    echo "     macOS:  sudo dd if=./output/images/sdcard.img of=/dev/rdiskN bs=4m"
-    echo ""
-    echo "  4. Sync and eject:"
-    echo "     sudo sync"
-    echo ""
-    echo "  WARNING: Double-check the device path!"
-    echo "  Wrong path = data loss on wrong drive!"
+    echo "  WARNING: Double-check you selected the SD card!"
     echo "=========================================="
 }
 
 show_status() {
-    echo "=========================================="
-    echo "  Build Status"
-    echo "=========================================="
-    
-    if [ -f "buildroot/.config" ]; then
-        echo "  Config: EXISTS"
-        # Extract some info from config
-        grep "BR2_DEFCONFIG=" buildroot/.config 2>/dev/null || echo "  Target: Custom config"
-    else
-        echo "  Config: NOT FOUND (run menuconfig first)"
-    fi
-    
-    echo ""
-    
-    if [ -f "output/images/sdcard.img" ]; then
-        SIZE=$(du -h output/images/sdcard.img | cut -f1)
-        echo "  Image: EXISTS ($SIZE)"
-        echo "  Path:  ./output/images/sdcard.img"
-    else
-        echo "  Image: NOT BUILT"
-    fi
-    
-    echo ""
-    
-    if [ -d "dl" ]; then
-        DL_SIZE=$(du -sh dl 2>/dev/null | cut -f1)
-        echo "  Download cache: $DL_SIZE"
-    fi
-    
-    echo "=========================================="
+    docker-compose run --rm buildroot bash -c '
+        echo "=========================================="
+        echo "  Build Status"
+        echo "=========================================="
+        
+        if [ -f "/home/builder/buildroot/.config" ]; then
+            echo "  Config: EXISTS"
+        else
+            echo "  Config: NOT FOUND (run defconfig + menuconfig)"
+        fi
+        
+        echo ""
+        
+        if [ -f "/home/builder/buildroot/output/images/sdcard.img" ]; then
+            SIZE=$(du -h /home/builder/buildroot/output/images/sdcard.img | cut -f1)
+            echo "  Image: EXISTS ($SIZE)"
+        else
+            echo "  Image: NOT BUILT"
+        fi
+        
+        echo ""
+        
+        if [ -f "/home/builder/custom/sdcard.img" ]; then
+            SIZE=$(du -h /home/builder/custom/sdcard.img | cut -f1)
+            echo "  Copied to Windows: YES ($SIZE)"
+        else
+            echo "  Copied to Windows: NO"
+        fi
+        
+        echo "=========================================="
+    '
 }
 
 # Main
@@ -131,6 +162,9 @@ case "${1:-help}" in
         ;;
     status)
         show_status
+        ;;
+    copy)
+        copy_image
         ;;
     *)
         show_help
