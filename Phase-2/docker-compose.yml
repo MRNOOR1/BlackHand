@@ -1,23 +1,13 @@
 services:
   buildroot:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: blackhand-buildroot:latest
-    container_name: blackhand-buildroot
-    working_dir: /home/builder
+    build: .
     tty: true
     stdin_open: true
     volumes:
-      # Only mount custom folder for getting files OUT to Windows
       - ./custom:/home/builder/custom
-      
-      # Named volumes for persistent storage INSIDE container
-      - buildroot_src:/home/builder/buildroot
-      - buildroot_dl:/home/builder/buildroot/dl
-    
-    shm_size: '2gb'
+      - buildroot_src:/home/builder/src
+      - buildroot_dl:/home/builder/dl
 
 volumes:
-  buildroot_src:    # Buildroot source (persists across container restarts)
-  buildroot_dl:     # Download cache (persists across container restarts)
+  buildroot_src:
+  buildroot_dl:

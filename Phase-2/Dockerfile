@@ -1,62 +1,31 @@
-# Buildroot Development Environment
-# Ubuntu 22.04 LTS - stable, well-supported
-
 FROM ubuntu:22.04
 
-# Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install Buildroot dependencies
 RUN apt-get update && apt-get install -y \
-    # Core build tools
     build-essential \
-    gcc \
-    g++ \
+    gcc g++ \
     make \
-    # Version control
     git \
-    # Download tools
-    wget \
-    curl \
-    # Archive tools
-    cpio \
-    unzip \
     rsync \
-    # Buildroot specific requirements
     bc \
-    libncurses5-dev \
-    libncursesw5-dev \
-    # File utilities
+    bison flex \
+    gawk \
+    patch \
+    unzip \
     file \
-    # Python (some packages need it)
+    wget \
+    cpio \
     python3 \
     python3-pip \
-    # Disk image tools
-    dosfstools \
-    mtools \
-    # Device tree compiler
-    device-tree-compiler \
-    # For menuconfig
+    libncurses5-dev \
     libssl-dev \
-    # Useful utilities
-    nano \
-    vim \
-    tree \
-    # Clean up apt cache to reduce image size
+    libelf-dev \
+    device-tree-compiler \
+    xz-utils \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user (Buildroot doesn't like running as root)
-ARG USER_ID=1000
-ARG GROUP_ID=1000
-
-RUN groupadd -g ${GROUP_ID} builder && \
-    useradd -m -u ${USER_ID} -g builder builder
-
-# Set up working directory
-WORKDIR /home/builder/buildroot
-
-# Switch to non-root user
+RUN groupadd -g 1000 builder && useradd -m -u 1000 -g builder builder
 USER builder
-
-# Default command
-CMD ["/bin/bash"]
+WORKDIR /home/builder
