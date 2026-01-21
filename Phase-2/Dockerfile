@@ -1,4 +1,5 @@
-FROM ubuntu:22.04
+# Multi-stage build for optimized image
+FROM ubuntu:22.04 AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -24,8 +25,12 @@ RUN apt-get update && apt-get install -y \
     device-tree-compiler \
     xz-utils \
     ca-certificates \
+    qemu-user-static \
     && rm -rf /var/lib/apt/lists/*
 
+FROM base AS builder
+
 RUN groupadd -g 1000 builder && useradd -m -u 1000 -g builder builder
+
 USER builder
 WORKDIR /home/builder

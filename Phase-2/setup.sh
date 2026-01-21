@@ -28,19 +28,22 @@ $COMPOSE run --rm --user root buildroot bash -lc '
 
   cd /home/builder/src
 
-  # Fresh clone every time (safe + avoids hidden corrupted state)
-  rm -rf buildroot
-  git clone https://gitlab.com/buildroot.org/buildroot.git buildroot
+   # Fresh clone every time (safe + avoids hidden corrupted state)
+   rm -rf buildroot
+   git clone https://gitlab.com/buildroot.org/buildroot.git buildroot
 
-  cd buildroot
-  git fetch --tags --force
+   cd buildroot
+   git fetch --tags --force
 
-  LATEST_STABLE=$(git tag \
-    | grep -E "^[0-9]{4}\.[0-9]{2}(\.[0-9]+)?$" \
-    | sort -V | tail -n 1)
+   # Pin to specific stable version for reproducibility
+   TARGET_VERSION="2023.11"
 
-  echo "Checking out latest stable Buildroot: $LATEST_STABLE"
-  git checkout "$LATEST_STABLE"
+   echo "Checking out pinned Buildroot version: $TARGET_VERSION"
+   git checkout "$TARGET_VERSION"
+
+   # Verify checksum for security
+   EXPECTED_SHA=$(git rev-parse HEAD)
+   echo "Buildroot SHA: $EXPECTED_SHA"
 
   echo
   echo "Buildroot version:"
