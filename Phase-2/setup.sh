@@ -60,3 +60,4 @@ echo "  cd /home/builder/src/buildroot"
 echo "  make O=/home/builder/src/buildroot/output raspberrypi5_defconfig"
 echo "  make O=/home/builder/src/buildroot/output menuconfig"
 echo "  make O=/home/builder/src/buildroot/output -j\$(nproc)"
+

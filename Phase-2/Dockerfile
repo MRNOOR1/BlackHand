@@ -34,3 +34,4 @@ RUN groupadd -g 1000 builder && useradd -m -u 1000 -g builder builder
 
 USER builder
 WORKDIR /home/builder
+

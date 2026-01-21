@@ -16,6 +16,7 @@ if [ "$CMD" = "shell" ]; then
   exit 0
 fi
 
+
 $COMPOSE run --rm buildroot bash -lc "
   set -e
   cd /home/builder/src/buildroot
