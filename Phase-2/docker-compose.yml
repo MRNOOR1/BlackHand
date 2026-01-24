@@ -4,7 +4,7 @@ services:
     tty: true
     stdin_open: true
     volumes:
-      - ./custom:/home/builder/custom
+      - ./customs:/home/builder/customs
       - ./overlays:/home/builder/overlays
       - ./configs:/home/builder/configs
       - buildroot_src:/home/builder/src
@@ -14,7 +14,7 @@ services:
     image: ubuntu:22.04
     command: bash -c "apt-get update && apt-get install -y qemu-system-arm && qemu-system-arm -M raspi3 -kernel /sdcard.img -nographic"
     volumes:
-      - ./custom/sdcard.img:/sdcard.img:ro
+      - ./customs/sdcard.img:/sdcard.img:ro
     depends_on:
       - buildroot
 

@@ -38,8 +38,8 @@ $COMPOSE run --rm buildroot bash -lc "
 
   # Retry copy on failure
   for i in {1..3}; do
-    if cp output/images/sdcard.img /home/builder/custom/; then
-      echo '✅ Image copied to custom/sdcard.img'
+    if cp output/images/sdcard.img /home/builder/customs/; then
+      echo '✅ Image copied to customs/sdcard.img'
       break
     else
       echo \"Copy attempt \$i failed, retrying...\"
