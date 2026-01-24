@@ -6,6 +6,9 @@ echo "  Black Hand OS - Development Setup"
 echo "=========================================="
 echo
 
+if [ -e custom ] && [ ! -d custom ]; then
+  rm -f custom
+fi
 mkdir -p custom
 
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
@@ -35,8 +38,8 @@ $COMPOSE run --rm --user root buildroot bash -lc '
    cd buildroot
    git fetch --tags --force
 
-   # Pin to specific stable version for reproducibility
-   TARGET_VERSION="2023.11"
+   # Pin to a stable version that includes Raspberry Pi 5 support
+   TARGET_VERSION="2024.02.2"
 
    echo "Checking out pinned Buildroot version: $TARGET_VERSION"
    git checkout "$TARGET_VERSION"
@@ -60,4 +63,3 @@ echo "  cd /home/builder/src/buildroot"
 echo "  make O=/home/builder/src/buildroot/output raspberrypi5_defconfig"
 echo "  make O=/home/builder/src/buildroot/output menuconfig"
 echo "  make O=/home/builder/src/buildroot/output -j\$(nproc)"
-
