@@ -1,31 +1,104 @@
 # Base Buildroot configuration for Raspberry Pi 5.
 # You can update this file with "make savedefconfig" once configured.
-BR2_EXTERNAL="${BR2_EXTERNAL_BLACKHAND_PATH}"
+
+# ============================================================================
+# ARCHITECTURE
+# ============================================================================
 BR2_aarch64=y
 BR2_cortex_a76=y
-BR2_TARGET_GENERIC_HOSTNAME="blackhand"
-BR2_TARGET_GENERIC_ISSUE="Black Hand OS"
-BR2_SYSTEM_DHCP="eth0"
+BR2_ARM_FPU_VFPV4=y
 
-# Kernel config: start with the Pi 5 defconfig and RPi kernel.
+# ============================================================================
+# TOOLCHAIN
+# ============================================================================
+BR2_TOOLCHAIN_BUILDROOT_GLIBC=y
+BR2_TOOLCHAIN_BUILDROOT_CXX=y
+BR2_PACKAGE_HOST_GDB=y
+
+# ============================================================================
+# SYSTEM
+# ============================================================================
+BR2_TARGET_GENERIC_HOSTNAME="blackhand"
+BR2_TARGET_GENERIC_ISSUE="Black Hand OS v0.1"
+BR2_TARGET_GENERIC_ROOT_PASSWD="blackhand"
+BR2_SYSTEM_DHCP="eth0"
+BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_DEVTMPFS=y
+BR2_ENABLE_LOCALE_PURGE=y
+BR2_SYSTEM_DEFAULT_PATH="/bin:/sbin:/usr/bin:/usr/sbin"
+
+# ============================================================================
+# KERNEL
+# ============================================================================
 BR2_LINUX_KERNEL=y
-BR2_LINUX_KERNEL_USE_DEFCONFIG=y
-BR2_LINUX_KERNEL_DEFCONFIG="bcm2712"
 BR2_LINUX_KERNEL_CUSTOM_TARBALL=y
 BR2_LINUX_KERNEL_CUSTOM_TARBALL_LOCATION="https://github.com/raspberrypi/linux/archive/refs/tags/6.6.73.zip"
-BR2_LINUX_KERNEL_INTREE_DTS_NAME="bcm2712-rpi-5-b"
+BR2_LINUX_KERNEL_USE_DEFCONFIG=y
+BR2_LINUX_KERNEL_DEFCONFIG="bcm2712"
+BR2_LINUX_KERNEL_DTS_SUPPORT=y
+BR2_LINUX_KERNEL_INTREE_DTS_NAME="broadcom/bcm2712-rpi-5-b"
+BR2_LINUX_KERNEL_NEEDS_HOST_OPENSSL=y
 
-# Root filesystem format (simple ext4 for now).
+# ============================================================================
+# TARGET PACKAGES - LIBRARIES
+# ============================================================================
+BR2_PACKAGE_ALSA_LIB=y
+BR2_PACKAGE_ALSA_LIB_PCM=y
+BR2_PACKAGE_ALSA_LIB_MIXER=y
+BR2_PACKAGE_SQLITE=y
+BR2_PACKAGE_CJSON=y
+BR2_PACKAGE_LIBMPG123=y
+BR2_PACKAGE_LVGL=y
+
+# ============================================================================
+# TARGET PACKAGES - BLUETOOTH
+# ============================================================================
+BR2_PACKAGE_BLUEZ5_UTILS=y
+BR2_PACKAGE_BLUEZ5_UTILS_TOOLS=y
+BR2_PACKAGE_BLUEZ_ALSA=y
+
+# ============================================================================
+# TARGET PACKAGES - TOOLS
+# ============================================================================
+BR2_PACKAGE_BUSYBOX=y
+BR2_PACKAGE_DROPBEAR=y
+BR2_PACKAGE_NANO=y
+BR2_PACKAGE_HTOP=y
+BR2_PACKAGE_EVTEST=y
+BR2_PACKAGE_ALSA_UTILS=y
+
+# ============================================================================
+# FILESYSTEM
+# ============================================================================
 BR2_TARGET_ROOTFS_EXT2=y
 BR2_TARGET_ROOTFS_EXT2_4=y
 BR2_TARGET_ROOTFS_EXT2_SIZE="512M"
 
-# Image generation helpers and overlays.
-BR2_PACKAGE_HOST_DOSFSTOOLS=y
-BR2_ROOTFS_OVERLAY="${BR2_EXTERNAL_BLACKHAND_PATH}/board/blackhand/overlay"
-BR2_ROOTFS_POST_BUILD_SCRIPT="${BR2_EXTERNAL_BLACKHAND_PATH}/board/blackhand/post-build.sh"
-BR2_GENIMAGE_CFG="${BR2_EXTERNAL_BLACKHAND_PATH}/board/blackhand/genimage.cfg"
-BR2_GENIMAGE_DEPENDENCIES="host-genimage"
+# For read-only rootfs (Level 4 of Phase 2):
+# BR2_TARGET_ROOTFS_SQUASHFS=y
+# BR2_TARGET_ROOTFS_SQUASHFS4_LZ4=y
 
-# U-Boot not used for Pi 5 in this setup.
-BR2_TARGET_UBOOT=n
+# ============================================================================
+# HOST TOOLS
+# ============================================================================
+BR2_PACKAGE_HOST_DOSFSTOOLS=y
+BR2_PACKAGE_HOST_GENIMAGE=y
+BR2_PACKAGE_HOST_MTOOLS=y
+
+# ============================================================================
+# INIT SYSTEM
+# ============================================================================
+#BR2_INIT_NONE=y
+
+# ============================================================================
+# BOARD
+# ============================================================================
+#BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_BLACKHAND_PATH)/board/blackhand/overlay"
+#BR2_ROOTFS_POST_BUILD_SCRIPT="$(BR2_EXTERNAL_BLACKHAND_PATH)/board/blackhand/post-build.sh"
+#BR2_ROOTFS_POST_IMAGE_SCRIPT="$(BR2_EXTERNAL_BLACKHAND_PATH)/board/blackhand/post-image.sh"
+
+# ============================================================================
+# BLACK HAND OS PACKAGES
+# ============================================================================
+#BR2_PACKAGE_BLACKHAND_INIT=y
+#BR2_PACKAGE_BLACKHAND_AUDIO=y
+#BR2_PACKAGE_BLACKHAND_UI=y
