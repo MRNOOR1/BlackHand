@@ -1,21 +1,31 @@
+# Base Buildroot configuration for Raspberry Pi 5.
+# You can update this file with "make savedefconfig" once configured.
 BR2_EXTERNAL="${BR2_EXTERNAL_BLACKHAND_PATH}"
 BR2_aarch64=y
 BR2_cortex_a76=y
 BR2_TARGET_GENERIC_HOSTNAME="blackhand"
 BR2_TARGET_GENERIC_ISSUE="Black Hand OS"
 BR2_SYSTEM_DHCP="eth0"
+
+# Kernel config: start with the Pi 5 defconfig and RPi kernel.
 BR2_LINUX_KERNEL=y
 BR2_LINUX_KERNEL_USE_DEFCONFIG=y
 BR2_LINUX_KERNEL_DEFCONFIG="bcm2712"
 BR2_LINUX_KERNEL_CUSTOM_TARBALL=y
 BR2_LINUX_KERNEL_CUSTOM_TARBALL_LOCATION="https://github.com/raspberrypi/linux/archive/refs/tags/6.6.73.zip"
 BR2_LINUX_KERNEL_INTREE_DTS_NAME="bcm2712-rpi-5-b"
+
+# Root filesystem format (simple ext4 for now).
 BR2_TARGET_ROOTFS_EXT2=y
 BR2_TARGET_ROOTFS_EXT2_4=y
 BR2_TARGET_ROOTFS_EXT2_SIZE="512M"
+
+# Image generation helpers and overlays.
 BR2_PACKAGE_HOST_DOSFSTOOLS=y
 BR2_ROOTFS_OVERLAY="${BR2_EXTERNAL_BLACKHAND_PATH}/board/blackhand/overlay"
 BR2_ROOTFS_POST_BUILD_SCRIPT="${BR2_EXTERNAL_BLACKHAND_PATH}/board/blackhand/post-build.sh"
 BR2_GENIMAGE_CFG="${BR2_EXTERNAL_BLACKHAND_PATH}/board/blackhand/genimage.cfg"
 BR2_GENIMAGE_DEPENDENCIES="host-genimage"
+
+# U-Boot not used for Pi 5 in this setup.
 BR2_TARGET_UBOOT=n

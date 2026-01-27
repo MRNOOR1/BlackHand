@@ -1,3 +1,9 @@
 menu "Black Hand OS packages"
-
+    source "${BR2_EXTERNAL_BLACKHAND_PATH}/package/blackhand-init/Config.in"
+    source "${BR2_EXTERNAL_BLACKHAND_PATH}/package/blackhand-ipc/Config.in"
+    source "${BR2_EXTERNAL_BLACKHAND_PATH}/package/blackhand-audio/Config.in"
+    source "${BR2_EXTERNAL_BLACKHAND_PATH}/package/blackhand-modem/Config.in"
+    source "${BR2_EXTERNAL_BLACKHAND_PATH}/package/blackhand-stt/Config.in"
+    source "${BR2_EXTERNAL_BLACKHAND_PATH}/package/blackhand-storage/Config.in"
+    source "${BR2_EXTERNAL_BLACKHAND_PATH}/package/blackhand-ui/Config.in"
 endmenu

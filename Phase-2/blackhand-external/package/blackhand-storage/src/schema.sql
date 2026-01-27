@@ -1,0 +1,2 @@
+-- Database schema placeholder.
+-- Define contacts, messages, settings tables here.
