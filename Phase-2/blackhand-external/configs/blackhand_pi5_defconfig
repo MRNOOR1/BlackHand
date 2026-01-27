@@ -1,18 +1,30 @@
-# Base Buildroot configuration for Raspberry Pi 5.
-# You can update this file with "make savedefconfig" once configured.
+# ============================================================================
+# BLACK HAND OS - Raspberry Pi 5 Defconfig
+# ============================================================================
+# This configuration builds a bootable image for Raspberry Pi 5.
+# 
+# Usage:
+#   make BR2_EXTERNAL=../blackhand-external blackhand_pi5_defconfig
+#   make -j$(nproc)
+#
+# Output: output/images/sdcard.img
+# ============================================================================
 
 # ============================================================================
 # ARCHITECTURE
 # ============================================================================
 BR2_aarch64=y
 BR2_cortex_a76=y
-BR2_ARM_FPU_VFPV4=y
+# Note: BR2_ARM_FPU_VFPV4 is for 32-bit ARM. AArch64 always has FPU.
+# Remove it — it's ignored but misleading.
 
 # ============================================================================
 # TOOLCHAIN
 # ============================================================================
 BR2_TOOLCHAIN_BUILDROOT_GLIBC=y
 BR2_TOOLCHAIN_BUILDROOT_CXX=y
+BR2_KERNEL_HEADERS_6_6=y
+BR2_KERNEL_HEADERS_VERSION="6.6"
 BR2_PACKAGE_HOST_GDB=y
 
 # ============================================================================
@@ -26,17 +38,41 @@ BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_DEVTMPFS=y
 BR2_ENABLE_LOCALE_PURGE=y
 BR2_SYSTEM_DEFAULT_PATH="/bin:/sbin:/usr/bin:/usr/sbin"
 
+# Use BusyBox init for now — you'll replace this with custom init later
+BR2_INIT_BUSYBOX=y
+
 # ============================================================================
 # KERNEL
 # ============================================================================
 BR2_LINUX_KERNEL=y
 BR2_LINUX_KERNEL_CUSTOM_TARBALL=y
-BR2_LINUX_KERNEL_CUSTOM_TARBALL_LOCATION="https://github.com/raspberrypi/linux/archive/refs/tags/6.6.73.zip"
+# Use a SPECIFIC TAG, not a branch, for reproducible builds
+BR2_LINUX_KERNEL_CUSTOM_TARBALL_LOCATION="https://github.com/raspberrypi/linux/archive/refs/tags/stable_20241008.tar.gz"
 BR2_LINUX_KERNEL_USE_DEFCONFIG=y
 BR2_LINUX_KERNEL_DEFCONFIG="bcm2712"
+
+# Kernel image format: Pi 5 uses uncompressed Image
+BR2_LINUX_KERNEL_IMAGE=y
+
+# Device Tree
 BR2_LINUX_KERNEL_DTS_SUPPORT=y
 BR2_LINUX_KERNEL_INTREE_DTS_NAME="broadcom/bcm2712-rpi-5-b"
+
+# Install DTBs to /boot so genimage can find them
+BR2_LINUX_KERNEL_INSTALL_TARGET=y
+
 BR2_LINUX_KERNEL_NEEDS_HOST_OPENSSL=y
+
+# ============================================================================
+# RASPBERRY PI FIRMWARE (CRITICAL - without this, Pi won't boot)
+# ============================================================================
+BR2_PACKAGE_RPI_FIRMWARE=y
+BR2_PACKAGE_RPI_FIRMWARE_VARIANT_PI4=y
+# Note: Pi 5 uses the same firmware variant selection as Pi 4 in Buildroot
+# This provides: start4.elf, fixup4.dat, bootcode.bin, etc.
+
+# Install DTB overlays (needed for HyperPixel later)
+BR2_PACKAGE_RPI_FIRMWARE_INSTALL_DTB_OVERLAYS=y
 
 # ============================================================================
 # TARGET PACKAGES - LIBRARIES
@@ -47,7 +83,10 @@ BR2_PACKAGE_ALSA_LIB_MIXER=y
 BR2_PACKAGE_SQLITE=y
 BR2_PACKAGE_CJSON=y
 BR2_PACKAGE_LIBMPG123=y
+
+# LVGL with Linux framebuffer backend
 BR2_PACKAGE_LVGL=y
+BR2_PACKAGE_LVGL_LINUX_FB=y
 
 # ============================================================================
 # TARGET PACKAGES - BLUETOOTH
@@ -57,7 +96,7 @@ BR2_PACKAGE_BLUEZ5_UTILS_TOOLS=y
 BR2_PACKAGE_BLUEZ_ALSA=y
 
 # ============================================================================
-# TARGET PACKAGES - TOOLS
+# TARGET PACKAGES - TOOLS (for debugging)
 # ============================================================================
 BR2_PACKAGE_BUSYBOX=y
 BR2_PACKAGE_DROPBEAR=y
@@ -66,6 +105,9 @@ BR2_PACKAGE_HTOP=y
 BR2_PACKAGE_EVTEST=y
 BR2_PACKAGE_ALSA_UTILS=y
 
+# Framebuffer test utilities (useful for display debugging)
+BR2_PACKAGE_FBV=y
+
 # ============================================================================
 # FILESYSTEM
 # ============================================================================
@@ -73,32 +115,16 @@ BR2_TARGET_ROOTFS_EXT2=y
 BR2_TARGET_ROOTFS_EXT2_4=y
 BR2_TARGET_ROOTFS_EXT2_SIZE="512M"
 
-# For read-only rootfs (Level 4 of Phase 2):
-# BR2_TARGET_ROOTFS_SQUASHFS=y
-# BR2_TARGET_ROOTFS_SQUASHFS4_LZ4=y
-
 # ============================================================================
-# HOST TOOLS
+# HOST TOOLS (for building the SD card image)
 # ============================================================================
 BR2_PACKAGE_HOST_DOSFSTOOLS=y
 BR2_PACKAGE_HOST_GENIMAGE=y
 BR2_PACKAGE_HOST_MTOOLS=y
 
 # ============================================================================
-# INIT SYSTEM
+# BOARD CUSTOMIZATION (ACTIVE - not commented out)
 # ============================================================================
-#BR2_INIT_NONE=y
-
-# ============================================================================
-# BOARD
-# ============================================================================
-#BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_BLACKHAND_PATH)/board/blackhand/overlay"
-#BR2_ROOTFS_POST_BUILD_SCRIPT="$(BR2_EXTERNAL_BLACKHAND_PATH)/board/blackhand/post-build.sh"
-#BR2_ROOTFS_POST_IMAGE_SCRIPT="$(BR2_EXTERNAL_BLACKHAND_PATH)/board/blackhand/post-image.sh"
-
-# ============================================================================
-# BLACK HAND OS PACKAGES
-# ============================================================================
-#BR2_PACKAGE_BLACKHAND_INIT=y
-#BR2_PACKAGE_BLACKHAND_AUDIO=y
-#BR2_PACKAGE_BLACKHAND_UI=y
+BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_BLACKHAND_PATH)/board/blackhand/overlay"
+BR2_ROOTFS_POST_BUILD_SCRIPT="$(BR2_EXTERNAL_BLACKHAND_PATH)/board/blackhand/post-build.sh"
+BR2_ROOTFS_POST_IMAGE_SCRIPT="$(BR2_EXTERNAL_BLACKHAND_PATH)/board/blackhand/post-image.sh"

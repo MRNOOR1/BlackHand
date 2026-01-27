@@ -1,0 +1,28 @@
+# Black Hand OS - Raspberry Pi 5 Boot Configuration
+
+# 64-bit mode
+arm_64bit=1
+
+# Kernel
+kernel=Image
+device_tree=bcm2712-rpi-5-b.dtb
+
+# GPU memory
+gpu_mem=256
+
+# Enable DRM/KMS for display
+dtoverlay=vc4-kms-v3d
+
+# Serial console (for debugging)
+enable_uart=1
+
+# Faster boot
+disable_splash=1
+boot_delay=0
+```
+
+---
+
+## File 4: `board/blackhand/cmdline.txt`
+```
+root=/dev/mmcblk0p2 rootfstype=ext4 rootwait console=ttyAMA10,115200 console=tty1
