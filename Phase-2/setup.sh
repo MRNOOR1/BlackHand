@@ -12,6 +12,10 @@ fi
 
 docker build -t "${IMAGE_NAME}" "${ROOT_DIR}/docker"
 
+CUSTOM_DIR="${ROOT_DIR}/custom"
+mkdir -p "${CUSTOM_DIR}"
+
 docker run --rm -it \
   --name "${CONTAINER_NAME}" \
+  -v "${CUSTOM_DIR}:/artifacts" \
   "${IMAGE_NAME}"
