@@ -1,3640 +1,1371 @@
-# 🎮 BLACK HAND OS - PHASE 1 COMPLETE ROADMAP
+# Black Hand OS Phase 2 Roadmap: Embedded Linux Mastery
 
-## How This Works:
+**Target hardware**: Raspberry Pi 5 + HyperPixel 4.0 (800×480 DPI display) with future NXP migration. This roadmap transforms an RTOS developer into an embedded Linux phone OS architect through 12 progressive levels, each building modular, portable services.
 
-- Each level has **LEARN** (knowledge) and **DO** (tasks)
-- You cannot skip levels
-- You unlock the next level only when ALL conditions are met
-- Each level builds on previous levels
+The Phase 2 journey begins with Linux fundamentals and culminates in a fully functional phone operating system featuring voice calls, SMS, Bluetooth audio, touch UI, and offline speech recognition. Every component follows Service-Oriented Architecture principles ensuring clean separation for the Phase 3 NXP hardware port.
 
 ---
 
-# 🟦 LEVEL 1: BOOT & CONTROL
+## Level 1: Embedded Linux environment and Buildroot foundation
 
-**Theme:** "I own this hardware"
+### What this level achieves
 
-## 📚 LEARN (Knowledge Requirements)
+You establish the complete development environment, configure Buildroot for Raspberry Pi 5, and create your first bootable image. This foundation ensures every subsequent component integrates cleanly into the build system.
 
-### STM32 Boot Process
+### Learning prerequisites
 
-- [ ] **Reset vector** → what executes first
-- [ ] **Startup code** → before main()
-- [ ] **Clock configuration** → HSE, PLL, system clock
-- [ ] **Memory map** → Flash, SRAM, peripherals
+- Linux command line proficiency (file manipulation, permissions, process management)
+- Cross-compilation concepts (toolchains, sysroots, host vs target)
+- Understanding of Buildroot's role as a build system (not a distribution)
+- Git version control fundamentals
 
-### Interrupts
+### Completion prerequisites
 
-- [ ] **NVIC** (Nested Vectored Interrupt Controller)
-- [ ] **Priority levels** (0-15, lower number = higher priority)
-- [ ] **ISR** (Interrupt Service Routine) rules
-- [ ] **Pending vs active** interrupts
+- Phase 1 complete (bare-metal RTOS experience on STM32)
 
-### GPIO
+### Incremental tasks
 
-- [ ] **Input modes** (pull-up, pull-down, floating)
-- [ ] **Output modes** (push-pull, open-drain)
-- [ ] **Speed settings** and why they matter
-- [ ] **Atomic operations** (read-modify-write problem)
+**Task 1.1**: Install Buildroot and create Pi 5 base configuration
 
-### Debugging
+```bash
+git clone https://github.com/buildroot/buildroot.git
+cd buildroot && make raspberrypi5_defconfig
+make menuconfig  # Explore the interface
+```
 
-- [ ] **UART** for logging
-- [ ] **printf** redirection to UART
-- [ ] **Breakpoints** in debugger
-- [ ] **Register inspection**
+**Task 1.2**: Create br2-external tree structure for Black Hand OS
+
+```
+blackhand-external/
+├── external.desc          # BR2_EXTERNAL_BLACKHAND_PATH
+├── external.mk
+├── Config.in
+├── configs/blackhand_pi5_defconfig
+├── package/               # Custom packages
+└── board/blackhand/
+    ├── overlay/           # Root filesystem overlay
+    ├── post-build.sh
+    └── genimage.cfg
+```
+
+**Task 1.3**: Configure essential Buildroot options
+
+- Set `BR2_aarch64=y` and `BR2_cortex_a76=y` for Pi 5
+- Enable `BR2_PACKAGE_HOST_DOSFSTOOLS=y` for boot partition
+- Configure kernel with `BR2_LINUX_KERNEL_CUSTOM_TARBALL_LOCATION` pointing to Raspberry Pi kernel
+
+**Task 1.4**: Build first image and verify boot
+
+```bash
+make BR2_EXTERNAL=../blackhand-external blackhand_pi5_defconfig
+make -j$(nproc)
+# Flash output/images/sdcard.img to SD card
+```
+
+**Task 1.5**: Establish serial console debugging
+
+- Connect USB-to-serial adapter to GPIO 14/15
+- Configure minicom/picocom at **115200** baud
+- Verify kernel boot messages and login prompt
+
+### Completion checklist
+
+- [ ] Buildroot configured with br2-external for Black Hand OS
+- [ ] Pi 5 boots to serial console login
+- [ ] Kernel version 6.6+ with Pi 5 support confirmed
+- [ ] Build time documented (baseline for optimization)
+- [ ] Git repository initialized with .gitignore for Buildroot outputs
 
 ---
 
-## ✅ DO (Tasks to Complete)
+## Level 2: Display and touch input bring-up
 
-### Task 1.1: Reliable Boot
+### What this level achieves
+
+HyperPixel 4.0 displays graphics via DPI interface, touch input works through the Goodix GT911 controller, and you have a working framebuffer for LVGL integration.
+
+### Learning prerequisites
+
+- Device Tree concepts (nodes, properties, overlays, phandles)
+- Linux framebuffer subsystem (`/dev/fb0`, fbset, mmap)
+- I2C protocol basics (addressing, transactions)
+- Linux input subsystem (evdev, `/dev/input/eventX`)
+- Understanding of Pi 5's RP1 southbridge chip architecture
+
+### Completion prerequisites
+
+- Level 1 complete (bootable Buildroot image)
+
+### Incremental tasks
+
+**Task 2.1**: Configure device tree overlay for HyperPixel 4.0
+
+```ini
+# config.txt additions
+dtoverlay=vc4-kms-v3d
+dtoverlay=vc4-kms-dpi-hyperpixel4
+dtparam=i2c_arm=off  # Required - HyperPixel uses these GPIOs
+dtparam=spi=off
+```
+
+**Task 2.2**: Enable kernel drivers for DPI and touch
+
+```
+CONFIG_DRM=y
+CONFIG_DRM_VC4=y
+CONFIG_INPUT_TOUCHSCREEN=y
+CONFIG_TOUCHSCREEN_GOODIX=y
+CONFIG_I2C_GPIO=y  # Software I2C for touch
+```
+
+**Task 2.3**: Verify framebuffer operation
+
+```bash
+fbset -fb /dev/fb0  # Should show 800x480
+cat /dev/urandom > /dev/fb0  # Visual noise test
+```
+
+**Task 2.4**: Test touch input with evtest
+
+```bash
+evtest /dev/input/event0
+# Touch screen and verify X,Y coordinate events
+```
+
+**Task 2.5**: Calibrate touch coordinates
+
+- Record corner coordinates (0,0) and (799,479)
+- Calculate transformation matrix if rotation needed
+- Document calibration matrix: `0 -1 1 1 0 0 0 0 1` for 90° rotation
+
+**Task 2.6**: Create display HAL abstraction header
 
 ```c
-// You must achieve this:
-- Board boots in <100ms every single time
-- No random hangs
-- No clock failures
-- SystemClock_Config() works reliably
+// hal/display_hal.h
+typedef struct {
+    int (*init)(void);
+    int (*set_brightness)(int level);  // 0-100
+    int (*power_on)(void);
+    int (*power_off)(void);
+} display_hal_t;
 ```
 
-**Deliverable:**
+### Completion checklist
 
-- Boot sequence logged over UART
-- System clock frequency printed (should be 180 MHz)
+- [ ] HyperPixel displays framebuffer content at 800×480
+- [ ] Touch events appear in evtest with correct coordinates
+- [ ] Backlight controllable via `/sys/class/backlight/`
+- [ ] Display HAL interface defined for NXP portability
+- [ ] Device tree modifications documented
 
 ---
 
-### Task 1.2: Timer Interrupt LED Blink
+## Level 3: Custom init system and service manager
+
+### What this level achieves
+
+You replace BusyBox init with a custom PID 1 written in C, implement a service manager with dependency ordering, and establish the Unix socket IPC foundation for all inter-service communication.
+
+### Learning prerequisites
+
+- Linux init process responsibilities (PID 1 semantics, zombie reaping, signal handling)
+- POSIX signal handling (`sigaction`, `SIGCHLD`, `SIGTERM`)
+- Process creation (`fork`, `exec`, `setsid`, `waitpid`)
+- Unix domain sockets (`AF_UNIX`, `SOCK_SEQPACKET`)
+- JSON-RPC 2.0 protocol specification
+
+### Completion prerequisites
+
+- Level 1 complete (working Buildroot environment)
+
+### Incremental tasks
+
+**Task 3.1**: Write minimal init skeleton
 
 ```c
-// Requirements:
-- Use TIM2 or similar
-- 1 Hz blink (500ms on, 500ms off)
-- NO delay loops in main
-- LED toggled in timer ISR
+// blackhand_init.c
+int main(int argc, char *argv[]) {
+    if (getpid() != 1) exit(1);
+
+    setup_signals();      // SIGCHLD handler for zombie reaping
+    mount_vfs();          // proc, sysfs, devtmpfs, tmpfs
+    spawn_service("/usr/bin/blackhand-svc-mgr", NULL);
+
+    for (;;) {
+        if (got_sigchld) reap_zombies();
+        pause();
+    }
+}
 ```
 
-**Deliverable:**
+**Task 3.2**: Implement virtual filesystem mounting
 
-- LED blinks perfectly timed
-- main() does nothing but wait
-- UART logs each blink event
+- Mount `/proc`, `/sys`, `/dev` (devtmpfs), `/run`, `/tmp`
+- Handle mount failures gracefully with fallbacks
 
----
+**Task 3.3**: Create service definition format
 
-### Task 1.3: Button with Debounce
+```yaml
+# /etc/blackhand/services/example.service
+name: example
+exec: /usr/bin/example-daemon
+user: root
+dependencies: [audio, display]
+restart_policy: always
+health_check:
+  type: socket
+  path: /run/blackhand/example.sock
+```
+
+**Task 3.4**: Implement service manager with dependency resolution
+
+- Topological sort for dependency ordering
+- Parallel start of independent services
+- Health check via socket connectivity
+- Exponential backoff restart policy
+
+**Task 3.5**: Create Unix socket server framework
 
 ```c
-// Requirements:
-- External interrupt on button press (EXTI)
-- Software debounce (20-50ms)
-- No spurious triggers
-- Count button presses
+int create_service_socket(const char *path) {
+    int fd = socket(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0);
+    struct sockaddr_un addr = {.sun_family = AF_UNIX};
+    strncpy(addr.sun_path, path, sizeof(addr.sun_path) - 1);
+    unlink(path);
+    bind(fd, (struct sockaddr*)&addr, sizeof(addr));
+    listen(fd, 16);
+    return fd;
+}
 ```
 
-**Deliverable:**
-
-- Press button 10 times → count = 10
-- No double-counts
-- UART logs each press with timestamp
-
----
-
-### Task 1.4: UART Debug Logging
+**Task 3.6**: Integrate cJSON for JSON-RPC messaging
 
 ```c
-// Requirements:
-- printf() works over UART
-- Baud rate: 115200
-- Timestamp each log message
-- Use HAL_GetTick() or similar
+// JSON-RPC request: {"jsonrpc":"2.0","method":"service.status","id":1}
+// Response: {"jsonrpc":"2.0","result":{"state":"running"},"id":1}
 ```
 
-**Deliverable:**
+**Task 3.7**: Configure Buildroot to use custom init
 
+```makefile
+BR2_INIT_NONE=y
+BR2_PACKAGE_BLACKHAND_INIT=y
 ```
-[0000] System boot
-[0012] LED ON
-[0512] LED OFF
-[1012] LED ON
-[1234] Button pressed (count: 1)
-```
+
+### Completion checklist
+
+- [ ] Custom init boots successfully as PID 1
+- [ ] Service manager starts/stops services correctly
+- [ ] Dependencies resolved with topological sort
+- [ ] JSON-RPC over Unix sockets functional
+- [ ] Zombie processes properly reaped
+- [ ] Boot time logged (target: identify baseline)
 
 ---
 
-## 🔓 UNLOCK CONDITIONS
+## Level 4: Read-only rootfs and persistent storage
 
-You can move to Level 2 ONLY when you can answer these:
+### What this level achieves
 
-### Quiz Yourself:
+Root filesystem becomes read-only SquashFS with OverlayFS for runtime modifications, a separate ext4 partition stores user data, and factory reset works by clearing the overlay.
 
-1. **What happens between power-on and main()?**
+### Learning prerequisites
 
-   - (Reset handler, clock init, .data/.bss setup, jump to main)
+- Linux filesystem hierarchy and mount points
+- SquashFS (compressed, read-only filesystem)
+- OverlayFS (union mount: lower read-only + upper read-write)
+- Partition layout design for embedded systems
+- ext4 mount options for SD card longevity (`noatime`, `commit=`)
 
-2. **Why does the LED blink at exactly 1 Hz?**
+### Completion prerequisites
 
-   - (Timer configured for specific period, interrupt fires, toggles GPIO)
+- Level 3 complete (custom init functional)
 
-3. **What happens if you don't debounce the button?**
+### Incremental tasks
 
-   - (Mechanical bounce causes multiple interrupts per press)
-
-4. **Why use interrupts instead of polling?**
-
-   - (CPU can do other work, more responsive, lower power)
-
-5. **What is NVIC and why does priority matter?**
-
-   - (Interrupt controller, prevents low-priority ISRs from blocking critical ones)
-
-### Must Be Able to Draw:
+**Task 4.1**: Design partition layout
 
 ```
-Power On → Reset Handler → SystemInit() → Clock Config → main()
-                                                            ↓
-                                                    Infinite Loop
-                                                            ↑
-                                    Timer ISR ←──────────── TIM2 IRQ
-                                    Button ISR ←─────────── EXTI IRQ
+/dev/mmcblk0p1 - boot     (FAT32, 256MB) - kernel, DTB, config.txt
+/dev/mmcblk0p2 - rootfs   (SquashFS, 128MB) - read-only system
+/dev/mmcblk0p3 - overlay  (ext4, 64MB) - rootfs modifications
+/dev/mmcblk0p4 - data     (ext4, remaining) - user data
 ```
 
----
+**Task 4.2**: Configure Buildroot for SquashFS
 
-## ❌ STILL LOCKED:
+```makefile
+BR2_TARGET_ROOTFS_SQUASHFS=y
+BR2_TARGET_ROOTFS_SQUASHFS_4K=y
+BR2_TARGET_GENERIC_REMOUNT_ROOTFS_RW=n
+```
 
-- Tasks, queues, mutexes
-- DMA
-- Audio
-- Multiple simultaneous operations
+**Task 4.3**: Implement early init OverlayFS setup
 
----
+```sh
+# Mount read-only rootfs
+mount -o ro /dev/mmcblk0p2 /media/rfs/ro
 
-# 🟦 LEVEL 2: RTOS CORE
+# Mount overlay partition
+mount -o rw /dev/mmcblk0p3 /media/rfs/rw
+mkdir -p /media/rfs/rw/{upper,work}
 
-**Theme:** "I control time and priority"
+# Create union mount
+mount -t overlay overlay -o \
+    lowerdir=/media/rfs/ro,\
+    upperdir=/media/rfs/rw/upper,\
+    workdir=/media/rfs/rw/work \
+    /mnt/merged
 
-## 📚 LEARN (Knowledge Requirements)
+pivot_root /mnt/merged /mnt/merged/mnt
+```
 
-### FreeRTOS Fundamentals
+**Task 4.4**: Create data partition directory structure
 
-- [ ] **Task** vs **thread** (conceptually same on RTOS)
-- [ ] **Task states** (Running, Ready, Blocked, Suspended)
-- [ ] **Scheduler** (preemptive, priority-based)
-- [ ] **Context switch** (what it costs)
+```
+/mnt/data/
+├── db/           # SQLite databases
+├── media/        # Voice memos, photos
+├── config/       # App configurations
+└── cache/        # Temporary files
+```
 
-### Task Management
-
-- [ ] **xTaskCreate()** parameters
-- [ ] **Stack size** calculation
-- [ ] **Priority** assignment rules
-- [ ] **vTaskDelay()** vs **vTaskDelayUntil()**
-- [ ] **Idle task** and hook functions
-
-### Timing
-
-- [ ] **Tick rate** (configTICK_RATE_HZ)
-- [ ] **Tick interrupt** (SysTick)
-- [ ] **Blocking vs busy-wait**
-- [ ] **Starvation** (low priority task never runs)
-
-### Memory
-
-- [ ] **Heap** management (heap_4.c or heap_5.c)
-- [ ] **Stack overflow** detection
-- [ ] **configTOTAL_HEAP_SIZE**
-
----
-
-## ✅ DO (Tasks to Complete)
-
-### Task 2.1: Three Basic Tasks
+**Task 4.5**: Implement factory reset function
 
 ```c
-// Create these tasks:
-
-Task A: LED Blink (Priority 1)
-- Toggle LED every 500ms
-- Use vTaskDelay(500)
-
-Task B: Button Monitor (Priority 2)
-- Check button state every 100ms
-- Log when pressed
-
-Task C: Heartbeat Logger (Priority 0)
-- Print "alive" every 2 seconds
-- Lowest priority
+int factory_reset(void) {
+    sync();
+    system("rm -rf /media/rfs/rw/upper/*");
+    system("rm -rf /mnt/data/user/*");  // Optional: clear user data
+    reboot(RB_AUTOBOOT);
+}
 ```
 
-**Deliverable:**
+**Task 4.6**: Configure genimage for multi-partition image
 
-- All three tasks run concurrently
-- LED blinks reliably
-- Button responds within 100ms
-- Heartbeat prints even when button held
+```
+image sdcard.img {
+    hdimage { partition-table-type = "msdos" }
+    partition boot { partition-type = 0xC, image = "boot.vfat" }
+    partition rootfs { partition-type = 0x83, image = "rootfs.squashfs" }
+    partition overlay { partition-type = 0x83, size = 64M }
+    partition data { partition-type = 0x83, size = 0 }  # Fill remaining
+}
+```
+
+### Completion checklist
+
+- [ ] Root filesystem mounts read-only
+- [ ] OverlayFS provides transparent write capability
+- [ ] User data persists across reboots in `/mnt/data`
+- [ ] Factory reset clears overlay and optional user data
+- [ ] Boot succeeds after intentional power loss (corruption test)
 
 ---
 
-### Task 2.2: Priority Demonstration
+## Level 5: Audio subsystem and Bluetooth integration
+
+### What this level achieves
+
+USB audio adapter provides speaker/microphone capability, Bluetooth A2DP streams music to headphones, HFP enables hands-free calling, and a central audio service manages routing and mixing.
+
+### Learning prerequisites
+
+- ALSA architecture (cards, devices, PCM, mixer elements)
+- ALSA C API (`snd_pcm_*`, `snd_mixer_*`)
+- BlueZ stack architecture (bluetoothd, D-Bus API, profiles)
+- A2DP (Advanced Audio Distribution Profile) for stereo streaming
+- HFP (Hands-Free Profile) for bidirectional call audio
+
+### Completion prerequisites
+
+- Level 3 complete (service manager and IPC)
+- Level 4 complete (persistent storage for paired device database)
+
+### Incremental tasks
+
+**Task 5.1**: Enable kernel USB audio support
+
+```
+CONFIG_SOUND=y
+CONFIG_SND=y
+CONFIG_SND_USB_AUDIO=y
+```
+
+**Task 5.2**: Configure ALSA for USB audio
+
+```conf
+# /etc/asound.conf
+pcm.!default { type hw; card 0; device 0; }
+ctl.!default { type hw; card 0; }
+```
+
+**Task 5.3**: Implement ALSA playback wrapper
 
 ```c
-// Prove you understand priority:
-
-Task HIGH (Priority 3):
-- Runs every 1 second
-- Busy-wait for 100ms (simulate work)
-- Print "HIGH done"
-
-Task LOW (Priority 1):
-- Runs every 500ms
-- Print "LOW running"
-
-Expected behavior:
-- HIGH preempts LOW
-- LOW only runs when HIGH is blocked
+int audio_play_buffer(const int16_t *samples, size_t count) {
+    snd_pcm_t *handle;
+    snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0);
+    // Configure: 16-bit, 44100Hz, stereo, period 1024 frames
+    snd_pcm_hw_params_set_*(...);
+    snd_pcm_writei(handle, samples, count);
+    snd_pcm_drain(handle);
+    snd_pcm_close(handle);
+}
 ```
 
-**Deliverable:**
-
-- Log output shows preemption clearly
-- HIGH never waits for LOW
-- LOW runs in between HIGH activations
-
----
-
-### Task 2.3: Periodic vs Event-Driven
+**Task 5.4**: Implement ALSA mixer volume control
 
 ```c
-// Create both types:
-
-Periodic Task:
-- vTaskDelayUntil() for exact 1 Hz
-- Print with timestamp
-- Must be precise (not drift)
-
-Event Task:
-- Wait for button press
-- No polling, just block until event
-- Print immediately when triggered
+int volume_set_percent(int percent) {
+    snd_mixer_t *handle;
+    snd_mixer_open(&handle, 0);
+    snd_mixer_attach(handle, "default");
+    snd_mixer_selem_register(handle, NULL, NULL);
+    snd_mixer_load(handle);
+    // Find "Master" or "PCM" element, set volume
+}
 ```
 
-**Deliverable:**
+**Task 5.5**: Enable BlueZ-ALSA in Buildroot
 
-- Periodic task prints at exact 1-second intervals (no drift)
-- Event task responds instantly to button (not delayed)
+```makefile
+BR2_PACKAGE_BLUEZ5_UTILS=y
+BR2_PACKAGE_BLUEZ_ALSA=y
+```
 
----
+**Task 5.6**: Implement Bluetooth pairing flow
 
-### Task 2.4: Stack Overflow Detection
+```bash
+# bluetoothctl sequence
+power on
+agent on
+default-agent
+scan on
+pair XX:XX:XX:XX:XX:XX
+trust XX:XX:XX:XX:XX:XX
+connect XX:XX:XX:XX:XX:XX
+```
+
+**Task 5.7**: Create audio routing service
 
 ```c
-// Deliberately cause stack overflow:
-
-Task:
-- Recursive function or huge local array
-- Enable stack overflow checking
-- Catch and log the error
-
-Expected:
-- vApplicationStackOverflowHook() called
-- System doesn't crash silently
-```
-
-**Deliverable:**
-
-- Overflow detected and logged
-- You understand how to size stacks properly
-
----
-
-## 🔓 UNLOCK CONDITIONS
-
-### Quiz Yourself:
-
-1. **What does the scheduler do?**
-
-   - (Decides which task runs based on priority and state)
-
-2. **When does a context switch happen?**
-
-   - (Higher priority task becomes ready, or running task blocks)
-
-3. **What's the difference between vTaskDelay(100) and busy-wait 100ms?**
-
-   - (vTaskDelay blocks and allows other tasks to run; busy-wait wastes CPU)
-
-4. **Why does LOW priority task starve if HIGH never blocks?**
-
-   - (Scheduler always picks highest ready task; LOW never gets CPU)
-
-5. **What happens if stack is too small?**
-
-   - (Stack overflow, memory corruption, crashes)
-
-### Must Be Able to Draw:
-
-```
-Time →
-Priority 3: HIGH  [RUN]──[BLOCK]────────[RUN]──[BLOCK]
-Priority 2: MED   ─────[RUN]────[BLOCK]────[RUN]
-Priority 1: LOW   ────────────[RUN]────────────[RUN]
-                  ↑           ↑
-                  Context     Context
-                  Switch      Switch
-```
-
----
-
-## ❌ STILL LOCKED:
-
-- Inter-task communication
-- Shared resources
-- Mutexes
-- DMA
-
----
-
-# 🟦 LEVEL 3: COMMUNICATION & SAFETY
-
-**Theme:** "Tasks can cooperate without chaos"
-
-## 📚 LEARN (Knowledge Requirements)
-
-### Inter-Task Communication
-
-- [ ] **Queue** (FIFO data passing)
-- [ ] **Semaphore** (signaling, counting)
-- [ ] **Mutex** (mutual exclusion)
-- [ ] **Event groups** (multiple flags)
-
-### Synchronization Problems
-
-- [ ] **Race condition** (unsynchronized access)
-- [ ] **Deadlock** (circular wait)
-- [ ] **Priority inversion** (LOW blocks HIGH)
-- [ ] **Starvation** (never gets resource)
-
-### Mutex vs Semaphore
-
-- [ ] **Mutex** = binary, has ownership
-- [ ] **Semaphore** = counting, no ownership
-- [ ] **Priority inheritance** (mutex only)
-
-### ISR Rules
-
-- [ ] **FromISR** functions required
-- [ ] **No blocking** in ISR
-- [ ] **Keep ISR short**
-- [ ] **Defer work** to tasks
-
----
-
-## ✅ DO (Tasks to Complete)
-
-### Task 3.1: Queue Between Tasks
-
-```c
-// Producer-Consumer pattern:
-
-Producer Task (Priority 2):
-- Generate numbers 0-99
-- Send to queue
-- 100ms delay between sends
-
-Consumer Task (Priority 1):
-- Receive from queue
-- Print received number
-- Blocks waiting for data
-```
-
-**Deliverable:**
-
-- All 100 numbers received in order
-- Consumer blocks when queue empty
-- No lost data
-
----
-
-### Task 3.2: Demonstrate Race Condition
-
-```c
-// Break it first, then fix it:
-
-Shared resource: uint32_t counter = 0;
-
-Task A (Priority 1):
-- Increment counter 1000 times
-- NO protection
-
-Task B (Priority 1):
-- Increment counter 1000 times
-- NO protection
-
-Expected result WITHOUT mutex: counter < 2000 (race!)
-```
-
-**Deliverable:**
-
-- Prove race condition (counter != 2000)
-- Screenshot or log showing corruption
-- Explain WHY it happened
-
----
-
-### Task 3.3: Fix with Mutex
-
-```c
-// Now protect it:
-
-Create mutex
-Task A:
-- Lock mutex
-- Increment counter
-- Unlock mutex
-
-Task B:
-- Lock mutex
-- Increment counter
-- Unlock mutex
-
-Expected result: counter == 2000 (correct!)
-```
-
-**Deliverable:**
-
-- Counter always equals 2000
-- No race condition
-- Tasks properly synchronized
-
----
-
-### Task 3.4: ISR to Task Communication
-
-```c
-// Button ISR → Task via semaphore:
-
-Button ISR:
-- Give semaphore (xSemaphoreGiveFromISR)
-- NO printing in ISR
-- NO blocking in ISR
-
-Handler Task:
-- Take semaphore (blocks waiting)
-- When released, print "Button!"
-- Do slow work (100ms delay)
-```
-
-**Deliverable:**
-
-- ISR completes in <10 μs
-- Task does slow work safely
-- No timing issues
-
----
-
-## 🔓 UNLOCK CONDITIONS
-
-### Quiz Yourself:
-
-1. **When do you use a queue vs mutex?**
-
-   - (Queue = pass data; Mutex = protect shared resource)
-
-2. **What is a race condition?**
-
-   - (Multiple tasks access shared data without synchronization → corruption)
-
-3. **Why can't you use vTaskDelay() in an ISR?**
-
-   - (ISRs can't block; would break the scheduler)
-
-4. **What is priority inversion?**
-
-   - (HIGH task blocked by LOW task that holds a mutex)
-
-5. **How does a mutex prevent races?**
-
-   - (Only one task can lock it at a time; others must wait)
-
-### Must Be Able to Draw:
-
-```
-Task A          Queue (size=10)        Task B
-[Producer] ──→ [xQueueSend] ──→ [xQueueReceive] → [Consumer]
-              (blocks if full)     (blocks if empty)
-
-Task C          Mutex              Task D
-[Lock]    ←─ [xMutexTake] ──→  [Waits...]
-[Use resource]      ↓
-[Unlock]  ──→ [xMutexGive] ──→  [Now can lock]
-```
-
----
-
-## ❌ STILL LOCKED:
-
-- DMA
-- Performance optimization
-- Audio pipeline
-
----
-
-# 🟦 LEVEL 4: DMA & PERFORMANCE
-
-**Theme:** "Move data without wasting CPU"
-
-## 📚 LEARN (Knowledge Requirements)
-
-### DMA Fundamentals
-
-- [ ] **Direct Memory Access** (hardware copies data)
-- [ ] **DMA channels** and streams
-- [ ] **Circular mode** (ring buffer)
-- [ ] **Normal mode** (one-shot)
-- [ ] **Memory-to-memory** vs **peripheral-to-memory**
-
-### DMA Configuration
-
-- [ ] **Source** address
-- [ ] **Destination** address
-- [ ] **Data size** (byte, half-word, word)
-- [ ] **Increment mode** (source/dest auto-increment)
-- [ ] **Priority** (DMA vs CPU)
-
-### DMA + Interrupts
-
-- [ ] **Transfer complete** interrupt
-- [ ] **Half transfer** interrupt (for double buffering)
-- [ ] **Error** interrupt
-
-### Double Buffering
-
-- [ ] **Ping-pong buffer** concept
-- [ ] **DMA fills buffer A while CPU reads buffer B**
-- [ ] **Swap buffers** on half/full transfer
-
-### Memory Management
-
-- [ ] **Cache coherency** (not critical on M4, but concept)
-- [ ] **Alignment** (word-aligned = faster)
-- [ ] **DMA-safe memory** regions
-
----
-
-## ✅ DO (Tasks to Complete)
-
-### Task 4.1: UART RX with DMA
-
-```c
-// Receive data without CPU involvement:
-
-Setup:
-- UART RX DMA in circular mode
-- Buffer size: 64 bytes
-- DMA transfer complete interrupt
-
-Task:
-- Print received data when buffer fills
-- NO polling
-```
-
-**Deliverable:**
-
-- Send 64 bytes via serial terminal
-- Data received automatically
-- CPU was free during transfer
-- Interrupt fires when buffer full
-
----
-
-### Task 4.2: ADC with DMA
-
-```c
-// Continuous sampling:
-
-Setup:
-- ADC in continuous mode
-- DMA circular buffer (256 samples)
-- Half-transfer + transfer-complete interrupts
-
-Task:
-- Process first half while DMA fills second half
-- Calculate average
-- Print result
-```
-
-**Deliverable:**
-
-- 256 samples collected automatically
-- CPU only processes completed halves
-- No samples lost
-
----
-
-### Task 4.3: Memory-to-Memory DMA
-
-```c
-// Prove DMA is faster:
-
-Test:
-- Copy 1024 bytes
-- Method 1: for loop (CPU)
-- Method 2: DMA
-- Measure time for both
-
-Expected:
-- DMA significantly faster
-- CPU free during DMA transfer
-```
-
-**Deliverable:**
-
-- Timing comparison logged:
-  ```
-  CPU copy: 850 μsDMA copy: 45 μs
-  ```
-
----
-
-### Task 4.4: Double Buffer Pattern
-
-```c
-// Classic ping-pong:
-
-Setup:
-- Two buffers (A and B), each 128 bytes
-- DMA in circular mode
-- Half + full transfer interrupts
-
-Logic:
-- DMA fills buffer A
-- Half-transfer IRQ → switch to buffer B
-- Process buffer A while DMA fills B
-- Full-transfer IRQ → switch back to A
-- Process buffer B while DMA fills A
-```
-
-**Deliverable:**
-
-- Continuous data flow
-- No overruns
-- CPU processes one buffer while DMA fills other
-- Log shows perfect alternation
-
----
-
-## 🔓 UNLOCK CONDITIONS
-
-### Quiz Yourself:
-
-1. **Why use DMA instead of CPU for data transfer?**
-
-   - (CPU freed for other work, faster, lower power)
-
-2. **What is circular mode?**
-
-   - (DMA automatically wraps around when buffer ends, continuous operation)
-
-3. **What is double buffering?**
-
-   - (Two buffers: process one while filling the other)
-
-4. **When does half-transfer interrupt fire?**
-
-   - (When DMA has filled 50% of circular buffer)
-
-5. **What happens if you don't process buffer before DMA wraps?**
-
-   - (Data overwritten, lost samples, buffer overrun)
-
-### Must Be Able to Draw:
-
-```
-DMA Controller
-     ↓
-[Peripheral] → DMA → [Buffer A] → CPU processes
-     ↓                     ↓
-   ADC               [Buffer B] ← DMA fills
-                           ↓
-                    CPU processes ← DMA fills Buffer A
-
-Half-Transfer IRQ: Switch to B, process A
-Full-Transfer IRQ: Switch to A, process B
-```
-
----
-
-## ❌ STILL LOCKED:
-
-- Real-time audio
-- Continuous streams
-- Overrun handling
-
----
-
-# 🟦 LEVEL 5: AUDIO PIPELINE
-
-**Theme:** "Handle continuous real-time data"
-
-## 📚 LEARN (Knowledge Requirements)
-
-### Digital Audio Basics
-
-- [ ] **Sample rate** (e.g., 16 kHz, 44.1 kHz)
-- [ ] **Bit depth** (8-bit, 16-bit, 24-bit)
-- [ ] **PCM** (Pulse Code Modulation)
-- [ ] **Mono vs stereo**
-
-### Audio Interfaces
-
-- [ ] **I2S** (Inter-IC Sound)
-- [ ] **PDM** (Pulse Density Modulation, for MEMS mics)
-- [ ] **Codec** (ADC/DAC for audio)
-
-### Buffering Strategies
-
-- [ ] **Ring buffer** (circular, continuous)
-- [ ] **Buffer size vs latency** tradeoff
-- [ ] **Overrun** (buffer fills faster than consumed)
-- [ ] **Underrun** (buffer empties faster than filled)
-
-### Real-Time Constraints
-
-- [ ] **Deadline** (must process before next buffer fills)
-- [ ] **Jitter** (timing variation)
-- [ ] **Priority** (audio must be high)
-
-### Audio File Formats
-
-- [ ] **WAV** header structure
-- [ ] **Raw PCM** (no header)
-
----
-
-## ✅ DO (Tasks to Complete)
-
-### Task 5.1: Microphone Capture (I2S + DMA)
-
-```c
-// Continuous audio input:
-
-Hardware:
-- I2S MEMS microphone (e.g., MP34DT01)
-- Or analog mic + ADC
-
-Setup:
-- Sample rate: 16 kHz
-- Bit depth: 16-bit
-- DMA circular buffer: 512 samples
-- Half + full transfer interrupts
-
-Task:
-- Capture audio continuously
-- Toggle flag in ISR when buffer ready
-- Process task reads and clears flag
-```
-
-**Deliverable:**
-
-- Audio captured without gaps
-- Buffer never overruns
-- ISR executes in <50 μs
-- Process task logs buffer count
-
----
-
-### Task 5.2: WAV File Recording
-
-```c
-// Save to SD card or flash:
-
-Requirements:
-- Record 5 seconds of audio
-- Save as valid WAV file
-- WAV header with correct size
-- 16 kHz, 16-bit, mono
-
-Must work:
-- Open file in Audacity/VLC
-- Playback matches recording
-```
-
-**Deliverable:**
-
-- WAV file plays correctly on PC
-- File size matches: (sample_rate × duration × 2 bytes) + 44 header
-- No corruption
-
----
-
-### Task 5.3: Audio Playback
-
-```c
-// I2S or PWM output:
-
-Setup:
-- Read WAV file from storage
-- Parse header
-- DMA stream to I2S DAC or PWM
-
-Task:
-- Play audio smoothly
-- No glitches
-- No underruns
-```
-
-**Deliverable:**
-
-- Audio plays clearly
-- Volume control works
-- Can start/stop
-
----
-
-### Task 5.4: Record + UI Simultaneously
-
-```c
-// The real test:
-
-Concurrent tasks:
-- Audio task (Priority 3): Record continuously
-- UI task (Priority 1): Button navigation, screen updates
-
-Requirements:
-- Press button to start/stop recording
-- UI shows recording status
-- Audio NEVER drops samples
-- UI NEVER freezes
-```
-
-**Deliverable:**
-
-- 30-second recording with user actively pressing buttons
-- Zero audio overruns
-- UI responsive (<100ms button response)
-- Logs show both tasks running smoothly
-
----
-
-## 🔓 UNLOCK CONDITIONS
-
-### Quiz Yourself:
-
-1. **Why is audio "real-time"?**
-
-   - (Must process before next buffer fills, hard deadline)
-
-2. **What happens during buffer overrun?**
-
-   - (New data overwrites old data before it's processed → lost samples)
-
-3. **How do you calculate buffer size for 50ms latency at 16 kHz?**
-
-   - (16000 samples/sec × 0.05 sec = 800 samples)
-
-4. **Why must audio task have higher priority than UI?**
-
-   - (Audio has hard deadlines; UI delays are acceptable)
-
-5. **What is a ring buffer?**
-
-   - (Circular buffer where head wraps to start when reaching end)
-
-### Must Be Able to Draw:
-
-```
-Mic → I2S → DMA → [Buffer 512 samples] → Process Task
-                        ↓                       ↓
-                  Half-Transfer            Save/Analyze
-                  Full-Transfer            Save/Analyze
-
-If Process Task is slow:
-DMA wraps around → OVERRUN → lost data
-```
-
----
-
-## ❌ STILL LOCKED:
-
-- Clean architecture
-- Service separation
-- OS structure
-
----
-
-# 🟦 LEVEL 6: UI & RESPONSIVENESS
-
-**Theme:** "Humans can interact under load"
-
-## 📚 LEARN (Knowledge Requirements)
-
-### UI Architecture
-
-- [ ] **Event-driven design**
-- [ ] **Input queue** (button/touch events)
-- [ ] **Render vs update** separation
-- [ ] **Frame rate** (30 Hz is fine for simple UI)
-
-### LVGL (or similar)
-
-- [ ] **Objects** (buttons, labels, screens)
-- [ ] **Styles** and themes
-- [ ] **Event callbacks**
-- [ ] **Task integration** (lv_task_handler)
-
-### Responsiveness
-
-- [ ] **Perceived latency** (<100ms feels instant)
-- [ ] **Frame drops** vs **timing violations**
-- [ ] **Priority tuning** for UI task
-
-### Input Handling
-
-- [ ] **Debouncing** (already learned)
-- [ ] **Long press** detection
-- [ ] **Gesture** recognition (if touch)
-
----
-
-## ✅ DO (Tasks to Complete)
-
-### Task 6.1: Basic LVGL Integration
-
-```c
-// Get UI running:
-
-Setup:
-- LVGL initialized
-- Display driver configured
-- Touch/button input driver configured
-
-Create:
-- Home screen with 3 buttons
-- Each button navigates to different screen
-- Back navigation works
-```
-
-**Deliverable:**
-
-- UI renders smoothly
-- Navigation works
-- No flickering
-
----
-
-### Task 6.2: UI Task Separation
-
-```c
-// Proper architecture:
-
-UI Task (Priority 1):
-- lv_task_handler() every 20ms
-- Process input events
-- Update screen
-
-Logic Task (Priority 2):
-- Business logic
-- Send UI updates via queue
-- Never touches LVGL directly
-```
-
-**Deliverable:**
-
-- UI and logic are separate tasks
-- Communication via queue
-- Clean separation of concerns
-
----
-
-### Task 6.3: Responsive Under Load
-
-```c
-// The stress test:
-
-Concurrent:
-- Audio recording (Priority 3)
-- Heavy computation task (Priority 2)
-- UI updates (Priority 1)
-
-Requirements:
-- Button press → screen change <100ms
-- Screen animations smooth
-- No audio glitches
-```
-
-**Deliverable:**
-
-- Record 30 seconds while navigating UI
-- All inputs responsive
-- Audio perfect
-- UI smooth
-
----
-
-### Task 6.4: Input Queue Pattern
-
-```c
-// Don't process input in ISR:
-
-Button ISR:
-- Put event in queue
-- Return immediately
-
-UI Task:
-- Receive from queue
-- Process event
-- Update UI accordingly
-```
-
-**Deliverable:**
-
-- Input handling is non-blocking
-- Multiple rapid presses handled correctly
-- No lost events
-
----
-
-## 🔓 UNLOCK CONDITIONS
-
-### Quiz Yourself:
-
-1. **Why separate UI task from logic task?**
-
-   - (Separation of concerns, easier debugging, better responsiveness)
-
-2. **What is perceived latency?**
-
-   - (Delay between user action and visible response)
-
-3. **Why can't ISR update LVGL directly?**
-
-   - (LVGL not re-entrant, might be in use by UI task → corruption)
-
-4. **How often should lv_task_handler() run?**
-
-   - (Every 10-20ms for smooth UI at ~50 Hz)
-
-5. **What happens if UI task has higher priority than audio?**
-
-   - (Audio overruns during heavy UI updates)
-
-### Must Be Able to Draw:
-
-```
-Button ISR → [Input Queue] → UI Task → LVGL → Display
-                                ↑
-                          [Update Queue] ← Logic Task
-
-Priority:
-Audio (3) > Logic (2) > UI (1) > Idle (0)
-```
-
----
-
-## ❌ STILL LOCKED:
-
-- OS architecture
-- Clean layering
-- Service APIs
-
----
-
-# 🟦 LEVEL 7: OS STRUCTURE
-
-**Theme:** "This is an operating system now"
-
-## 📚 LEARN (Knowledge Requirements)
-
-### Software Architecture
-
-- [ ] **Layered design** (hardware → drivers → services → apps)
-- [ ] **Abstraction** (hide implementation details)
-- [ ] **API design** (clean interfaces)
-- [ ] **Modularity** (components can be replaced)
-
-### Separation of Concerns
-
-- [ ] **Driver layer** = hardware abstraction
-- [ ] **Service layer** = system functionality
-- [ ] **App layer** = user-facing features
-- [ ] **Never skip layers**
-
-### Build System
-
-- [ ] **Folder structure** organization
-- [ ] **Header file** design (.h declarations)
-- [ ] **Source file** (.c implementations)
-- [ ] **Makefile** or project organization
-
----
-
-## ✅ DO (Tasks to Complete)
-
-### Task 7.1: Reorganize Code Structure
-
-```
-Project structure:
-
-/drivers
-    /gpio
-        gpio.h
-        gpio.c
-    /i2s
-        i2s.h
-        i2s.c
-    /uart
-        uart.h
-        uart.c
-
-/services
-    /audio
-        audio_service.h
-        audio_service.c
-    /storage
-        storage_service.h
-        storage_service.c
-    /ui
-        ui_service.h
-        ui_service.c
-
-/apps
-    /recorder
-        recorder.h
-        recorder.c
-    /playback
-        playback.h
-        playback.c
-
-/os
-    os_init.c
-    main.c
-
-Rules:
-- Apps NEVER include driver headers
-- Apps ONLY call service APIs
-- Services call drivers
-```
-
-**Deliverable:**
-
-- Code compiles with new structure
-- No direct hardware access in apps
-- Clean boundaries
-
----
-
-### Task 7.2: Service API Design
-
-```c
-// Audio service example:
-
-// audio_service.h
 typedef enum {
-    AUDIO_OK,
-    AUDIO_ERROR,
-    AUDIO_BUSY
-} audio_status_t;
+    ROUTE_SPEAKER,
+    ROUTE_USB_AUDIO,
+    ROUTE_BLUETOOTH_A2DP,
+    ROUTE_BLUETOOTH_HFP,
+    ROUTE_MODEM
+} audio_route_t;
 
-audio_status_t audio_init(void);
-audio_status_t audio_start_recording(void);
-audio_status_t audio_stop_recording(void);
-audio_status_t audio_play(const char* filename);
-
-// Apps call these APIs:
-// audio_start_recording();
-// NOT: I2S_Start_DMA(...);
+int audio_set_route(audio_route_t route);
 ```
 
-**Deliverable:**
-
-- Clean, documented APIs
-- Apps use services, not drivers
-- Services hide all hardware details
-
----
-
-### Task 7.3: Boot Sequence
+**Task 5.8**: Implement MP3 decoding with libmpg123
 
 ```c
-// Defined startup order:
-
-main() {
-    // 1. Hardware init
-    SystemClock_Config();
-
-    // 2. Driver init
-    gpio_init();
-    uart_init();
-    i2s_init();
-
-    // 3. Service init
-    audio_service_init();
-    storage_service_init();
-    ui_service_init();
-
-    // 4. App init
-    recorder_app_init();
-
-    // 5. Start scheduler
-    vTaskStartScheduler();
+mpg123_handle *mh = mpg123_new(NULL, &err);
+mpg123_open(mh, "file.mp3");
+mpg123_getformat(mh, &rate, &channels, &encoding);
+while (mpg123_read(mh, buffer, size, &done) == MPG123_OK) {
+    audio_play_buffer(buffer, done / frame_size);
 }
 ```
 
-**Deliverable:**
+### Completion checklist
 
-- Explicit initialization order
-- Each layer initializes correctly
-- System boots reliably
+- [ ] USB audio plays WAV/MP3 files
+- [ ] ALSA mixer controls volume (0-100%)
+- [ ] Bluetooth device pairing successful
+- [ ] A2DP streams audio to Bluetooth headphones
+- [ ] Audio service exposes JSON-RPC API
+- [ ] Audio HAL defined for NXP portability
 
 ---
 
-### Task 7.4: Documentation
+## Level 6: LVGL user interface framework
+
+### What this level achieves
+
+LVGL renders on the Linux framebuffer, touch input integrates via evdev, the Vertu-inspired dark luxury theme is implemented, and basic phone screens (home, dialer pad) are functional.
+
+### Learning prerequisites
+
+- LVGL architecture (objects, styles, events, animations)
+- Framebuffer rendering concepts (double buffering, partial updates)
+- evdev input handling
+- Color theory and typography for luxury UI design
+- State management patterns for UI applications
+
+### Completion prerequisites
+
+- Level 2 complete (display and touch working)
+- Level 5 complete (audio for UI feedback sounds)
+
+### Incremental tasks
+
+**Task 6.1**: Integrate LVGL 9.x into Buildroot
+
+```makefile
+LVGL_VERSION = 9.5.0
+LVGL_CONF_OPTS = -DLV_USE_LINUX_FBDEV=1
+```
+
+**Task 6.2**: Initialize LVGL display driver
 
 ```c
-// Every service has README:
-
-/services/audio/README.md
----
-# Audio Service
-
-## Purpose
-Handles audio recording and playback
-
-## Dependencies
-- I2S driver
-- DMA driver
-- Storage service (for saving files)
-
-## API
-...
-
-## Usage Example
-...
-
-## Known Limitations
-- Max 60 seconds recording
-- 16 kHz only
+lv_init();
+lv_display_t *disp = lv_linux_fbdev_create();
+lv_linux_fbdev_set_file(disp, "/dev/fb0");
 ```
 
-**Deliverable:**
-
-- Each major component documented
-- Dependencies clear
-- Usage examples provided
-
----
-
-## 🔓 UNLOCK CONDITIONS
-
-### Quiz Yourself:
-
-1. **Why can't apps call drivers directly?**
-
-   - (Breaks abstraction, makes hardware changes affect all apps)
-
-2. **What is a service?**
-
-   - (System functionality that apps can use, hides implementation)
-
-3. **What goes in a driver vs service?**
-
-   - (Driver = hardware control; Service = high-level functionality)
-
-4. **Why does init order matter?**
-
-   - (Services depend on drivers, apps depend on services)
-
-5. **How is this different from a monolithic firmware?**
-
-   - (Clear layers, clean interfaces, modular, maintainable)
-
-### Must Be Able to Draw:
-
-```
-┌─────────────────────────────┐
-│         Apps                │  recorder, playback, menu
-├─────────────────────────────┤
-│       Services              │  audio, storage, ui
-├─────────────────────────────┤
-│        Drivers              │  i2s, dma, gpio, uart
-├─────────────────────────────┤
-│    FreeRTOS Kernel          │  tasks, queues, scheduler
-├─────────────────────────────┤
-│       Hardware              │  STM32F429
-└─────────────────────────────┘
-
-Communication flows DOWN only
-(apps → services → drivers → hardware)
-```
-
----
-
-## ❌ STILL LOCKED:
-
-- Understanding limits
-- Phase 2 (Linux)
-
----
-
-# 🟦 LEVEL 8: LIMITS & TRUTH
-
-**Theme:** "I know when to stop"
-
-## 📚 LEARN (Knowledge Requirements)
-
-### System Limits
-
-- [ ] **RAM limit** (256 KB on F429)
-- [ ] **Flash limit** (~2 MB)
-- [ ] **CPU speed** (180 MHz Cortex-M4)
-- [ ] **No MMU** (memory protection limited)
-- [ ] **No NPU** (no AI acceleration)
-
-### Why Offline Dictation Fails Here
-
-- [ ] **Model size** (even tiny STT = 50+ MB)
-- [ ] **RAM requirements** (working set > 100 MB)
-- [ ] **Compute requirements** (real-time inference impossible)
-- [ ] **Accuracy issues** (even if it ran, quality terrible)
-
-### What Linux Solves
-
-- [ ] **Virtual memory** (MMU)
-- [ ] **Process isolation**
-- [ ] **Larger RAM** (1-2 GB)
-- [ ] **File system** maturity
-- [ ] **Library ecosystem**
-
----
-
-## ✅ DO (Tasks to Complete)
-
-### Task 8.1: Force Buffer Overrun
+**Task 6.3**: Configure touch input
 
 ```c
-// Deliberately break it:
-
-Audio recording at 16 kHz
-UI task doing heavy computation
-Logging over UART aggressively
-
-Expected:
-- Audio buffer overrun
-- DMA wraps before processing complete
-- Lost samples
+lv_indev_t *touch = lv_evdev_create(LV_INDEV_TYPE_POINTER, "/dev/input/event0");
+lv_indev_set_display(touch, disp);
 ```
 
-**Deliverable:**
-
-- Detect overrun condition
-- Log warning: "OVERRUN: Lost 128 samples"
-- Explain exactly why it happened
-
----
-
-### Task 8.2: Measure Resource Usage
+**Task 6.4**: Create Black Hand OS theme
 
 ```c
-// Quantify what you have:
-
-Measure:
-- Task stack usage (uxTaskGetStackHighWaterMark)
-- Heap usage (xPortGetFreeHeapSize)
-- CPU utilization (idle task time)
-
-Report:
-Audio task: 512 bytes stack (80% used)
-UI task: 1024 bytes stack (60% used)
-Heap free: 45 KB / 64 KB
-CPU utilization: 45%
+// Color palette (Vertu-inspired)
+#define BH_BG_PRIMARY     lv_color_hex(0x0A0A0A)  // Near-black
+#define BH_BG_ELEVATED    lv_color_hex(0x1E1E1E)  // Cards
+#define BH_GOLD_PRIMARY   lv_color_hex(0xC9A962)  // Accents
+#define BH_TEXT_PRIMARY   lv_color_hex(0xE8E8E8)  // Text
 ```
 
-**Deliverable:**
-
-- Full resource report
-- Know exactly what's available
-- Understand limits
-
----
-
-### Task 8.3: Estimate STT Requirements
+**Task 6.5**: Implement dialer keypad
 
 ```c
-// Research what offline dictation needs:
-
-Find:
-- Whisper tiny model size (~75 MB)
-- RAM required for inference (~200 MB)
-- CPU requirements (billion ops per second)
-
-Compare to STM32F429:
-- Flash: 2 MB (model doesn't fit)
-- RAM: 256 KB (working set doesn't fit)
-- CPU: 180 MHz (1000x too slow)
-
-Conclusion: NOT FEASIBLE
+static const char *btnm_map[] = {
+    "1", "2\nABC", "3\nDEF", "\n",
+    "4\nGHI", "5\nJKL", "6\nMNO", "\n",
+    "7\nPQRS", "8\nTUV", "9\nWXYZ", "\n",
+    "*", "0\n+", "#", ""
+};
+lv_obj_t *keypad = lv_buttonmatrix_create(screen);
+lv_buttonmatrix_set_map(keypad, btnm_map);
 ```
 
-**Deliverable:**
-
-- Written analysis (1 page)
-- Math showing why it fails
-- Quote sources
-
----
-
-### Task 8.4: Phase 1 Reflection Document
-
-```markdown
-# Black Hand OS - Phase 1 Complete
-
-## What I Built
-
-- [ ] Audio recording & playback
-- [ ] UI with menu navigation
-- [ ] Multi-task RTOS architecture
-- [ ] Service-oriented design
-
-## What I Learned
-
-- How real-time systems work
-- DMA and performance optimization
-- Why abstraction layers matter
-- System resource constraints
-
-## Limits Encountered
-
-- RAM too small for ML models
-- No MMU for process isolation
-- Flash too small for large assets
-
-## Why Linux is Next
-
-- Need 1+ GB RAM for offline STT
-- Need MMU for complex software
-- Need mature file system
-- Need library ecosystem
-
-## Conclusion
-
-Phase 1 is a complete, working OS for constrained hardware.
-Linux is required for offline dictation.
-I understand this technically, not emotionally.
-```
-
-**Deliverable:**
-
-- Honest reflection
-- Technical reasoning
-- No guilt about moving on
-
----
-
-## 🔓 UNLOCK CONDITIONS (PHASE 1 COMPLETE)
-
-### Final Quiz:
-
-1. **Why can't STM32F429 do offline dictation?**
-
-   - (Model size + RAM + CPU all insufficient by orders of magnitude)
-
-2. **What does Phase 1 teach that Linux can't?**
-
-   - (How things work with no safety net, real constraints, low-level control)
-
-3. **Is Phase 1 "real" or just practice?**
-
-   - (It's real — a complete OS for its hardware class)
-
-4. **When should you use RTOS vs Linux?**
-
-   - (RTOS for hard real-time, simple, low power; Linux for complex software, large RAM, ecosystem)
-
-5. **What will you keep from Phase 1 when moving to Linux?**
-
-   - (Architecture thinking, service design, understanding of constraints)
-
-### Must Be Able to Say Out Loud:
-
-```
-"I built Black Hand OS on STM32F429 with FreeRTOS.
-It handles audio recording, playback, and a responsive UI.
-I understand exactly why offline dictation requires Linux:
-the model won't fit, the RAM is insufficient, and the CPU is too slow.
-Phase 1 is complete. Phase 2 is justified."
-```
-
----
-
-## 🏁 CONGRATULATIONS - PHASE 1 COMPLETE
-
-You are now qualified to:
-
-- Design embedded RTOS systems
-- Optimize real-time performance
-- Architect service-oriented firmware
-- **Move to Phase 2: Linux**
-
----
-
-# 📊 PHASE 1 SUMMARY CHECKLIST
-
-Print this out. Check each box when complete:
-
-```
-LEVEL 1: BOOT & CONTROL
-□ Reliable boot sequence
-□ Timer interrupt LED
-□ Debounced button input
-□ UART debug logging
-
-LEVEL 2: RTOS CORE
-□ Three concurrent tasks
-□ Priority demonstration
-□ Periodic vs event-driven
-□ Stack overflow detection
-
-LEVEL 3: COMMUNICATION
-□ Queue producer-consumer
-□ Race condition demonstrated
-□ Fixed with mutex
-□ ISR to task via semaphore
-
-LEVEL 4: DMA & PERFORMANCE
-□ UART RX with DMA
-□ ADC continuous sampling
-□ Memory-to-memory DMA benchmark
-□ Double buffer pattern
-
-LEVEL 5: AUDIO PIPELINE
-□ Microphone capture (I2S + DMA)
-□ WAV file recording
-□ Audio playback
-□ Record + UI concurrently
-
-LEVEL 6: UI & RESPONSIVENESS
-□ LVGL integration
-□ UI task separation
-□ Responsive under load
-□ Input queue pattern
-
-LEVEL 7: OS STRUCTURE
-□ Reorganized folder structure
-□ Service API design
-□ Boot sequence defined
-□ Component documentation
-
-LEVEL 8: LIMITS & TRUTH
-□ Force buffer overrun
-□ Measure resource usage
-□ STT requirements analysis
-□ Phase 1 reflection written
-```
-
-**When all boxes checked → PHASE 1 DONE → Move to Phase 2**
-
----
-
-# 🎮 BLACK HAND OS - PHASE 2 COMPLETE ROADMAP
-
-## PHASE 2 OVERVIEW
-
-**Platform:** Embedded Linux (Cortex-A SoC, 1GB+ RAM)  
-**Codename:** Black Hand OS — Linux Edition  
-**Win Condition:** Offline voice-to-text working on custom Linux phone OS
-
-## Prerequisites:
-
-- ✅ Phase 1 complete (all 8 levels)
-- ✅ You understand RTOS, drivers, services, architecture
-- ✅ You know WHY Linux is needed (not just "Linux is better")
-
----
-
-# 🟦 LEVEL 1: LINUX FOUNDATIONS
-
-**Theme:** "Linux is just a kernel"
-
-## 📚 LEARN (Knowledge Requirements)
-
-### Linux Architecture
-
-- [ ] **Kernel** vs **userspace**
-- [ ] **System calls** (kernel API)
-- [ ] **Processes** vs **threads**
-- [ ] **Virtual memory** (MMU, paging)
-- [ ] **File system** hierarchy (/bin, /etc, /dev, etc.)
-
-### Boot Process
-
-- [ ] **Bootloader** (U-Boot)
-- [ ] **Kernel** loading
-- [ ] **Device tree** (.dtb)
-- [ ] **Init process** (PID 1)
-- [ ] **Userspace** startup
-
-### Development Environment
-
-- [ ] **Cross-compilation** (host vs target)
-- [ ] **Toolchain** (gcc, binutils, glibc)
-- [ ] **Sysroot** concept
-- [ ] **SSH** for remote development
-
-### Build Systems
-
-- [ ] **Buildroot** (simple, minimal)
-- [ ] **Yocto** (powerful, complex)
-- [ ] **Config files** and customization
-
----
-
-## ✅ DO (Tasks to Complete)
-
-### Task 1.1: Choose Development Board
-
-```
-Options (pick ONE to start):
-
-Option A: Raspberry Pi 4 (2GB+)
-- Easy, well-supported
-- Fast iteration
-- Good for prototyping
-
-Option B: BeagleBone Black
-- More embedded-like
-- Good learning platform
-
-Option C: Custom SoC dev board
-- i.MX6/7, RK3399, etc.
-- Closer to final hardware
-
-Decision criteria:
-- Available now
-- Good Linux support
-- 1GB+ RAM minimum
-```
-
-**Deliverable:**
-
-- Board acquired
-- Basic boot achieved (stock Linux image)
-- SSH access working
-- Can log in and run commands
-
----
-
-### Task 1.2: Build Minimal Linux with Buildroot
-
-```bash
-# Steps:
-
-1. Download Buildroot
-2. Configure for your board:
-   - make <board>_defconfig
-3. Customize:
-   - Enable packages you need
-   - Set root password
-   - Enable SSH
-4. Build:
-   - make
-5. Flash to SD card
-6. Boot
-
-Required packages:
-- Dropbear (SSH)
-- Busybox (shell utilities)
-- ALSA utilities
-```
-
-**Deliverable:**
-
-- Custom Linux boots on board
-- < 100 MB root filesystem
-- SSH works
-- Can run basic commands
-- You built it yourself (not pre-made image)
-
----
-
-### Task 1.3: "Hello World" Service
+**Task 6.6**: Implement screen transition animations
 
 ```c
-// Create a simple daemon:
+lv_screen_load_anim(new_screen, LV_SCR_LOAD_ANIM_FADE_IN, 300, 0, true);
+```
 
-// hello_service.c
-#include <stdio.h>
-#include <unistd.h>
-#include <syslog.h>
+**Task 6.7**: Create status bar component
 
-int main(void) {
-    openlog("hello_service", LOG_PID, LOG_DAEMON);
-    syslog(LOG_INFO, "Hello service started");
+- Time display (centered)
+- Signal strength indicator (left)
+- Battery percentage (right)
 
-    while (1) {
-        syslog(LOG_INFO, "Still alive");
-        sleep(5);
-    }
+**Task 6.8**: Implement main loop with timer handling
 
-    return 0;
+```c
+while (1) {
+    uint32_t time_until_next = lv_timer_handler();
+    usleep(time_until_next * 1000);
 }
-
-Compile for target:
-$ arm-linux-gcc hello_service.c -o hello_service
-
-Deploy:
-- Copy to /usr/bin/
-- Create init script
-- Auto-start on boot
 ```
 
-**Deliverable:**
+### Completion checklist
 
-- Service runs on boot
-- Logs to syslog
-- Can view with `logread` or `dmesg`
-- Can stop/start manually
+- [ ] LVGL renders at 60fps on HyperPixel
+- [ ] Touch input responsive with correct coordinates
+- [ ] Dark luxury theme with gold accents applied
+- [ ] Dialer keypad displays and responds to touch
+- [ ] Screen transitions animate smoothly
+- [ ] Status bar shows time placeholder
 
 ---
 
-### Task 1.4: Understand Kernel vs Userspace
+## Level 7: SQLite database and settings service
 
-```
-Demonstrate understanding:
+### What this level achieves
 
-1. Write a kernel module (simple):
-   - Prints "Hello from kernel" on load
-   - insmod/rmmod works
+SQLite stores contacts, SMS history, call logs, and notes with WAL mode for reliability. A centralized settings service manages system preferences and notifies subscribers of changes.
 
-2. Write userspace program:
-   - Prints "Hello from userspace"
-   - Calls kernel via system call
+### Learning prerequisites
 
-3. Explain difference:
-   - Where does each run?
-   - What can each do?
-   - Why the separation?
-```
+- SQLite C API (`sqlite3_open`, `sqlite3_prepare_v2`, `sqlite3_step`)
+- Database normalization principles
+- Write-Ahead Logging (WAL) for crash safety
+- Observer pattern for settings change notifications
 
-**Deliverable:**
+### Completion prerequisites
 
-- Kernel module loads/unloads
-- Userspace program runs
-- Written explanation (1 page):
-  - What is a system call?
-  - Why can't userspace touch hardware directly?
-  - What does the kernel provide?
+- Level 4 complete (persistent `/mnt/data` partition)
+- Level 3 complete (IPC for settings notifications)
 
----
+### Incremental tasks
 
-## 🔓 UNLOCK CONDITIONS
-
-### Quiz Yourself:
-
-1. **What is the kernel's job?**
-
-   - (Manage hardware, schedule processes, handle I/O, provide abstractions)
-
-2. **What is userspace?**
-
-   - (Where applications run, protected from direct hardware access)
-
-3. **What happens during boot?**
-
-   - (Bootloader → load kernel → mount rootfs → start init → start services)
-
-4. **Why cross-compile?**
-
-   - (Target CPU ≠ development CPU, must build for ARM on x86)
-
-5. **What is a device tree?**
-
-   - (Hardware description file, tells kernel what devices exist)
-
-### Must Be Able to Draw:
-
-```
-┌──────────────────────────┐
-│   Applications           │  Your phone apps
-├──────────────────────────┤
-│   Libraries (libc)       │  System libraries
-├──────────────────────────┤  ← System call interface
-│   Linux Kernel           │  Process, memory, drivers
-├──────────────────────────┤
-│   Hardware               │  CPU, RAM, peripherals
-└──────────────────────────┘
-```
-
----
-
-## ❌ STILL LOCKED:
-
-- Custom init system
-- Audio on Linux
-- Service architecture
-- Phone OS features
-
----
-
-# 🟦 LEVEL 2: CUSTOM INIT & SERVICES
-
-**Theme:** "Your OS starts here"
-
-## 📚 LEARN (Knowledge Requirements)
-
-### Init Systems
-
-- [ ] **Init** (PID 1, first userspace process)
-- [ ] **Traditional init** (simple scripts)
-- [ ] **systemd** (complex, feature-rich)
-- [ ] **BusyBox init** (minimal, embedded-friendly)
-- [ ] **Custom init** (roll your own)
-
-### Service Management
-
-- [ ] **Daemon** vs **process**
-- [ ] **Background services**
-- [ ] **Dependencies** (service A needs service B)
-- [ ] **Logging** (syslog)
-
-### IPC Mechanisms
-
-- [ ] **Unix domain sockets**
-- [ ] **Named pipes (FIFOs)**
-- [ ] **Shared memory**
-- [ ] **Message queues**
-- [ ] **D-Bus** (desktop standard)
-
-### Process Management
-
-- [ ] **fork()** and **exec()**
-- [ ] **Signals** (SIGTERM, SIGKILL)
-- [ ] **Process groups**
-- [ ] **Daemon creation** (double fork, setsid)
-
----
-
-## ✅ DO (Tasks to Complete)
-
-### Task 2.1: Custom Init Script
-
-```bash
-#!/bin/sh
-# /sbin/init (your custom init)
-
-echo "Black Hand OS booting..."
-
-# Mount essential filesystems
-mount -t proc proc /proc
-mount -t sysfs sys /sys
-mount -t devtmpfs dev /dev
-
-# Start essential services
-/usr/sbin/syslogd
-/usr/sbin/dropbear  # SSH
-
-# Start your phone services
-/usr/bin/audio_service &
-/usr/bin/ui_service &
-
-# Keep init running
-while true; do
-    sleep 1
-done
-```
-
-**Deliverable:**
-
-- Custom init boots system
-- Services start in correct order
-- Logs show startup sequence
-- System stable
-
----
-
-### Task 2.2: Service Template
+**Task 7.1**: Create database initialization
 
 ```c
-// service_template.c
-// Pattern for all your services
+sqlite3 *db;
+sqlite3_open("/mnt/data/db/phone.db", &db);
+sqlite3_exec(db, "PRAGMA journal_mode=WAL;", NULL, NULL, NULL);
+sqlite3_exec(db, "PRAGMA synchronous=NORMAL;", NULL, NULL, NULL);
+```
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
-#include <syslog.h>
+**Task 7.2**: Define contacts schema
 
-static volatile int keep_running = 1;
+```sql
+CREATE TABLE contacts (
+    id INTEGER PRIMARY KEY,
+    first_name TEXT NOT NULL,
+    last_name TEXT,
+    photo_path TEXT,
+    created_at INTEGER DEFAULT (strftime('%s','now'))
+);
 
-void signal_handler(int sig) {
-    if (sig == SIGTERM || sig == SIGINT) {
-        syslog(LOG_INFO, "Shutting down...");
-        keep_running = 0;
+CREATE TABLE phone_numbers (
+    id INTEGER PRIMARY KEY,
+    contact_id INTEGER REFERENCES contacts(id),
+    number TEXT NOT NULL,
+    normalized TEXT NOT NULL,  -- E.164 format
+    type TEXT DEFAULT 'mobile'
+);
+
+CREATE INDEX idx_normalized ON phone_numbers(normalized);
+```
+
+**Task 7.3**: Define SMS schema
+
+```sql
+CREATE TABLE threads (
+    id INTEGER PRIMARY KEY,
+    phone_number TEXT NOT NULL,
+    contact_id INTEGER,
+    last_message_time INTEGER,
+    unread_count INTEGER DEFAULT 0
+);
+
+CREATE TABLE messages (
+    id INTEGER PRIMARY KEY,
+    thread_id INTEGER REFERENCES threads(id),
+    body TEXT,
+    timestamp INTEGER,
+    direction TEXT,  -- 'sent' or 'received'
+    status TEXT      -- 'pending','sent','delivered','failed'
+);
+```
+
+**Task 7.4**: Implement settings key-value store
+
+```sql
+CREATE TABLE settings (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    category TEXT
+);
+
+INSERT INTO settings VALUES
+    ('volume_call', '80', 'audio'),
+    ('volume_media', '70', 'audio'),
+    ('brightness', '128', 'display'),
+    ('pin_enabled', '0', 'security');
+```
+
+**Task 7.5**: Create settings service with change notifications
+
+```c
+int settings_set(const char *key, const char *value) {
+    // Update database
+    sqlite3_exec(db, "UPDATE settings SET value=? WHERE key=?", ...);
+    // Broadcast change to subscribers
+    settings_notify_change(key, value);
+}
+```
+
+**Task 7.6**: Implement backlight control integration
+
+```c
+int display_set_brightness(int level) {
+    char buf[16];
+    snprintf(buf, sizeof(buf), "%d", level * 255 / 100);
+    FILE *f = fopen("/sys/class/backlight/*/brightness", "w");
+    fputs(buf, f);
+    fclose(f);
+}
+```
+
+### Completion checklist
+
+- [ ] SQLite database created with WAL mode
+- [ ] Contacts CRUD operations functional
+- [ ] SMS messages stored and retrieved correctly
+- [ ] Settings service responds to JSON-RPC queries
+- [ ] Settings changes broadcast to subscribers
+- [ ] Backlight responds to brightness setting
+
+---
+
+## Level 8: Cellular modem integration
+
+### What this level achieves
+
+USB 4G modem (SIM7600 or Quectel EC25) connects for voice calls and SMS. AT command handling is robust with proper response parsing, and the call state machine manages all call scenarios.
+
+### Learning prerequisites
+
+- Serial port programming (termios, non-blocking I/O)
+- AT command protocol (command structure, response codes, URCs)
+- GSM call states (IDLE, DIALING, ALERTING, INCOMING, ACTIVE, HELD)
+- SMS PDU encoding/decoding (GSM 7-bit, UCS-2)
+- State machine design patterns
+
+### Completion prerequisites
+
+- Level 3 complete (service manager for modem service)
+- Level 5 complete (audio routing for call audio)
+- Level 7 complete (database for call history and SMS storage)
+
+### Incremental tasks
+
+**Task 8.1**: Enable kernel USB serial driver
+
+```
+CONFIG_USB_SERIAL=y
+CONFIG_USB_SERIAL_OPTION=y
+CONFIG_USB_NET_QMI_WWAN=y
+```
+
+**Task 8.2**: Create udev rule for modem enumeration
+
+```udev
+SUBSYSTEM=="tty", ATTRS{idVendor}=="2c7c", ATTRS{idProduct}=="0125", \
+    SYMLINK+="modem_at", MODE="0666"
+```
+
+**Task 8.3**: Implement serial port configuration
+
+```c
+int configure_modem_port(int fd) {
+    struct termios tty;
+    tcgetattr(fd, &tty);
+    cfsetspeed(&tty, B115200);
+    tty.c_cflag = CS8 | CREAD | CLOCAL;  // 8N1, no flow control
+    tty.c_lflag = 0;  // Raw mode
+    tty.c_cc[VMIN] = 0;
+    tty.c_cc[VTIME] = 10;  // 1 second timeout
+    tcsetattr(fd, TCSANOW, &tty);
+}
+```
+
+**Task 8.4**: Implement AT command send/receive
+
+```c
+int at_send_command(modem_t *m, const char *cmd, char *resp, int timeout_ms) {
+    write(m->fd, cmd, strlen(cmd));
+    write(m->fd, "\r", 1);
+    return at_read_response(m->fd, resp, timeout_ms);
+}
+```
+
+**Task 8.5**: Handle unsolicited result codes (URCs)
+
+```c
+void process_urc(const char *urc) {
+    if (strstr(urc, "RING")) {
+        // Incoming call
+    } else if (strstr(urc, "+CLIP:")) {
+        // Caller ID: +CLIP: "+15551234567",145
+    } else if (strstr(urc, "+CMT:")) {
+        // Incoming SMS
     }
 }
+```
 
-int main(void) {
-    // Daemonize
-    if (fork() != 0) exit(0);  // Parent exits
-    setsid();                   // New session
-    if (fork() != 0) exit(0);  // Parent exits again
+**Task 8.6**: Implement call state machine
 
-    // Setup
-    openlog("my_service", LOG_PID, LOG_DAEMON);
-    signal(SIGTERM, signal_handler);
-    signal(SIGINT, signal_handler);
+```c
+typedef enum {
+    CALL_IDLE, CALL_DIALING, CALL_ALERTING,
+    CALL_INCOMING, CALL_ACTIVE, CALL_HELD
+} call_state_t;
 
-    syslog(LOG_INFO, "Service started");
+void call_dial(const char *number) {
+    char cmd[64];
+    snprintf(cmd, sizeof(cmd), "ATD%s;", number);
+    at_send_command(modem, cmd, response, 30000);
+    call_state = CALL_DIALING;
+}
 
-    // Main loop
-    while (keep_running) {
-        // Do work
-        sleep(1);
-    }
+void call_answer() {
+    at_send_command(modem, "ATA", response, 10000);
+    call_state = CALL_ACTIVE;
+}
 
-    syslog(LOG_INFO, "Service stopped");
-    closelog();
-    return 0;
+void call_hangup() {
+    at_send_command(modem, "AT+CHUP", response, 5000);
+    call_state = CALL_IDLE;
 }
 ```
 
-**Deliverable:**
-
-- Template service runs as daemon
-- Responds to SIGTERM gracefully
-- Logs properly
-- Use this for all future services
-
----
-
-### Task 2.3: IPC Between Services
+**Task 8.7**: Implement SMS sending (PDU mode)
 
 ```c
-// Implement Unix socket IPC:
+int sms_send(const char *number, const char *message) {
+    // Encode PDU
+    uint8_t pdu[256];
+    int pdu_len = sms_encode_pdu(number, message, pdu);
 
-Server (audio_service):
-- Create socket: /tmp/audio.sock
-- Listen for commands:
-  - "START_RECORD"
-  - "STOP_RECORD"
-  - "PLAY file.wav"
-- Send responses
-
-Client (ui_service):
-- Connect to /tmp/audio.sock
-- Send commands
-- Receive responses
-- Never block UI
+    char cmd[32];
+    snprintf(cmd, sizeof(cmd), "AT+CMGS=%d", pdu_len);
+    at_send_command(modem, cmd, response, 5000);
+    // Wait for '>' prompt, then send PDU + Ctrl+Z
+}
 ```
 
-**Deliverable:**
+**Task 8.8**: Implement SMS receiving and storage
 
-- Two services communicate
-- UI can control audio service
-- Clean protocol defined
-- Error handling works
+```c
+void on_sms_received(const char *pdu) {
+    sms_message_t msg;
+    sms_decode_pdu(pdu, &msg);
+    db_store_message(&msg);
+    notification_post("SMS", msg.sender, msg.body, PRIORITY_HIGH);
+}
+```
+
+### Completion checklist
+
+- [ ] Modem detected and AT commands respond
+- [ ] Outgoing calls dial and connect
+- [ ] Incoming calls detected with caller ID
+- [ ] Call audio routes through USB audio or Bluetooth HFP
+- [ ] SMS sends successfully
+- [ ] Incoming SMS stored in database
+- [ ] Call history logged to database
 
 ---
 
-### Task 2.4: Service Manager
+## Level 9: Notification system and power management
+
+### What this level achieves
+
+A centralized notification service handles all alerts with priority-based interrupts (calls override everything). Power management implements screen timeouts, CPU frequency scaling, and battery monitoring for graceful shutdown.
+
+### Learning prerequisites
+
+- Linux power management (sysfs interfaces, cpufreq governors)
+- Battery fuel gauge protocols (I2C communication, state-of-charge calculation)
+- Priority queue data structures
+- LVGL overlay layers (`lv_layer_top()` for notifications)
+
+### Completion prerequisites
+
+- Level 6 complete (LVGL for notification UI)
+- Level 7 complete (settings for timeout values)
+- Level 8 complete (modem for call notifications)
+
+### Incremental tasks
+
+**Task 9.1**: Design notification structure
 
 ```c
-// service_manager.c
-// Monitors and restarts crashed services
-
-#include <sys/wait.h>
+typedef enum {
+    PRIORITY_LOW,      // Silent
+    PRIORITY_NORMAL,   // Sound
+    PRIORITY_HIGH,     // Sound + vibrate
+    PRIORITY_CRITICAL  // Incoming call - overrides all
+} notification_priority_t;
 
 typedef struct {
-    const char *name;
-    const char *path;
-    pid_t pid;
-} service_t;
-
-service_t services[] = {
-    {"audio", "/usr/bin/audio_service", 0},
-    {"ui", "/usr/bin/ui_service", 0},
-};
-
-void start_service(service_t *svc) {
-    pid_t pid = fork();
-    if (pid == 0) {
-        execl(svc->path, svc->name, NULL);
-        exit(1);
-    }
-    svc->pid = pid;
-    syslog(LOG_INFO, "Started %s (PID %d)", svc->name, pid);
-}
-
-int main(void) {
-    // Start all services
-    for (int i = 0; i < NUM_SERVICES; i++) {
-        start_service(&services[i]);
-    }
-
-    // Monitor and restart on crash
-    while (1) {
-        int status;
-        pid_t pid = wait(&status);
-
-        // Find which service crashed
-        for (int i = 0; i < NUM_SERVICES; i++) {
-            if (services[i].pid == pid) {
-                syslog(LOG_WARNING, "%s crashed, restarting",
-                       services[i].name);
-                start_service(&services[i]);
-            }
-        }
-    }
-}
+    uint32_t id;
+    char *title;
+    char *body;
+    notification_priority_t priority;
+    time_t timestamp;
+} notification_t;
 ```
 
-**Deliverable:**
-
-- Service manager starts services
-- Detects crashes
-- Auto-restarts
-- Logs everything
-
----
-
-## 🔓 UNLOCK CONDITIONS
-
-### Quiz Yourself:
-
-1. **What is PID 1?**
-
-   - (First process, init, parent of all processes)
-
-2. **What is a daemon?**
-
-   - (Background service, detached from terminal, runs continuously)
-
-3. **How do services communicate?**
-
-   - (IPC: sockets, pipes, shared memory, message queues)
-
-4. **Why use Unix sockets vs network sockets?**
-
-   - (Faster, local only, no network overhead, better security)
-
-5. **What happens if init crashes?**
-
-   - (Kernel panic, system unusable)
-
-### Must Be Able to Draw:
-
-```
-Init (PID 1)
-    ├→ audio_service (PID 45)
-    │      ↕ Unix socket
-    ├→ ui_service (PID 46)
-    │      ↕
-    ├→ storage_service (PID 47)
-    └→ service_manager (PID 48)
-           └→ monitors all, restarts on crash
-```
-
----
-
-## ❌ STILL LOCKED:
-
-- Audio on Linux
-- Voice-to-text
-- UI framework
-
----
-
-# 🟦 LEVEL 3: AUDIO PIPELINE ON LINUX
-
-**Theme:** "ALSA is your friend"
-
-## 📚 LEARN (Knowledge Requirements)
-
-### ALSA (Advanced Linux Sound Architecture)
-
-- [ ] **Sound cards** and **devices**
-- [ ] **PCM** (Pulse Code Modulation) interface
-- [ ] **Playback** vs **capture**
-- [ ] **Periods** and **buffer size**
-- [ ] **alsa-lib** API
-
-### Audio Configuration
-
-- [ ] **/proc/asound/** structure
-- [ ] **arecord** / **aplay** tools
-- [ ] **alsactl** for settings
-- [ ] **asound.conf** configuration
-
-### Audio Formats
-
-- [ ] **Sample rate** (8k, 16k, 44.1k, 48k)
-- [ ] **Channels** (mono, stereo)
-- [ ] **Format** (S16_LE, etc.)
-- [ ] **Interleaved** vs **non-interleaved**
-
-### Buffering
-
-- [ ] **Period size** (latency unit)
-- [ ] **Buffer size** (total)
-- [ ] **Underrun** / **overrun** handling
-
----
-
-## ✅ DO (Tasks to Complete)
-
-### Task 3.1: Get Audio Hardware Working
-
-```bash
-# Verify audio devices exist:
-$ cat /proc/asound/cards
-$ arecord -l  # List capture devices
-$ aplay -l    # List playback devices
-
-# Test recording:
-$ arecord -D hw:0,0 -f S16_LE -r 16000 -c 1 test.wav
-
-# Test playback:
-$ aplay test.wav
-
-# If audio doesn't work, debug:
-- Device tree configuration
-- Kernel modules loaded
-- ALSA configuration
-```
-
-**Deliverable:**
-
-- Audio recording works
-- Audio playback works
-- Know device names (hw:0,0, etc.)
-- Clean audio (no distortion)
-
----
-
-### Task 3.2: ALSA C API Recording
+**Task 9.2**: Implement notification queue
 
 ```c
-// alsa_record.c
-#include <alsa/asoundlib.h>
+void notification_post(notification_t *n) {
+    if (n->priority == PRIORITY_CRITICAL) {
+        // Insert at head, interrupt current activity
+        queue_insert_head(&notif_queue, n);
+        ui_show_call_overlay(n);
+    } else {
+        queue_enqueue(&notif_queue, n);
+        ui_show_notification_banner(n);
+    }
+}
+```
 
-#define SAMPLE_RATE 16000
-#define CHANNELS 1
-#define FORMAT SND_PCM_FORMAT_S16_LE
+**Task 9.3**: Create incoming call overlay
 
-int main(void) {
-    snd_pcm_t *handle;
-    snd_pcm_hw_params_t *params;
-    int16_t buffer[1024];
+```c
+void ui_show_call_overlay(notification_t *n) {
+    lv_obj_t *overlay = lv_obj_create(lv_layer_top());
+    lv_obj_set_size(overlay, 800, 480);
+    // Add caller name, accept/decline buttons
+    // Make modal (capture all input)
+}
+```
 
-    // Open device
-    snd_pcm_open(&handle, "default",
-                 SND_PCM_STREAM_CAPTURE, 0);
+**Task 9.4**: Implement screen timeout state machine
 
-    // Configure
-    snd_pcm_hw_params_alloca(&params);
-    snd_pcm_hw_params_any(handle, params);
-    snd_pcm_hw_params_set_access(handle, params,
-        SND_PCM_ACCESS_RW_INTERLEAVED);
-    snd_pcm_hw_params_set_format(handle, params, FORMAT);
-    snd_pcm_hw_params_set_channels(handle, params, CHANNELS);
-    snd_pcm_hw_params_set_rate_near(handle, params,
-        &SAMPLE_RATE, 0);
-    snd_pcm_hw_params(handle, params);
+```c
+typedef enum {
+    SCREEN_ON, SCREEN_DIM, SCREEN_OFF
+} screen_state_t;
 
-    // Record loop
+void power_tick() {
+    int idle = time(NULL) - last_activity;
+    if (idle > 20 && screen_state == SCREEN_ON) {
+        set_brightness(30);
+        screen_state = SCREEN_DIM;
+    }
+    if (idle > 30 && screen_state == SCREEN_DIM) {
+        set_brightness(0);
+        fb_blank(1);
+        screen_state = SCREEN_OFF;
+    }
+}
+```
+
+**Task 9.5**: Configure CPU frequency governor
+
+```c
+void power_set_mode(power_mode_t mode) {
+    const char *gov = (mode == POWER_SAVE) ? "powersave" : "ondemand";
+    FILE *f = fopen("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", "w");
+    fputs(gov, f);
+    fclose(f);
+}
+```
+
+**Task 9.6**: Implement battery monitoring (PiSugar I2C)
+
+```c
+#define PISUGAR_ADDR 0x57
+
+int battery_read_percent(int i2c_fd) {
+    uint8_t reg = 0x2A;  // Battery percentage register
+    write(i2c_fd, &reg, 1);
+    uint8_t percent;
+    read(i2c_fd, &percent, 1);
+    return percent;
+}
+```
+
+**Task 9.7**: Implement low battery warning and shutdown
+
+```c
+void battery_monitor_thread() {
     while (1) {
-        int frames = snd_pcm_readi(handle, buffer, 1024);
-        if (frames < 0) {
-            snd_pcm_recover(handle, frames, 0);
-        } else {
-            // Process audio
-            process_audio(buffer, frames);
+        int percent = battery_read_percent(i2c_fd);
+        if (percent <= 5 && !shutdown_warned) {
+            notification_post("Low Battery", "5% remaining", PRIORITY_HIGH);
+            shutdown_warned = true;
         }
+        if (percent <= 2) {
+            sync();
+            reboot(RB_POWER_OFF);
+        }
+        sleep(30);
+    }
+}
+```
+
+### Completion checklist
+
+- [ ] Notifications display as banners
+- [ ] Incoming call shows fullscreen overlay
+- [ ] Screen dims after 20 seconds of inactivity
+- [ ] Screen turns off after 30 seconds
+- [ ] Touch/button wakes screen
+- [ ] Battery percentage reads correctly
+- [ ] Low battery warning at 5%
+- [ ] Graceful shutdown at 2%
+
+---
+
+## Level 10: Security implementation
+
+### What this level achieves
+
+PIN lock protects device access with Argon2id hashing, user data partition optionally encrypts with dm-crypt/LUKS, and secure storage protects sensitive credentials.
+
+### Learning prerequisites
+
+- Password hashing (Argon2id algorithm, salt, time/memory parameters)
+- Linux disk encryption (dm-crypt, LUKS, cryptsetup)
+- Key derivation functions
+- Secure coding practices (constant-time comparison, memory zeroing)
+
+### Completion prerequisites
+
+- Level 4 complete (partition layout)
+- Level 6 complete (LVGL for PIN entry UI)
+- Level 7 complete (settings for PIN enabled/hash storage)
+
+### Incremental tasks
+
+**Task 10.1**: Implement PIN hashing with Argon2id
+
+```c
+#include <argon2.h>
+
+#define SALT_LEN 16
+#define HASH_LEN 32
+
+int hash_pin(const char *pin, uint8_t *salt, uint8_t *hash_out) {
+    return argon2id_hash_raw(
+        3,           // time cost (iterations)
+        1 << 15,     // memory cost (32 MB)
+        4,           // parallelism
+        pin, strlen(pin),
+        salt, SALT_LEN,
+        hash_out, HASH_LEN
+    );
+}
+```
+
+**Task 10.2**: Create PIN entry UI
+
+```c
+void ui_show_pin_entry() {
+    // 4-6 digit PIN entry with numeric keypad
+    // Show dots for entered digits
+    // Shake animation on wrong PIN
+    // Lockout after 5 failed attempts
+}
+```
+
+**Task 10.3**: Implement PIN verification
+
+```c
+int verify_pin(const char *entered_pin) {
+    uint8_t stored_salt[SALT_LEN], stored_hash[HASH_LEN];
+    load_pin_credentials(stored_salt, stored_hash);
+
+    uint8_t computed_hash[HASH_LEN];
+    hash_pin(entered_pin, stored_salt, computed_hash);
+
+    // Constant-time comparison
+    return crypto_verify_32(computed_hash, stored_hash);
+}
+```
+
+**Task 10.4**: Implement lockout mechanism
+
+```c
+#define MAX_ATTEMPTS 5
+static int failed_attempts = 0;
+static time_t lockout_until = 0;
+
+int attempt_unlock(const char *pin) {
+    if (time(NULL) < lockout_until) return -ELOCKED;
+
+    if (!verify_pin(pin)) {
+        failed_attempts++;
+        if (failed_attempts >= MAX_ATTEMPTS) {
+            lockout_until = time(NULL) + (30 * (1 << (failed_attempts - MAX_ATTEMPTS)));
+        }
+        return -EWRONGPIN;
     }
 
-    snd_pcm_close(handle);
+    failed_attempts = 0;
     return 0;
 }
 ```
 
-**Deliverable:**
+**Task 10.5**: Configure LUKS encryption for data partition
 
-- ALSA recording works
-- Handles overruns gracefully
-- Continuous capture stable
-- Compiles and runs
+```bash
+# Initial setup (one-time)
+cryptsetup luksFormat --type luks2 --pbkdf argon2id /dev/mmcblk0p4
 
----
+# Unlock at boot
+cryptsetup luksOpen /dev/mmcblk0p4 data_crypt
+mount /dev/mapper/data_crypt /mnt/data
+```
 
-### Task 3.3: Audio Service (Linux Version)
+**Task 10.6**: Derive LUKS key from PIN
 
 ```c
-// audio_service.c
-// Linux version with ALSA
+int unlock_data_partition(const char *pin) {
+    uint8_t key[64];
+    derive_key_from_pin(pin, device_salt, key, sizeof(key));
 
-Features:
-- Start/stop recording via socket commands
-- Save to WAV file
-- Playback WAV files
-- Handle multiple requests (queue)
+    struct crypt_device *cd;
+    crypt_init(&cd, "/dev/mmcblk0p4");
+    crypt_load(cd, CRYPT_LUKS2, NULL);
+    int ret = crypt_activate_by_passphrase(cd, "data_crypt",
+        CRYPT_ANY_SLOT, key, sizeof(key), 0);
 
-Architecture:
-- Main thread: IPC server
-- Record thread: ALSA capture
-- Playback thread: ALSA playback
+    explicit_bzero(key, sizeof(key));
+    crypt_free(cd);
+    return ret;
+}
 ```
 
-**Deliverable:**
+### Completion checklist
 
-- Service runs as daemon
-- Accepts commands via socket
-- Recording works
-- Playback works
-- Concurrent operations (record + UI commands)
+- [ ] PIN setup and change functional
+- [ ] PIN verification uses Argon2id
+- [ ] Lockout activates after 5 failed attempts
+- [ ] Lock screen appears on boot and after timeout
+- [ ] LUKS encryption optional but functional
+- [ ] Credentials stored with proper permissions (600)
 
 ---
 
-### Task 3.4: Real-time Audio Processing
+## Level 11: Voice-to-text integration
+
+### What this level achieves
+
+Vosk provides real-time speech recognition for voice commands and voice dialing. Whisper.cpp handles batch transcription for voice memos. Voice Activity Detection triggers recognition efficiently.
+
+### Learning prerequisites
+
+- Speech recognition fundamentals (acoustic models, language models)
+- Audio buffering (circular buffers, producer-consumer pattern)
+- Voice Activity Detection algorithms
+- Thread synchronization for audio pipelines
+
+### Completion prerequisites
+
+- Level 5 complete (audio capture via ALSA)
+- Level 8 complete (modem for voice dialing)
+
+### Incremental tasks
+
+**Task 11.1**: Integrate Vosk library into Buildroot
+
+```makefile
+VOSK_VERSION = 0.3.50
+VOSK_SITE = https://alphacephei.com/vosk/models
+# Use pre-built ARM64 library + small English model
+```
+
+**Task 11.2**: Download and integrate small English model
+
+```bash
+wget https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip
+# ~40MB, suitable for Pi 5
+```
+
+**Task 11.3**: Implement Vosk recognition wrapper
 
 ```c
-// Prove low-latency capability:
+VoskModel *model = vosk_model_new("vosk-model-small-en-us-0.15");
+VoskRecognizer *rec = vosk_recognizer_new(model, 16000);
 
-Setup:
-- ALSA with small period size (256 samples)
-- Process each period immediately
-- Calculate latency
-
-Test:
-- Record audio
-- Apply simple processing (volume adjust)
-- Play back immediately
-- Measure input → output delay
-
-Target: < 50ms total latency
+// Process audio chunks (16kHz, 16-bit PCM)
+if (vosk_recognizer_accept_waveform(rec, buffer, len)) {
+    const char *result = vosk_recognizer_result(rec);
+    // Parse JSON: {"text": "call mom"}
+}
 ```
 
-**Deliverable:**
-
-- Low-latency audio loop works
-- Latency measured and logged
-- No dropouts during processing
-- Understand period/buffer tradeoffs
-
----
-
-## 🔓 UNLOCK CONDITIONS
-
-### Quiz Yourself:
-
-1. **What is ALSA?**
-
-   - (Linux kernel audio framework, drivers + userspace lib)
-
-2. **What is a period?**
-
-   - (Chunk of audio buffer, interrupt fires per period)
-
-3. **How do you calculate latency?**
-
-   - (Period size / sample rate, e.g., 256 / 16000 = 16ms)
-
-4. **What causes underrun?**
-
-   - (Consumer doesn't read fast enough, buffer empties)
-
-5. **Why use threads for audio vs processes?**
-
-   - (Shared memory, lower overhead, easier synchronization)
-
-### Must Be Able to Draw:
-
-```
-Mic → ALSA Driver → Kernel Ring Buffer
-                         ↓
-                    snd_pcm_readi()
-                         ↓
-                  Audio Service (userspace)
-                         ↓
-                  Process / Save / Send
-```
-
----
-
-## ❌ STILL LOCKED:
-
-- Speech recognition
-- ML integration
-- UI framework
-
----
-
-# 🟦 LEVEL 4: OFFLINE SPEECH-TO-TEXT
-
-**Theme:** "AI on the edge"
-
-## 📚 LEARN (Knowledge Requirements)
-
-### Speech Recognition Basics
-
-- [ ] **Acoustic model** (audio → phonemes)
-- [ ] **Language model** (phonemes → words)
-- [ ] **Decoder** (search for best sequence)
-- [ ] **Beam search** algorithm
-
-### Offline STT Engines
-
-- [ ] **Whisper** (OpenAI, heavy but accurate)
-- [ ] **Vosk** (lightweight, offline)
-- [ ] **DeepSpeech** (Mozilla, discontinued but works)
-- [ ] **Pocketsphinx** (old but tiny)
-
-### Model Considerations
-
-- [ ] **Model size** vs **accuracy**
-- [ ] **Inference time** vs **latency**
-- [ ] **Quantization** (reduce size/speed)
-- [ ] **Language support**
-
-### Integration
-
-- [ ] **C/C++ API** for embedding
-- [ ] **Audio preprocessing** (resampling, normalization)
-- [ ] **Streaming** vs **batch** recognition
-
----
-
-## ✅ DO (Tasks to Complete)
-
-### Task 4.1: Choose STT Engine
-
-```
-Research and decide:
-
-Option A: Vosk (RECOMMENDED)
-+ Lightweight (~50 MB model)
-+ Good accuracy
-+ Offline
-+ C++ API
-+ Active development
-- Need to compile for ARM
-
-Option B: Whisper
-+ Best accuracy
-+ Many languages
-- Heavy (>100 MB)
-- Slower inference
-- Needs more RAM
-
-Option C: Pocketsphinx
-+ Tiny (~10 MB)
-+ Very fast
-- Poor accuracy
-- Old
-
-Decision criteria:
-- Fits in RAM
-- Runs in real-time
-- Acceptable accuracy
-```
-
-**Deliverable:**
-
-- Engine chosen and justified
-- Compiled for target
-- Simple test program runs
-- "Hello world" recognized
-
----
-
-### Task 4.2: Integrate Vosk (Example)
-
-```cpp
-// stt_service.cpp
-#include "vosk_api.h"
-
-class STTService {
-private:
-    VoskModel *model;
-    VoskRecognizer *recognizer;
-
-public:
-    STTService(const char *model_path) {
-        model = vosk_model_new(model_path);
-        recognizer = vosk_recognizer_new(model, 16000.0);
-    }
-
-    std::string process_audio(int16_t *data, size_t len) {
-        if (vosk_recognizer_accept_waveform(recognizer,
-            (const char*)data, len * 2)) {
-            const char *result =
-                vosk_recognizer_result(recognizer);
-            return parse_json(result);
-        }
-        return "";
-    }
-
-    std::string finish() {
-        const char *result =
-            vosk_recognizer_final_result(recognizer);
-        return parse_json(result);
-    }
-};
-```
-
-**Deliverable:**
-
-- Vosk integrated
-- Recognizes speech from mic
-- Returns text
-- Handles partial results
-
----
-
-### Task 4.3: STT Service with IPC
-
-```cpp
-// Full service:
-
-Features:
-- Listen on Unix socket
-- Accept audio data or "start/stop" commands
-- Return transcribed text
-- Handle concurrent requests
-
-Commands:
-- START_STREAM
-- AUDIO_DATA [bytes]
-- STOP_STREAM → returns text
-- TRANSCRIBE_FILE file.wav → returns text
-
-Protocol:
-Request: COMMAND [data]
-Response: OK|ERROR [result]
-```
-
-**Deliverable:**
-
-- Service runs as daemon
-- UI can send audio, get text back
-- Streaming recognition works
-- File transcription works
-
----
-
-### Task 4.4: Optimize for Performance
-
-```cpp
-// Measure and optimize:
-
-Benchmarks:
-- Time to load model
-- Time to process 1 second of audio
-- Memory usage during inference
-- CPU utilization
-
-Optimizations:
-- Quantized model (if available)
-- Compile with -O3
-- Use NEON (ARM SIMD) if supported
-- Reduce logging overhead
-
-Target:
-- < 2 seconds to transcribe 5-second clip
-- < 500 MB RAM total
-```
-
-**Deliverable:**
-
-- Performance metrics logged
-- Optimizations applied
-- Real-time factor < 0.5 (processes faster than real-time)
-- Memory stays within budget
-
----
-
-## 🔓 UNLOCK CONDITIONS
-
-### Quiz Yourself:
-
-1. **What is the difference between streaming and batch STT?**
-
-   - (Streaming = real-time, partial results; Batch = full audio, final result)
-
-2. **Why does model size matter?**
-
-   - (RAM required, load time, storage space)
-
-3. **What is quantization?**
-
-   - (Reducing precision, e.g., float32 → int8, smaller/faster)
-
-4. **How do you measure real-time factor?**
-
-   - (Processing time / audio duration, <1.0 = faster than real-time)
-
-5. **Why offline STT needs Linux, not MCU?**
-
-   - (Large models, complex computation, lots of RAM)
-
-### Must Be Able to Draw:
-
-```
-Audio (PCM 16kHz)
-    ↓
-Preprocessing (normalize, resample)
-    ↓
-Feature Extraction (MFCC, mel spectrogram)
-    ↓
-Acoustic Model (neural network)
-    ↓
-Language Model (decode to words)
-    ↓
-Text Output
-```
-
----
-
-## ❌ STILL LOCKED:
-
-- UI framework
-- Full phone integration
-- End-to-end demo
-
----
-
-# 🟦 LEVEL 5: UI FRAMEWORK
-
-**Theme:** "The user sees this"
-
-## 📚 LEARN (Knowledge Requirements)
-
-### UI Options on Linux
-
-- [ ] **Qt** (C++, powerful, heavy)
-- [ ] **GTK** (C, mature, desktop-oriented)
-- [ ] **LVGL on Linux** (lightweight, embedded-friendly)
-- [ ] **SDL** (low-level, game-like)
-- [ ] **Custom framebuffer** (direct rendering)
-
-### Display Systems
-
-- [ ] **Framebuffer** (/dev/fb0)
-- [ ] **DRM/KMS** (modern)
-- [ ] **X11** (legacy, heavy)
-- [ ] **Wayland** (modern compositor)
-
-### Input Handling
-
-- [ ] **Touchscreen** (/dev/input/eventX)
-- [ ] **Buttons** (GPIO or input events)
-- [ ] **Event loop** integration
-
-### UI Architecture
-
-- [ ] **MVC** (Model-View-Controller)
-- [ ] **Event-driven** design
-- [ ] **State machines** for screens
-
----
-
-## ✅ DO (Tasks to Complete)
-
-### Task 5.1: Choose UI Framework
-
-```
-Decision matrix:
-
-LVGL on Linux:
-+ Already know LVGL from Phase 1
-+ Lightweight
-+ Works on framebuffer
-+ Easy integration
-- Less polished than Qt
-
-Qt for Embedded:
-+ Professional
-+ Rich widgets
-+ Good tooling
-- Heavy (~50+ MB)
-- Longer learning curve
-
-Recommendation: LVGL
-(Faster to market, familiar, sufficient for phone UI)
-```
-
-**Deliverable:**
-
-- Framework chosen
-- Compiles for target
-- Simple "Hello World" renders on screen
-- Touch/button input works
-
----
-
-### Task 5.2: LVGL on Linux Framebuffer
+**Task 11.4**: Implement Voice Activity Detection
 
 ```c
-// main_ui.c
-#include "lvgl/lvgl.h"
-#include "lv_drivers/display/fbdev.h"
-#include "lv_drivers/indev/evdev.h"
+#include <fvad.h>
 
-int main(void) {
-    lv_init();
+Fvad *vad = fvad_new();
+fvad_set_sample_rate(vad, 16000);
+fvad_set_mode(vad, 3);  // Aggressive
 
-    // Display setup
-    fbdev_init();
-    static lv_disp_draw_buf_t disp_buf;
-    static lv_color_t buf[DISP_BUF_SIZE];
-    lv_disp_draw_buf_init(&disp_buf, buf, NULL, DISP_BUF_SIZE);
+// Process 10ms frames
+int is_speech = fvad_process(vad, frame, 160);
+```
 
-    static lv_disp_drv_t disp_drv;
-    lv_disp_drv_init(&disp_drv);
-    disp_drv.draw_buf = &disp_buf;
-    disp_drv.flush_cb = fbdev_flush;
-    lv_disp_drv_register(&disp_drv);
+**Task 11.5**: Create STT service with IPC interface
 
-    // Input setup
-    evdev_init();
-    static lv_indev_drv_t indev_drv;
-    lv_indev_drv_init(&indev_drv);
-    indev_drv.type = LV_INDEV_TYPE_POINTER;
-    indev_drv.read_cb = evdev_read;
-    lv_indev_drv_register(&indev_drv);
+```c
+// JSON-RPC interface
+// Request: {"method": "stt.recognize", "params": {"mode": "streaming"}}
+// Response: {"result": {"text": "call mom", "confidence": 0.95}}
+```
 
-    // Create UI
-    create_home_screen();
+**Task 11.6**: Implement voice command parsing
 
-    // Main loop
-    while (1) {
-        lv_timer_handler();
-        usleep(5000);
+```c
+void handle_voice_command(const char *text) {
+    if (strncmp(text, "call ", 5) == 0) {
+        const char *contact_name = text + 5;
+        contact_t *c = db_find_contact_by_name(contact_name);
+        if (c) modem_dial(c->phone_number);
+    } else if (strcmp(text, "send message") == 0) {
+        ui_navigate_to(SCREEN_SMS_COMPOSE);
     }
 }
 ```
 
-**Deliverable:**
-
-- LVGL runs on Linux
-- Renders to framebuffer
-- Touch input works
-- Smooth at 30+ FPS
-
----
-
-### Task 5.3: Phone UI Shell
+**Task 11.7**: Integrate Whisper.cpp for voice memo transcription
 
 ```c
-// Screens:
+struct whisper_context *ctx = whisper_init_from_file("ggml-tiny.en-q5_1.bin");
+struct whisper_full_params params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
+params.n_threads = 4;  // Pi 5 has 4 cores
 
-1. Home Screen
-   - Time/date
-   - Battery indicator
-   - Signal strength (placeholder)
-   - Menu button
+whisper_full(ctx, params, audio_samples, n_samples);
 
-2. Main Menu
-   - Call
-   - Messages
-   - Voice Recorder
-   - Settings
-
-3. Voice Recorder
-   - Record button
-   - Stop button
-   - Transcription display
-   - Save button
-
-4. Settings
-   - Volume
-   - Display
-   - About
+int n_segments = whisper_full_n_segments(ctx);
+for (int i = 0; i < n_segments; i++) {
+    const char *text = whisper_full_get_segment_text(ctx, i);
+    // Append to memo transcription
+}
 ```
 
-**Deliverable:**
+### Completion checklist
 
-- All screens implemented
-- Navigation works
-- Consistent visual style
-- Responsive (<100ms)
+- [ ] Vosk model loads successfully (~300MB RAM)
+- [ ] Real-time speech recognition responds in <500ms
+- [ ] "Call [name]" voice command initiates calls
+- [ ] VAD prevents continuous processing during silence
+- [ ] Whisper transcribes voice memos to text
+- [ ] STT service exposes JSON-RPC API
 
 ---
 
-### Task 5.4: UI ↔ Service Communication
+## Level 12: Phone applications and system polish
+
+### What this level achieves
+
+Complete phone applications (Dialer, Messages, Contacts, Voice Memos, Notes, Settings) are functional with polished UI. Boot time optimizes to under 5 seconds. The system is ready for daily use and Phase 3 hardware migration.
+
+### Learning prerequisites
+
+- UI/UX design principles for phone interfaces
+- Performance profiling and optimization
+- System integration testing
+- Documentation best practices
+
+### Completion prerequisites
+
+- Levels 1-11 complete
+
+### Incremental tasks
+
+**Task 12.1**: Complete Dialer application
+
+- Number display with large, elegant digits
+- Call/delete/contacts action buttons
+- In-call screen with duration timer
+- Speakerphone toggle, mute, keypad access
+
+**Task 12.2**: Complete Messages application
+
+- Conversation list sorted by recent
+- Message thread view with bubbles
+- Compose screen with soft keyboard
+- Delivery status indicators
+
+**Task 12.3**: Complete Contacts application
+
+- Alphabetical scrolling list
+- Contact detail view with photo
+- Edit/delete capabilities
+- Quick actions (call, message)
+
+**Task 12.4**: Complete Voice Memos application
+
+- Record button with waveform visualization
+- Recording list with timestamps
+- Playback controls
+- Optional transcription display
+
+**Task 12.5**: Complete Notes application
+
+- Note list view
+- Full-screen editor
+- Auto-save on exit
+
+**Task 12.6**: Complete Settings application
+
+- Organized categories (Audio, Display, Connectivity, Security, About)
+- Real-time setting application
+- Factory reset confirmation
+
+**Task 12.7**: Optimize boot time (<5 seconds target)
+
+```
+# Kernel optimizations
+quiet loglevel=0 lpj=<measured_value>
+
+# Buildroot: minimal kernel, no debug
+CONFIG_PRINTK_TIME=n
+CONFIG_DEBUG_INFO=n
+```
+
+- Parallel service startup
+- Deferred initialization for non-critical services
+- Profile with `systemd-analyze` equivalent or custom timestamps
+
+**Task 12.8**: Implement watchdog for system stability
 
 ```c
-// UI Service Pattern:
+int wdt_fd = open("/dev/watchdog", O_RDWR);
+int timeout = 30;
+ioctl(wdt_fd, WDIOC_SETTIMEOUT, &timeout);
 
-UI Process:
-- Renders screens
-- Handles input
-- Sends commands to backend services
-- Receives updates via IPC
-
-Backend Services:
-- audio_service
-- stt_service
-- storage_service
-
-IPC:
-- Unix sockets
-- Async callbacks
-- Non-blocking UI
+// Kick in main loop
+ioctl(wdt_fd, WDIOC_KEEPALIVE, NULL);
 ```
 
-**Deliverable:**
+**Task 12.9**: Create hardware abstraction documentation
 
-- UI never blocks
-- Can send commands while recording
-- Updates appear immediately
-- Clean separation of UI and logic
+- Document all HAL interfaces
+- Map Pi 5 specifics to abstract interfaces
+- Prepare for NXP i.MX migration
+
+**Task 12.10**: System integration testing
+
+- Call flow: dial → connect → talk → hangup
+- SMS flow: compose → send → receive → notify
+- Bluetooth: pair → stream music → answer call → resume music
+- Power: timeout → sleep → wake → unlock
+
+### Completion checklist
+
+- [ ] All phone apps functional with Vertu aesthetic
+- [ ] Boot to home screen in <5 seconds
+- [ ] Watchdog prevents system hangs
+- [ ] All services start correctly on boot
+- [ ] Factory reset works completely
+- [ ] HAL documentation complete for NXP port
+- [ ] 24-hour stability test passes
 
 ---
 
-## 🔓 UNLOCK CONDITIONS
-
-### Quiz Yourself:
-
-1. **What is a framebuffer?**
-
-   - (Direct memory-mapped display buffer, /dev/fb0)
-
-2. **Why use event-driven UI?**
-
-   - (Responsive, efficient, doesn't waste CPU polling)
-
-3. **How do you prevent UI blocking?**
-
-   - (Never do slow work in UI thread, use async IPC)
-
-4. **What is MVC?**
-
-   - (Model-View-Controller, separates data/logic/presentation)
-
-5. **Why LVGL over Qt for embedded?**
-
-   - (Lighter, simpler, better for resource-constrained)
-
-### Must Be Able to Draw:
+## Summary: Level dependencies and timeline
 
 ```
-User Touch → Input Driver → LVGL Event
-                                ↓
-                          Event Handler
-                                ↓
-                    Send command via socket
-                                ↓
-                          Backend Service
-                                ↓
-                        Process & Respond
-                                ↓
-                    Update UI (callback)
+Level 1 ──→ Level 2 ──→ Level 6
+   │           │
+   └──→ Level 3 ──→ Level 4 ──→ Level 7 ──→ Level 8 ──→ Level 9 ──→ Level 12
+          │                        │                        │
+          └──→ Level 5 ────────────┴──→ Level 11            │
+                                                            │
+                                        Level 10 ───────────┘
 ```
 
----
-
-## ❌ STILL LOCKED:
-
-- End-to-end integration
-- Phone features
-- System optimization
-
----
-
-# 🟦 LEVEL 6: PHONE FEATURES
-
-**Theme:** "It's actually a phone now"
-
-## 📚 LEARN (Knowledge Requirements)
-
-### Voice Recorder App
-
-- [ ] **Push-to-talk** interaction
-- [ ] **WAV file** management
-- [ ] **Metadata** (timestamp, duration)
-- [ ] **List/playback** saved recordings
-
-### Transcription Flow
-
-- [ ] **Record** → **transcribe** → **display**
-- [ ] **Edit** transcription
-- [ ] **Save** as text
-- [ ] **Share** (future: SMS)
-
-### Storage Management
-
-- [ ] **File system** structure
-- [ ] **Recordings** directory
-- [ ] **Metadata** database (SQLite)
-- [ ] **Cleanup** old files
-
-### Battery & Power
-
-- [ ] **CPU governor** (performance vs power)
-- [ ] **Display brightness**
-- [ ] **Sleep mode**
-- [ ] **Low power states**
-
----
-
-## ✅ DO (Tasks to Complete)
-
-### Task 6.1: Voice Recorder App
-
-```
-Features:
-
-Recording:
-- Press and hold to record
-- Release to stop
-- Show timer during recording
-- Save to /recordings/YYYY-MM-DD_HH-MM-SS.wav
-
-Playback:
-- List all recordings
-- Tap to play
-- Delete option
-- Show duration
-
-Transcription:
-- "Transcribe" button per recording
-- Show loading indicator
-- Display text when done
-- Edit and save
-```
-
-**Deliverable:**
-
-- Full recorder app works
-- Can record, play, delete
-- Transcription integrated
-- Files saved properly
-
----
-
-### Task 6.2: Notes App with Voice Input
-
-```
-Features:
-
-Create Note:
-- Text input (keyboard, future)
-- Voice input (record → transcribe → insert)
-- Title + body
-- Timestamp
-
-View Notes:
-- List view
-- Tap to open/edit
-- Search (future)
-
-Voice Input Flow:
-- Tap mic button
-- Record (max 30 seconds)
-- Auto-transcribe
-- Insert text at cursor
-- Can re-record if wrong
-```
-
-**Deliverable:**
-
-- Notes app functional
-- Voice → text works seamlessly
-- UX feels natural
-- Data persists (SQLite)
-
----
-
-### Task 6.3: Storage Service
-
-```c
-// storage_service.c
-
-Features:
-- Manage recordings directory
-- SQLite database:
-  - Recordings table
-  - Notes table
-  - Metadata
-- CRUD operations via IPC
-
-Database schema:
-CREATE TABLE recordings (
-    id INTEGER PRIMARY KEY,
-    filename TEXT,
-    timestamp INTEGER,
-    duration REAL,
-    transcription TEXT
-);
-
-CREATE TABLE notes (
-    id INTEGER PRIMARY KEY,
-    title TEXT,
-    body TEXT,
-    created INTEGER,
-    modified INTEGER
-);
-```
-
-**Deliverable:**
-
-- Storage service runs
-- Database operations work
-- UI can save/load data
-- Handles errors gracefully
-
----
-
-### Task 6.4: Settings & System
-
-```
-Settings App:
-
-Audio:
-- Microphone gain
-- Speaker volume
-- Sample rate (16k/44.1k)
-
-Display:
-- Brightness
-- Theme (light/dark)
-- Screen timeout
-
-System:
-- About (OS version, storage, RAM)
-- Factory reset
-- Update (future)
-
-Power Management:
-- Screen off after 30s idle
-- Suspend if no activity
-- Wake on button press
-```
-
-**Deliverable:**
-
-- Settings app implemented
-- Changes persist
-- Power management works
-- System info accurate
-
----
-
-## 🔓 UNLOCK CONDITIONS
-
-### Quiz Yourself:
-
-1. **Why use SQLite vs flat files?**
-
-   - (Structured, searchable, transactions, better for metadata)
-
-2. **How do you prevent data loss during power-off?**
-
-   - (Sync writes, WAL mode in SQLite, graceful shutdown)
-
-3. **What is CPU governor?**
-
-   - (Policy for CPU frequency scaling, performance vs power)
-
-4. **Why push-to-talk vs auto-detect?**
-
-   - (Deterministic, no false triggers, better for embedded)
-
-5. **How do you calculate audio file size?**
-
-   - (sample_rate × duration × channels × bytes_per_sample)
-
-### Must Be Able to Draw:
-
-```
-User: Press Record
-    ↓
-UI → audio_service: START_RECORD
-    ↓
-audio_service → ALSA: capture
-    ↓
-[Recording... timer updates UI]
-    ↓
-User: Release
-    ↓
-UI → audio_service: STOP_RECORD
-    ↓
-audio_service → storage_service: SAVE file.wav
-    ↓
-UI → stt_service: TRANSCRIBE file.wav
-    ↓
-stt_service → UI: "transcribed text"
-    ↓
-UI displays text + edit option
-```
-
----
-
-## ❌ STILL LOCKED:
-
-- System integration
-- Performance tuning
-- Final optimization
-
----
-
-# 🟦 LEVEL 7: SYSTEM INTEGRATION
-
-**Theme:** "Everything works together"
-
-## 📚 LEARN (Knowledge Requirements)
-
-### System Architecture
-
-- [ ] **Service dependencies**
-- [ ] **Boot sequence** optimization
-- [ ] **Error handling** across services
-- [ ] **Logging** strategy
-
-### Performance
-
-- [ ] **Profiling** (perf, gprof)
-- [ ] **Memory leaks** (valgrind)
-- [ ] **CPU utilization**
-- [ ] **I/O bottlenecks**
-
-### Reliability
-
-- [ ] **Watchdog** timers
-- [ ] **Service recovery**
-- [ ] **Data corruption** prevention
-- [ ] **Crash reporting**
-
-### Security (Basic)
-
-- [ ] **File permissions**
-- [ ] **Service isolation**
-- [ ] **No root** for apps
-- [ ] **Secure storage**
-
----
-
-## ✅ DO (Tasks to Complete)
-
-### Task 7.1: Complete System Diagram
-
-```
-Document the full architecture:
-
-┌──────────────────────────────┐
-│      UI Shell (LVGL)         │
-├──────────────────────────────┤
-│  Apps: Recorder, Notes       │
-├──────────────────────────────┤
-│  Services:                   │
-│  - audio_service             │
-│  - stt_service               │
-│  - storage_service           │
-│  - ui_service                │
-├──────────────────────────────┤
-│  Init & Service Manager      │
-├──────────────────────────────┤
-│  Linux Kernel                │
-│  - ALSA drivers              │
-│  - Framebuffer               │
-│  - Input drivers             │
-├──────────────────────────────┤
-│  Hardware                    │
-└──────────────────────────────┘
-
-For each service:
-- Dependencies
-- IPC interfaces
-- Configuration
-- Error handling
-```
-
-**Deliverable:**
-
-- Complete architecture doc
-- Dependency graph
-- IPC protocol specs
-- README for each component
-
----
-
-### Task 7.2: Boot Time Optimization
-
-```bash
-# Measure current boot time:
-$ systemd-analyze  # If using systemd
-# Or manually time init → UI ready
-
-# Optimize:
-1. Parallel service startup (where safe)
-2. Lazy loading (defer non-critical)
-3. Optimize kernel (remove unused drivers)
-4. Reduce initramfs size
-
-Target: < 5 seconds to UI
-```
-
-**Deliverable:**
-
-- Boot time measured
-- Optimizations applied
-- < 5 second boot achieved
-- Log shows startup sequence
-
----
-
-### Task 7.3: Error Recovery
-
-```c
-// Implement recovery for common failures:
-
-1. Audio device busy:
-   - Retry with backoff
-   - Notify user
-   - Log error
-
-2. STT service crash:
-   - Service manager restarts it
-   - Pending requests fail gracefully
-   - UI shows error, allows retry
-
-3. Storage full:
-   - Detect before writing
-   - Delete old recordings (with permission)
-   - Alert user
-
-4. Low memory:
-   - Monitor /proc/meminfo
-   - Kill non-critical services
-   - Prevent new recordings
-```
-
-**Deliverable:**
-
-- All failure modes handled
-- System stays stable
-- User sees meaningful errors
-- Auto-recovery where possible
-
----
-
-### Task 7.4: Performance Testing
-
-```bash
-# Load testing:
-
-Test 1: Continuous recording for 1 hour
-- Check memory leaks
-- Check CPU usage
-- Check for crashes
-
-Test 2: Rapid start/stop cycles
-- 100 recordings in 10 minutes
-- Check responsiveness
-- Check data integrity
-
-Test 3: Concurrent operations
-- Record + transcribe previous + UI navigation
-- Measure latency
-- Check for deadlocks
-
-Tools:
-- top / htop (CPU/RAM)
-- iotop (I/O)
-- valgrind (memory leaks)
-- strace (system calls)
-```
-
-**Deliverable:**
-
-- All tests pass
-- No memory leaks
-- CPU < 70% average
-- No crashes in 1-hour test
-
----
-
-## 🔓 UNLOCK CONDITIONS
-
-### Quiz Yourself:
-
-1. **What happens if storage_service crashes?**
-
-   - (Service manager restarts, pending saves fail, users retry)
-
-2. **How do you detect memory leaks?**
-
-   - (Valgrind, monitor RSS over time, check for growth)
-
-3. **Why parallelize service startup?**
-
-   - (Faster boot, better resource utilization)
-
-4. **What is a watchdog?**
-
-   - (Timer that reboots system if not periodically reset, ensures liveness)
-
-5. **How do you profile CPU usage?**
-
-   - (perf, top, /proc/stat, flame graphs)
-
-### Must Be Able to Explain:
-
-```
-Failure scenario: Audio device in use
-
-1. audio_service tries to open device → fails
-2. Service logs error
-3. Retry with exponential backoff (1s, 2s, 4s)
-4. After 3 retries, notify UI via IPC
-5. UI shows: "Audio unavailable, please wait"
-6. When device available, auto-recover
-7. User can manually retry
-```
-
----
-
-## ❌ STILL LOCKED:
-
-- Final optimization
-- Documentation
-- Demo readiness
-
----
-
-# 🟦 LEVEL 8: POLISH & VALIDATION
-
-**Theme:** "Ship it"
-
-## 📚 LEARN (Knowledge Requirements)
-
-### Production Readiness
-
-- [ ] **Version control** strategy
-- [ ] **Release process**
-- [ ] **Backup/restore**
-- [ ] **Update mechanism**
-
-### Documentation
-
-- [ ] **User guide**
-- [ ] **Developer guide**
-- [ ] **Architecture overview**
-- [ ] **Troubleshooting**
-
-### Testing
-
-- [ ] **Unit tests** (where critical)
-- [ ] **Integration tests**
-- [ ] **User acceptance testing**
-- [ ] **Regression testing**
-
-### Metrics
-
-- [ ] **Boot time**
-- [ ] **Latency** (UI, STT)
-- [ ] **Memory footprint**
-- [ ] **Power consumption**
-
----
-
-## ✅ DO (Tasks to Complete)
-
-### Task 8.1: End-to-End Demo Script
-
-```
-Prepare a 5-minute demo:
-
-1. Boot system (< 5 seconds)
-2. Home screen appears
-3. Navigate to Voice Recorder
-4. Record 10-second message:
-   "This is Black Hand OS, a custom Linux phone
-    operating system with offline voice-to-text"
-5. Stop recording
-6. Transcribe
-7. Show accurate transcription
-8. Save to Notes
-9. Navigate to Notes, show saved note
-10. Navigate to Settings, show system info
-
-Must work flawlessly 5 times in a row.
-```
-
-**Deliverable:**
-
-- Demo script written
-- 100% success rate over 5 trials
-- Video recording of successful demo
-- Able to present confidently
-
----
-
-### Task 8.2: Performance Benchmark Report
-
-```markdown
-# Black Hand OS - Phase 2 Metrics
-
-## Boot Performance
-
-- Kernel boot: 1.2s
-- Init + services: 2.3s
-- UI ready: 3.8s
-- Total: 3.8s ✓ (target: <5s)
-
-## Runtime Performance
-
-- Audio latency: 32ms
-- STT processing: 0.4x real-time
-- UI responsiveness: 45ms average
-- Memory usage: 380 MB (peak: 420 MB)
-
-## Accuracy
-
-- STT word error rate: 8% (short phrases)
-- STT word error rate: 12% (long sentences)
-
-## Reliability
-
-- Continuous operation: 24 hours stable
-- Crash-free recordings: 1000+ sessions
-- Memory leaks: None detected
-
-## Power (estimated)
-
-- Idle: 120 mA
-- Recording: 280 mA
-- Transcribing: 450 mA
-```
-
-**Deliverable:**
-
-- Complete metrics document
-- All targets met
-- Graphs/charts of performance
-- Comparison to Phase 1 (where applicable)
-
----
-
-### Task 8.3: Documentation Package
-
-```
-Required documentation:
-
-1. README.md
-   - What is Black Hand OS?
-   - Features
-   - Hardware requirements
-   - Quick start
-
-2. ARCHITECTURE.md
-   - System diagram
-   - Component descriptions
-   - IPC protocols
-   - Data flows
-
-3. BUILD.md
-   - Build environment setup
-   - Buildroot configuration
-   - Cross-compilation steps
-   - Deployment procedure
-
-4. USER_GUIDE.md
-   - How to use recorder
-   - How to use notes
-   - Settings explained
-   - Troubleshooting
-
-5. DEVELOPER_GUIDE.md
-   - Adding new services
-   - IPC patterns
-   - Debugging techniques
-   - Code style
-```
-
-**Deliverable:**
-
-- All docs complete
-- Clear, concise writing
-- Examples included
-- Someone else can build from your docs
-
----
-
-### Task 8.4: Reflection & Next Steps
-
-```markdown
-# Phase 2 Complete - Reflection
-
-## What I Built
-
-- Custom Linux phone OS
-- Offline voice-to-text capability
-- Voice recorder with transcription
-- Notes app with voice input
-- Complete service architecture
-
-## What I Learned
-
-- Embedded Linux internals
-- Audio pipeline on Linux (ALSA)
-- STT integration (Vosk/Whisper)
-- UI frameworks (LVGL/Qt)
-- System architecture design
-- Performance optimization
-- Service-oriented design
-
-## Phase 1 vs Phase 2
-
-Phase 1 taught me:
-
-- Hardware constraints
-- Real-time thinking
-- Low-level control
-
-Phase 2 taught me:
-
-- System complexity management
-- Software architecture
-- ML integration
-- Product development
-
-## Known Limitations
-
-- STT accuracy varies with accent/noise
-- Limited to one language (English)
-- No cellular modem integration (yet)
-- Battery life not optimized
-- No app ecosystem
-
-## If I Were to Continue (Phase 3)
-
-- Custom hardware design
-- Modem integration (calls/SMS)
-- Multi-language STT
-- Better power management
-- OTA updates
-- Encryption & security
-
-## Career Readiness
-
-With Phase 1 + Phase 2, I can confidently say:
-
-- I understand embedded systems end-to-end
-- I can design and implement complex systems
-- I can work with Linux, RTOS, and bare metal
-- I have practical ML integration experience
-- I can ship products
-```
-
-**Deliverable:**
-
-- Honest reflection written
-- Clear understanding of what was learned
-- Articulate career positioning
-- Decision on whether to continue to Phase 3 (hardware)
-
----
-
-## 🔓 UNLOCK CONDITIONS (PHASE 2 COMPLETE)
-
-### Final Demonstration:
-
-Record yourself giving the full demo. You must:
-
-- Boot the system
-- Demonstrate voice recording
-- Show transcription accuracy
-- Navigate the UI smoothly
-- Explain the architecture verbally
-- **NO stuttering, NO "it usually works", NO excuses**
-
-This demo is your proof.
-
-### Final Quiz:
-
-1. **Why Linux for offline STT but not for Phase 1?**
-
-   - (Phase 1: constraints teach fundamentals; Phase 2: Linux enables complex software, ML models, ecosystem)
-
-2. **What is the role of init in your OS?**
-
-   - (First process, starts services, defines boot flow, represents your OS's identity)
-
-3. **How does your OS differ from Android?**
-
-   - (Simpler, no Google services, privacy-focused, voice-first, minimal apps, but same fundamental architecture)
-
-4. **Could you port this to different hardware?**
-
-   - (Yes, change device tree + drivers, services/apps stay same)
-
-5. **What would you do differently if starting over?**
-
-   - (Answer honestly based on your experience)
-
-### Must Be Able to Say Confidently:
-
-```
-"I built Black Hand OS, a custom Linux-based phone operating
-system with offline voice-to-text. It boots in under 4 seconds,
-has a clean service-oriented architecture, and can transcribe
-speech with 90%+ accuracy. I understand embedded Linux deeply
-because I started with bare metal RTOS in Phase 1. I'm ready
-for embedded systems roles in consumer electronics, automotive,
-or IoT."
-```
-
----
-
-## 🏁 CONGRATULATIONS - PHASE 2 COMPLETE
-
-You have:
-
-- ✅ Mastered embedded Linux
-- ✅ Integrated ML (STT) on embedded device
-- ✅ Built a real product OS
-- ✅ Proven end-to-end systems thinking
-- ✅ Created a portfolio-worthy project
-
----
-
-# 📊 PHASE 2 SUMMARY CHECKLIST
-
-```
-LEVEL 1: LINUX FOUNDATIONS
-□ Dev board booting custom Linux
-□ Custom Buildroot image
-□ Hello World service
-□ Kernel vs userspace understanding
-
-LEVEL 2: CUSTOM INIT & SERVICES
-□ Custom init script
-□ Service template
-□ IPC between services
-□ Service manager
-
-LEVEL 3: AUDIO PIPELINE ON LINUX
-□ ALSA hardware working
-□ ALSA C API recording
-□ Audio service (Linux version)
-□ Real-time audio processing
-
-LEVEL 4: OFFLINE SPEECH-TO-TEXT
-□ STT engine chosen and running
-□ Vosk/Whisper integrated
-□ STT service with IPC
-□ Performance optimized
-
-LEVEL 5: UI FRAMEWORK
-□ UI framework chosen (LVGL/Qt)
-□ LVGL on framebuffer working
-□ Phone UI shell complete
-□ UI ↔ service communication
-
-LEVEL 6: PHONE FEATURES
-□ Voice recorder app
-□ Notes app with voice input
-□ Storage service (SQLite)
-□ Settings & power management
-
-LEVEL 7: SYSTEM INTEGRATION
-□ Complete system diagram
-□ Boot time < 5 seconds
-□ Error recovery implemented
-□ Performance testing passed
-
-LEVEL 8: POLISH & VALIDATION
-□ End-to-end demo (5 successful runs)
-□ Performance benchmark report
-□ Complete documentation
-□ Phase 2 reflection written
-```
-
-**When all boxes checked → PHASE 2 DONE**
-
----
-
-# 🎯 WHAT'S NEXT?
-
-You now have three options:
-
-## Option A: Get a Job (Recommended)
-
-You have enough to land an embedded engineer role. Polish your resume, prepare your demo, start applying.
-
-## Option B: Phase 3 (Custom Hardware)
-
-Design custom PCB, integrate modem, manufacture prototype. This is a huge undertaking (6-12 months).
-
-## Option C: Expand Phase 2
-
-- Add more features (calendar, calculator, games)
-- Multi-language STT
-- Cloud sync
-- Better power optimization
-
-**My recommendation:** Option A. Get real-world experience, get paid, then decide if custom hardware is worth pursuing.
-
----
-
-``
+**Estimated timeline** (experienced developer, part-time):
+
+- Levels 1-4: 4-6 weeks (foundation)
+- Levels 5-7: 4-6 weeks (subsystems)
+- Levels 8-10: 6-8 weeks (telephony, power, security)
+- Levels 11-12: 4-6 weeks (STT, polish)
+- **Total: 4-6 months**
+
+**Hardware bill of materials**:
+
+- Raspberry Pi 5 (8GB recommended)
+- Pimoroni HyperPixel 4.0 (rectangular)
+- USB audio adapter (UAC1/UAC2 compliant)
+- 4G USB modem (Quectel EC25 or SIMCom SIM7600)
+- PiSugar 3 Plus battery HAT
+- MicroSD card (32GB+, A2 rating)
+- USB-to-serial adapter for debugging
+
+This roadmap provides a structured path from bare-metal RTOS experience to a complete embedded Linux phone OS, with every component designed for modularity and future hardware migration.
