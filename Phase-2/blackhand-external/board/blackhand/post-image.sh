@@ -28,4 +28,15 @@ fi
 # Generate the SD card image
 support/scripts/genimage.sh -c "${BOARD_DIR}/genimage.cfg"
 
+# Verify overlays are present in boot.vfat
+MTOOLS_DIR="${BINARIES_DIR}/../host/bin"
+if [ -x "${MTOOLS_DIR}/mdir" ]; then
+    if "${MTOOLS_DIR}/mdir" -i "${BINARIES_DIR}/boot.vfat" ::/overlays >/dev/null 2>&1; then
+        echo ">>> Verified overlays in boot.vfat"
+        "${MTOOLS_DIR}/mdir" -i "${BINARIES_DIR}/boot.vfat" ::/overlays
+    else
+        echo ">>> Warning: overlays not visible in boot.vfat"
+    fi
+fi
+
 echo ">>> Done: ${BINARIES_DIR}/sdcard.img"

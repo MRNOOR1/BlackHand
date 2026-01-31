@@ -13,6 +13,10 @@ gpu_mem=256
 # Enable DRM/KMS for display
 dtoverlay=vc4-kms-v3d
 
+# Disable interfaces that conflict with HyperPixel GPIO usage
+dtparam=i2c_arm=off
+dtparam=spi=off
+
 # Serial console (for debugging)
 enable_uart=1
 
