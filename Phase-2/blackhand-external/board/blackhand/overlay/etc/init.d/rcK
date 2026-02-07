@@ -1,0 +1,6 @@
+#!/bin/sh
+echo "Shutting down..."
+killall dropbear 2>/dev/null
+killall -TERM -1 2>/dev/null
+sleep 1
+killall -KILL -1 2>/dev/null

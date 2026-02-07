@@ -1,11 +1,21 @@
 arm_64bit=1
 kernel=Image
-device_tree=bcm2712-rpi-5-b.dtb
+device_tree=bcm2711-rpi-4-b.dtb
 gpu_mem=256
-dtoverlay=vc4-kms-v3d-pi5
+
+# Display: HyperPixel 4.0 (DPI)
+# NOTE: Do NOT load vc4-kms-v3d separately — the HyperPixel overlay
+# includes its own vc4-kms-v3d configuration. Loading both causes
+# conflicts where the DRM driver misconfigures outputs.
 dtoverlay=vc4-kms-dpi-hyperpixel4
+
+# HyperPixel uses the GPIO pins normally assigned to SPI and the
+# hardware I2C bus for its DPI parallel RGB interface. The touch
+# controller (Goodix GT911) uses a software I2C bus defined inside
+# the HyperPixel overlay via i2c-gpio.
 dtparam=i2c_arm=off
 dtparam=spi=off
+
 enable_uart=1
 disable_splash=1
 boot_delay=0
