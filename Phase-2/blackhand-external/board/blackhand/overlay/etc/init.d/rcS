@@ -11,12 +11,18 @@ echo ">>> Black Hand OS init starting..."
 /bin/mount -t tmpfs tmpfs /tmp 2>/dev/null
 
 # ── Load kernel modules needed for display / touch ──
+# panel-simple MUST be a module (not built-in) because the HyperPixel
+# overlay creates the SPI-GPIO bus and panel device at overlay-apply time.
+# Loading the module after boot lets deferred probe resolve correctly.
 if [ -x /sbin/modprobe ]; then
     /sbin/modprobe drm 2>/dev/null
     /sbin/modprobe vc4 2>/dev/null
     /sbin/modprobe v3d 2>/dev/null
     /sbin/modprobe i2c-gpio 2>/dev/null
+    /sbin/modprobe panel-simple 2>/dev/null
     /sbin/modprobe goodix 2>/dev/null
+    # Give DRM time to finish probing after panel-simple loads
+    sleep 1
 fi
 
 # ── Hostname ──

@@ -3,19 +3,35 @@ kernel=Image
 device_tree=bcm2711-rpi-4-b.dtb
 gpu_mem=256
 
-# Display: HyperPixel 4.0 (DPI)
-# NOTE: Do NOT load vc4-kms-v3d separately — the HyperPixel overlay
-# includes its own vc4-kms-v3d configuration. Loading both causes
-# conflicts where the DRM driver misconfigures outputs.
-dtoverlay=vc4-kms-dpi-hyperpixel4
+# ── Display: HyperPixel 4.0 (800x480 DPI) ──
+#
+# The vc4-kms-dpi-hyperpixel4 overlay has an unresolvable dependency
+# cycle with panel-simple on kernel 6.6.x. Instead:
+#   - GPU firmware drives DPI output directly (no KMS/DRM)
+#   - Firmware creates /dev/fb0 via bcm2708_fb at 800x480
+#   - Touch uses a separate minimal overlay (i2c-gpio + goodix only)
 
-# HyperPixel uses the GPIO pins normally assigned to SPI and the
-# hardware I2C bus for its DPI parallel RGB interface. The touch
-# controller (Goodix GT911) uses a software I2C bus defined inside
-# the HyperPixel overlay via i2c-gpio.
+# DPI output — configured entirely by firmware, no kernel DRM involved
+dpi_output_format=0x6f016
+dpi_group=2
+dpi_mode=87
+dpi_timings=800 0 50 20 50 480 0 20 5 15 0 0 0 60 0 32000000 6
+framebuffer_width=800
+framebuffer_height=480
+
+# Set GPIO pins to alt2 (DPI function) via firmware
+gpio=0-9=a2
+gpio=12-17=a2
+gpio=20-25=a2
+
+# Touch only — minimal overlay with i2c-gpio + Goodix GT911
+# Does NOT include any DPI/panel/DRM fragments
+dtoverlay=hyperpixel4-touch
+
+# HyperPixel uses GPIO pins normally assigned to SPI and hardware I2C
 dtparam=i2c_arm=off
 dtparam=spi=off
 
-enable_uart=1
+enable_uart=0
 disable_splash=1
 boot_delay=0

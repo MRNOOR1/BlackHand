@@ -59,6 +59,11 @@ BR2_LINUX_KERNEL_IMAGE=y
 BR2_LINUX_KERNEL_DTS_SUPPORT=y
 BR2_LINUX_KERNEL_INTREE_DTS_NAME="broadcom/bcm2711-rpi-4-b"
 
+# CRITICAL: Compile DTBs with symbols (-@) so overlays can be applied.
+# Without this, the base DTB has no __symbols__ section, and the RPi
+# firmware silently ignores ALL dtoverlay= lines in config.txt.
+BR2_LINUX_KERNEL_DTB_OVERLAY_SUPPORT=y
+
 # Install DTBs to /boot so genimage can find them
 BR2_LINUX_KERNEL_INSTALL_TARGET=y
 
