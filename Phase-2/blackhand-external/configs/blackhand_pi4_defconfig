@@ -1,141 +1,64 @@
 # ============================================================================
-# BLACK HAND OS - Raspberry Pi 4 Defconfig
+# BLACK HAND OS — MINIMAL DISPLAY TEST
 # ============================================================================
-# This configuration builds a bootable image for Raspberry Pi 4.
-# 
-# Usage:
-#   make BR2_EXTERNAL=../blackhand-external blackhand_pi5_defconfig
-#   make -j$(nproc)
-#
-# Output: output/images/sdcard.img
+# Stripped to bare minimum: boot + SSH + framebuffer
+# Once /dev/fb0 works on HyperPixel, add packages back incrementally.
 # ============================================================================
 
-# ============================================================================
-# ARCHITECTURE
-# ============================================================================
+# Architecture
 BR2_aarch64=y
 BR2_cortex_a72=y
-# Note: BR2_ARM_FPU_VFPV4 is for 32-bit ARM. AArch64 always has FPU.
-# Remove it — it's ignored but misleading.
 
-# ============================================================================
-# TOOLCHAIN
-# ============================================================================
+# Toolchain
 BR2_TOOLCHAIN_BUILDROOT_GLIBC=y
-BR2_TOOLCHAIN_BUILDROOT_CXX=y
 BR2_KERNEL_HEADERS_6_6=y
-# REMOVED: BR2_KERNEL_HEADERS_VERSION=6.6  (redundant)
-BR2_PACKAGE_HOST_GDB=y
 
-
-# ============================================================================
-# SYSTEM
-# ============================================================================
+# System
 BR2_TARGET_GENERIC_HOSTNAME="blackhand"
-BR2_TARGET_GENERIC_ISSUE="Black Hand OS v0.2"
+BR2_TARGET_GENERIC_ISSUE="Black Hand OS - Display Test"
 BR2_TARGET_GENERIC_ROOT_PASSWD="blackhand"
 BR2_SYSTEM_DHCP="eth0"
 BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_DEVTMPFS=y
-BR2_ENABLE_LOCALE_PURGE=y
-BR2_SYSTEM_DEFAULT_PATH="/bin:/sbin:/usr/bin:/usr/sbin"
-
-# Use BusyBox init for now — you'll replace this with custom init later
 BR2_INIT_BUSYBOX=y
 
-# ============================================================================
-# KERNEL
-# ============================================================================
+# Kernel
 BR2_LINUX_KERNEL=y
 BR2_LINUX_KERNEL_CUSTOM_TARBALL=y
-# Use a SPECIFIC TAG, not a branch, for reproducible builds
 BR2_LINUX_KERNEL_CUSTOM_TARBALL_LOCATION="https://github.com/raspberrypi/linux/archive/refs/tags/stable_20241008.tar.gz"
 BR2_LINUX_KERNEL_USE_DEFCONFIG=y
 BR2_LINUX_KERNEL_DEFCONFIG="bcm2711"
-
-# Kernel image format: Pi 5 uses uncompressed Image
 BR2_LINUX_KERNEL_IMAGE=y
-
-# Device Tree
 BR2_LINUX_KERNEL_DTS_SUPPORT=y
 BR2_LINUX_KERNEL_INTREE_DTS_NAME="broadcom/bcm2711-rpi-4-b"
-
-# CRITICAL: Compile DTBs with symbols (-@) so overlays can be applied.
-# Without this, the base DTB has no __symbols__ section, and the RPi
-# firmware silently ignores ALL dtoverlay= lines in config.txt.
 BR2_LINUX_KERNEL_DTB_OVERLAY_SUPPORT=y
-
-# Install DTBs to /boot so genimage can find them
 BR2_LINUX_KERNEL_INSTALL_TARGET=y
-
 BR2_LINUX_KERNEL_NEEDS_HOST_OPENSSL=y
 BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_BLACKHAND_PATH)/board/blackhand/linux/bcm2711.config"
 
-# ============================================================================
-# RASPBERRY PI FIRMWARE (CRITICAL - without this, Pi won't boot)
-# ============================================================================
+# RPi firmware (required to boot)
 BR2_PACKAGE_RPI_FIRMWARE=y
 BR2_PACKAGE_RPI_FIRMWARE_VARIANT_PI4=y
-# Note: Pi 5 uses the same firmware variant selection as Pi 4 in Buildroot
-# This provides: start4.elf, fixup4.dat, bootcode.bin, etc.
 
-# Install DTB overlays (needed for HyperPixel later)
-BR2_PACKAGE_RPI_FIRMWARE_INSTALL_DTB_OVERLAYS=y
-
-# ============================================================================
-# TARGET PACKAGES - LIBRARIES
-# ============================================================================
-BR2_PACKAGE_ALSA_LIB=y
-BR2_PACKAGE_ALSA_LIB_PCM=y
-BR2_PACKAGE_ALSA_LIB_MIXER=y
-BR2_PACKAGE_SQLITE=y
-BR2_PACKAGE_CJSON=y
-BR2_PACKAGE_LIBMPG123=y
-
-# LVGL with Linux framebuffer backend
-BR2_PACKAGE_LVGL=y
-BR2_PACKAGE_LVGL_LINUX_FB=y
-
-# ============================================================================
-# TARGET PACKAGES - BLUETOOTH
-# ============================================================================
-BR2_PACKAGE_BLUEZ5_UTILS=y
-BR2_PACKAGE_BLUEZ5_UTILS_TOOLS=y
-BR2_PACKAGE_BLUEZ_ALSA=y
-
-# ============================================================================
-# TARGET PACKAGES - TOOLS (for debugging)
-# ============================================================================
+# Packages — MINIMUM for testing
 BR2_PACKAGE_BUSYBOX=y
 BR2_PACKAGE_DROPBEAR=y
-BR2_PACKAGE_NANO=y
-BR2_PACKAGE_HTOP=y
-BR2_PACKAGE_EVTEST=y
-BR2_PACKAGE_ALSA_UTILS=y
-
-# Framebuffer test utilities (useful for display debugging)
 BR2_PACKAGE_FBV=y
-BR2_PACKAGE_I2C_TOOLS=y
-# ============================================================================
-# FILESYSTEM
-# ============================================================================
+BR2_PACKAGE_KMOD=y
+
+# HyperPixel panel init (SPI bit-bang to wake LCD controller)
+BR2_PACKAGE_HYPERPIXEL4_INIT=y
+
+# Filesystem
 BR2_TARGET_ROOTFS_EXT2=y
 BR2_TARGET_ROOTFS_EXT2_4=y
-BR2_TARGET_ROOTFS_EXT2_SIZE="512M"
+BR2_TARGET_ROOTFS_EXT2_SIZE="256M"
 
-# ============================================================================
-# HOST TOOLS (for building the SD card image)
-# ============================================================================
+# Host tools
 BR2_PACKAGE_HOST_DOSFSTOOLS=y
 BR2_PACKAGE_HOST_GENIMAGE=y
 BR2_PACKAGE_HOST_MTOOLS=y
 
-# ============================================================================
-# BOARD CUSTOMIZATION (ACTIVE - not commented out)
-# ============================================================================
+# Board customization
 BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_BLACKHAND_PATH)/board/blackhand/overlay"
 BR2_ROOTFS_POST_BUILD_SCRIPT="$(BR2_EXTERNAL_BLACKHAND_PATH)/board/blackhand/post-build.sh"
 BR2_ROOTFS_POST_IMAGE_SCRIPT="$(BR2_EXTERNAL_BLACKHAND_PATH)/board/blackhand/post-image.sh"
-
-
-BR2_PACKAGE_KMOD=y
-BR2_PACKAGE_KMOD_TOOLS=y

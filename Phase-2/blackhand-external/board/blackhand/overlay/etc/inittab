@@ -1,8 +1,3 @@
-# /etc/inittab - BusyBox init configuration for Black Hand OS
-#
-# Format: <id>::<runlevels>:<action>:<process>
-
-# System initialization
 ::sysinit:/bin/mount -t proc proc /proc
 ::sysinit:/bin/mount -o remount,rw /
 ::sysinit:/bin/mkdir -p /dev/pts /dev/shm
@@ -10,14 +5,7 @@
 ::sysinit:/bin/hostname -F /etc/hostname
 ::sysinit:/etc/init.d/rcS
 
-# Framebuffer console on HyperPixel display
 tty1::respawn:/sbin/getty -L tty1 0 vt100
 
-# NOTE: No serial getty — HyperPixel uses the UART GPIO pins for DPI.
-# If you disconnect the HyperPixel and want serial debug, uncomment:
-# ttyAMA0::respawn:/sbin/getty -L ttyAMA0 115200 vt100
-
-# Shutdown hooks
 ::shutdown:/etc/init.d/rcK
-::shutdown:/sbin/swapoff -a
 ::shutdown:/bin/umount -a -r

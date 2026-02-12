@@ -1,64 +1,28 @@
 #!/bin/sh
-#
-# Black Hand OS - System init script
-# Called from inittab after sysinit mounts are done.
+# Black Hand OS — minimal init
 
-echo ">>> Black Hand OS init starting..."
-
-# ── Additional mounts (proc/sysfs/devtmpfs handled by inittab sysinit) ──
-/bin/mount -t sysfs sysfs /sys 2>/dev/null
-/bin/mount -t devpts devpts /dev/pts 2>/dev/null
-/bin/mount -t tmpfs tmpfs /tmp 2>/dev/null
-
-# ── Load kernel modules needed for display / touch ──
-# panel-simple MUST be a module (not built-in) because the HyperPixel
-# overlay creates the SPI-GPIO bus and panel device at overlay-apply time.
-# Loading the module after boot lets deferred probe resolve correctly.
-if [ -x /sbin/modprobe ]; then
-    /sbin/modprobe drm 2>/dev/null
-    /sbin/modprobe vc4 2>/dev/null
-    /sbin/modprobe v3d 2>/dev/null
-    /sbin/modprobe i2c-gpio 2>/dev/null
-    /sbin/modprobe panel-simple 2>/dev/null
-    /sbin/modprobe goodix 2>/dev/null
-    # Give DRM time to finish probing after panel-simple loads
-    sleep 1
+# Initialize HyperPixel display (SPI bit-bang to wake LCD controller)
+if [ -x /usr/bin/hyperpixel4-init ]; then
+    /usr/bin/hyperpixel4-init
 fi
 
-# ── Hostname ──
-/bin/hostname blackhand
-
-# ── Networking ──
+# Networking
 /sbin/ifconfig lo 127.0.0.1 up
-
-# Try DHCP first, fall back to static
 /sbin/ifconfig eth0 up 2>/dev/null
 if [ -x /sbin/udhcpc ]; then
-    /sbin/udhcpc -i eth0 -t 5 -A 3 -b -q 2>/dev/null
-else
-    /sbin/ifconfig eth0 192.168.2.2 netmask 255.255.255.0 up 2>/dev/null
-    /sbin/route add default gw 192.168.2.1 2>/dev/null
+    /sbin/udhcpc -i eth0 -t 5 -A 3 -b -q 2>/dev/null &
 fi
 
-# ── Start dropbear SSH ──
+# SSH
 if [ -x /usr/sbin/dropbear ]; then
     mkdir -p /etc/dropbear
     /usr/sbin/dropbear -R
-    echo ">>> SSH server started"
 fi
 
-# ── Display diagnostics (helpful during bring-up, remove later) ──
-if [ -e /dev/fb0 ]; then
-    echo ">>> Display: /dev/fb0 found"
-else
-    echo ">>> WARNING: /dev/fb0 not found - display may not be working"
-    echo ">>>   Check: dmesg | grep -iE 'vc4|dpi|drm|fb'"
-fi
+# Mount boot FAT partition for debug inspection
+mkdir -p /boot
+modprobe vfat 2>/dev/null || true
+mount -t vfat /dev/mmcblk0p1 /boot 2>/dev/null || true
 
-if [ -e /dev/dri/card0 ]; then
-    echo ">>> Display: /dev/dri/card0 found (DRM OK)"
-else
-    echo ">>> WARNING: /dev/dri/card0 not found"
-fi
-
-echo ">>> Black Hand OS started"
+echo "Black Hand OS started"
+echo "fb0: $(cat /sys/class/graphics/fb0/virtual_size 2>/dev/null || echo 'not found')"
