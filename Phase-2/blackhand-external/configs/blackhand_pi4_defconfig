@@ -1,8 +1,7 @@
 # ============================================================================
-# BLACK HAND OS — MINIMAL DISPLAY TEST
+# BLACK HAND OS — Notcurses TUI on HyperPixel 4.0
 # ============================================================================
-# Stripped to bare minimum: boot + SSH + framebuffer
-# Once /dev/fb0 works on HyperPixel, add packages back incrementally.
+# Framebuffer console + notcurses-based phone UI.
 # ============================================================================
 
 # Architecture
@@ -15,7 +14,7 @@ BR2_KERNEL_HEADERS_6_6=y
 
 # System
 BR2_TARGET_GENERIC_HOSTNAME="blackhand"
-BR2_TARGET_GENERIC_ISSUE="Black Hand OS - Display Test"
+BR2_TARGET_GENERIC_ISSUE="Black Hand OS"
 BR2_TARGET_GENERIC_ROOT_PASSWD="blackhand"
 BR2_SYSTEM_DHCP="eth0"
 BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_DEVTMPFS=y
@@ -39,11 +38,23 @@ BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_BLACKHAND_PATH)/board/bla
 BR2_PACKAGE_RPI_FIRMWARE=y
 BR2_PACKAGE_RPI_FIRMWARE_VARIANT_PI4=y
 
-# Packages — MINIMUM for testing
+# Packages
 BR2_PACKAGE_BUSYBOX=y
 BR2_PACKAGE_DROPBEAR=y
 BR2_PACKAGE_FBV=y
 BR2_PACKAGE_KMOD=y
+
+# Notcurses TUI dependencies (auto-selected, but explicit for clarity)
+BR2_PACKAGE_NCURSES=y
+BR2_PACKAGE_NCURSES_WCHAR=y
+BR2_PACKAGE_LIBUNISTRING=y
+BR2_PACKAGE_LIBDEFLATE=y
+
+# Notcurses TUI library
+BR2_PACKAGE_NOTCURSES=y
+
+# Black Hand UI (notcurses TUI app)
+BR2_PACKAGE_BLACKHAND_UI=y
 
 # HyperPixel panel init (SPI bit-bang to wake LCD controller)
 BR2_PACKAGE_HYPERPIXEL4_INIT=y

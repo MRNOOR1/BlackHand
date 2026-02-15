@@ -1,1 +1,1 @@
-/* LVGL theme setup: colors, fonts, and styles. */
+/* Theme colors and styles — placeholder for notcurses TUI theming. */

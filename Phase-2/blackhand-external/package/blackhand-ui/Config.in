@@ -1,4 +1,5 @@
 config BR2_PACKAGE_BLACKHAND_UI
     bool "blackhand-ui"
+    select BR2_PACKAGE_NOTCURSES
     help
-      LVGL UI application for Black Hand OS.
+      Notcurses TUI application for Black Hand OS.

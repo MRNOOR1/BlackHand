@@ -1,0 +1,13 @@
+config BR2_PACKAGE_NOTCURSES
+    bool "notcurses"
+    depends on BR2_TOOLCHAIN_HAS_THREADS
+    select BR2_PACKAGE_NCURSES
+    select BR2_PACKAGE_NCURSES_WCHAR
+    select BR2_PACKAGE_LIBUNISTRING
+    select BR2_PACKAGE_LIBDEFLATE
+    help
+      Notcurses is a library facilitating complex TUIs on modern
+      terminal emulators and the Linux console, supporting vivid
+      colors, multimedia, threads, and Unicode.
+
+      https://github.com/dankamongmen/notcurses
