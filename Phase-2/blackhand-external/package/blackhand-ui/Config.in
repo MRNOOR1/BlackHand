@@ -1,5 +1,8 @@
 config BR2_PACKAGE_BLACKHAND_UI
     bool "blackhand-ui"
     select BR2_PACKAGE_NOTCURSES
+    select BR2_PACKAGE_MPG123
+    select BR2_PACKAGE_ALSA_LIB
+    select BR2_PACKAGE_ALSA_UTILS
     help
       Notcurses TUI application for Black Hand OS.

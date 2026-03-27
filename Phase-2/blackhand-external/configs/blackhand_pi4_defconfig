@@ -50,14 +50,28 @@ BR2_PACKAGE_NCURSES_WCHAR=y
 BR2_PACKAGE_LIBUNISTRING=y
 BR2_PACKAGE_LIBDEFLATE=y
 
-# Notcurses TUI library
+# GPM — General Purpose Mouse daemon
+# Required for touchscreen/mouse input on Linux framebuffer console.
+# GPM reads /dev/input/event* and injects mouse escape sequences into
+# the console, which notcurses then receives as NCKEY_BUTTON* events.
+BR2_PACKAGE_GPM=y
+
+# Notcurses TUI library (built with GPM support)
 BR2_PACKAGE_NOTCURSES=y
 
 # Black Hand UI (notcurses TUI app)
 BR2_PACKAGE_BLACKHAND_UI=y
+BR2_PACKAGE_MPG123=y
+BR2_PACKAGE_ALSA_LIB=y
+BR2_PACKAGE_ALSA_UTILS=y
 
 # HyperPixel panel init (SPI bit-bang to wake LCD controller)
+# NOTE: The vc4-kms-dpi-hyperpixel4 overlay handles panel init via
+# kernel SPI-GPIO, so this may be redundant. Kept as fallback.
 BR2_PACKAGE_HYPERPIXEL4_INIT=y
+
+# Debug tools (remove before final image)
+BR2_PACKAGE_EVTEST=y
 
 # Filesystem
 BR2_TARGET_ROOTFS_EXT2=y

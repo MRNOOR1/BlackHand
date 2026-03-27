@@ -1,0 +1,59 @@
+/*
+ * hyperpixel4-touch-overlay.dts
+ *
+ * Device tree overlay for the Goodix GT911 capacitive touchscreen
+ * on HyperPixel 4.0 Rectangular.
+ *
+ * The touch controller is connected via I2C on GPIO 10 (SDA) / GPIO 11 (SCL),
+ * with interrupt on GPIO 27.  The I2C bus is provided by the i2c-gpio overlay
+ * (loaded separately in config.txt).
+ *
+ * The Goodix GT911 may respond at I2C address 0x14 or 0x5d depending on
+ * the state of the interrupt pin at reset time.  We define both addresses
+ * so the driver binds regardless.
+ *
+ * Compile:
+ *   dtc -@ -I dts -O dtb -o hyperpixel4-touch.dtbo hyperpixel4-touch-overlay.dts
+ */
+
+/dts-v1/;
+/plugin/;
+
+/ {
+    compatible = "brcm,bcm2835";
+
+    /* Target the i2c-gpio bus created by dtoverlay=i2c-gpio,bus=3 */
+    fragment@0 {
+        target-path = "/i2c@0";
+        __overlay__ {
+            #address-cells = <1>;
+            #size-cells = <0>;
+
+            goodix_14: goodix@14 {
+                compatible = "goodix,gt911";
+                reg = <0x14>;
+                interrupt-parent = <&gpio>;
+                interrupts = <27 2>;        /* GPIO 27, falling edge */
+                touchscreen-size-x = <480>;
+                touchscreen-size-y = <800>;
+                touchscreen-x-mm = <51>;
+                touchscreen-y-mm = <85>;
+                touchscreen-inverted-y;
+                touchscreen-swapped-x-y;
+            };
+
+            goodix_5d: goodix@5d {
+                compatible = "goodix,gt911";
+                reg = <0x5d>;
+                interrupt-parent = <&gpio>;
+                interrupts = <27 2>;        /* GPIO 27, falling edge */
+                touchscreen-size-x = <480>;
+                touchscreen-size-y = <800>;
+                touchscreen-x-mm = <51>;
+                touchscreen-y-mm = <85>;
+                touchscreen-inverted-y;
+                touchscreen-swapped-x-y;
+            };
+        };
+    };
+};

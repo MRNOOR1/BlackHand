@@ -5,9 +5,11 @@ config BR2_PACKAGE_NOTCURSES
     select BR2_PACKAGE_NCURSES_WCHAR
     select BR2_PACKAGE_LIBUNISTRING
     select BR2_PACKAGE_LIBDEFLATE
+    select BR2_PACKAGE_GPM
     help
       Notcurses is a library facilitating complex TUIs on modern
       terminal emulators and the Linux console, supporting vivid
       colors, multimedia, threads, and Unicode.
+      GPM is enabled for touchscreen/mouse support on fbcon.
 
       https://github.com/dankamongmen/notcurses

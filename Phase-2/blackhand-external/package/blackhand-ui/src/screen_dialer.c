@@ -1,1 +1,0 @@
-/* Dialer keypad screen. */

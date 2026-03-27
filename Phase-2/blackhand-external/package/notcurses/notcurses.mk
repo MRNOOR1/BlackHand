@@ -9,16 +9,17 @@ NOTCURSES_INSTALL_STAGING = YES
 NOTCURSES_LICENSE = Apache-2.0
 NOTCURSES_LICENSE_FILES = COPYRIGHT
 
-NOTCURSES_DEPENDENCIES = ncurses libunistring libdeflate
+NOTCURSES_DEPENDENCIES = ncurses libunistring libdeflate gpm
 
 # Build only the core C library, no multimedia, no C++, no executables,
 # no docs, no tests, no proof-of-concept binaries.
+# GPM is ON — required for touchscreen/mouse on Linux fbcon.
 NOTCURSES_CONF_OPTS = \
 	-DUSE_CXX=OFF \
 	-DUSE_MULTIMEDIA=none \
 	-DUSE_PANDOC=OFF \
 	-DUSE_DOXYGEN=OFF \
-	-DUSE_GPM=OFF \
+	-DUSE_GPM=ON \
 	-DUSE_QRCODEGEN=OFF \
 	-DUSE_POC=OFF \
 	-DUSE_DOCTEST=OFF \

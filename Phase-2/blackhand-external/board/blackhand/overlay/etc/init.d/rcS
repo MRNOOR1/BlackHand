@@ -2,8 +2,31 @@
 # Black Hand OS — minimal init
 
 # Initialize HyperPixel display (SPI bit-bang to wake LCD controller)
+# NOTE: The vc4-kms-dpi-hyperpixel4 overlay should handle this via
+# kernel SPI-GPIO, but we keep hyperpixel4-init as a fallback.
 if [ -x /usr/bin/hyperpixel4-init ]; then
     /usr/bin/hyperpixel4-init
+fi
+
+# Runtime data directories
+mkdir -p /data /data/notes /data/music /data/voice-memos /data/alarms
+
+# Audio (Pi analog/HDMI)
+modprobe snd_bcm2835 2>/dev/null || true
+
+# ── GPM (General Purpose Mouse) ──────────────────────────────────────
+# GPM translates touchscreen/mouse events from /dev/input/event*
+# into console mouse escape sequences that notcurses can read.
+# Without GPM, touch events never reach the UI on fbcon.
+#
+# -m /dev/input/mice  — read from the consolidated mouse device
+# -t imps2             — protocol (PS/2 with IntelliMouse extensions)
+#
+# Wait briefly for input devices to appear (udev/devtmpfs)
+sleep 1
+if [ -x /usr/sbin/gpm ]; then
+    /usr/sbin/gpm -m /dev/input/mice -t imps2 2>/dev/null
+    echo "GPM started"
 fi
 
 # Networking
@@ -26,3 +49,4 @@ mount -t vfat /dev/mmcblk0p1 /boot 2>/dev/null || true
 
 echo "Black Hand OS started"
 echo "fb0: $(cat /sys/class/graphics/fb0/virtual_size 2>/dev/null || echo 'not found')"
+echo "input: $(ls /dev/input/ 2>/dev/null || echo 'none')"

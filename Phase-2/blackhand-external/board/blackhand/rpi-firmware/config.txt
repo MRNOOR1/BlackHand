@@ -1,14 +1,14 @@
-# Black Hand OS — HyperPixel 4.0 (firmware DPI framebuffer)
+# Black Hand OS — HyperPixel 4.0
 #
-# The vc4-kms-dpi-hyperpixel4 overlay has a circular dependency bug on
-# kernel 6.6, so we use firmware-driven DPI instead. The LCD panel's
-# SPI init sequence is handled by the hyperpixel4-init userspace tool.
+# Display: firmware-driven DPI (not KMS — avoids circular dep on kernel 6.6)
+# Touch:   i2c-gpio overlay for Goodix GT911 on pins 10/11
+# Panel init: hyperpixel4-init userspace tool (SPI bit-bang)
 
 arm_64bit=1
 kernel=Image
 gpu_mem=256
 
-# Firmware-driven DPI — exact Pimoroni Pi 4 values
+# ── Firmware-driven DPI — exact Pimoroni Pi 4 values ──
 # Panel is natively 480x800 (portrait).
 enable_dpi_lcd=1
 dpi_group=2
@@ -27,6 +27,19 @@ display_rotate=2
 
 # HyperPixel uses GPIO pins that conflict with UART
 enable_uart=0
+
+# ── I2C-GPIO bus for touchscreen ──
+# The Goodix GT911 touch controller sits on GPIO 10 (SDA) / GPIO 11 (SCL).
+# We create a bit-banged I2C bus (bus 3) using the i2c-gpio overlay.
+dtoverlay=i2c-gpio,bus=3,i2c_gpio_sda=10,i2c_gpio_scl=11,i2c_gpio_delay_us=4
+
+# ── Goodix touchscreen on the I2C-GPIO bus ──
+# Custom overlay that defines the GT911 at addresses 0x14 and 0x5d
+# with interrupt on GPIO 27.
+dtoverlay=hyperpixel4-touch
+
+# Enable onboard audio (headphone jack / HDMI)
+dtparam=audio=on
 
 disable_splash=1
 boot_delay=0

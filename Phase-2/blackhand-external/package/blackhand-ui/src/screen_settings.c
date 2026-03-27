@@ -1,1 +1,0 @@
-/* Settings UI with categories and controls. */

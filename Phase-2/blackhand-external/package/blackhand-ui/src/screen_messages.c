@@ -1,1 +1,0 @@
-/* SMS thread list and conversation view. */

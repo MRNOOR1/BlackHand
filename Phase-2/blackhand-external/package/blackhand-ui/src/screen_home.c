@@ -1,1 +1,0 @@
-/* Home screen layout and widgets. */
