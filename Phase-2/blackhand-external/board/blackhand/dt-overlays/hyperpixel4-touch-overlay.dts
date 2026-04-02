@@ -6,11 +6,20 @@
  *
  * The touch controller is connected via I2C on GPIO 10 (SDA) / GPIO 11 (SCL),
  * with interrupt on GPIO 27.  The I2C bus is provided by the i2c-gpio overlay
- * (loaded separately in config.txt).
+ * (loaded separately in config.txt as dtoverlay=i2c-gpio,bus=3,...).
  *
  * The Goodix GT911 may respond at I2C address 0x14 or 0x5d depending on
  * the state of the interrupt pin at reset time.  We define both addresses
  * so the driver binds regardless.
+ *
+ * IMPORTANT — target = <&i2c3>:
+ *   The i2c-gpio overlay exports a symbol called "i2c3" when loaded with
+ *   bus=3.  We must reference that symbol here so the kernel places the
+ *   GT911 node on the correct bit-banged bus (GPIO 10/11, bus 3), NOT on
+ *   the BCM hardware I2C0 bus (GPIO 0/1).  Using target-path = "/i2c@0"
+ *   would silently attach the device to the wrong bus and touch would never
+ *   work.  For symbol resolution to succeed at boot the base DTB must have
+ *   __symbols__ — post-image.sh recompiles it with dtc -@ for this reason.
  *
  * Compile:
  *   dtc -@ -I dts -O dtb -o hyperpixel4-touch.dtbo hyperpixel4-touch-overlay.dts
@@ -22,9 +31,16 @@
 / {
     compatible = "brcm,bcm2835";
 
-    /* Target the i2c-gpio bus created by dtoverlay=i2c-gpio,bus=3 */
+    /*
+     * target = <&i2c3>
+     * Attaches GT911 nodes to the i2c-gpio bus (bus=3, GPIO 10/11)
+     * exported by the i2c-gpio overlay.  This is correct.
+     *
+     * DO NOT change to target-path = "/i2c@0" — that is the BCM hardware
+     * I2C0 bus on GPIO 0/1, completely separate from the touch wiring.
+     */
     fragment@0 {
-        target-path = "/i2c@0";
+        target = <&i2c3>;
         __overlay__ {
             #address-cells = <1>;
             #size-cells = <0>;
@@ -34,12 +50,14 @@
                 reg = <0x14>;
                 interrupt-parent = <&gpio>;
                 interrupts = <27 2>;        /* GPIO 27, falling edge */
+                reset-gpios = <&gpio 22 1>; /* GPIO 22, active low — required for probe */
                 touchscreen-size-x = <480>;
                 touchscreen-size-y = <800>;
                 touchscreen-x-mm = <51>;
                 touchscreen-y-mm = <85>;
+                /* display_rotate=2 is a 180° flip: invert both axes, no swap */
+                touchscreen-inverted-x;
                 touchscreen-inverted-y;
-                touchscreen-swapped-x-y;
             };
 
             goodix_5d: goodix@5d {
@@ -47,12 +65,14 @@
                 reg = <0x5d>;
                 interrupt-parent = <&gpio>;
                 interrupts = <27 2>;        /* GPIO 27, falling edge */
+                reset-gpios = <&gpio 22 1>; /* GPIO 22, active low — required for probe */
                 touchscreen-size-x = <480>;
                 touchscreen-size-y = <800>;
                 touchscreen-x-mm = <51>;
                 touchscreen-y-mm = <85>;
+                /* display_rotate=2 is a 180° flip: invert both axes, no swap */
+                touchscreen-inverted-x;
                 touchscreen-inverted-y;
-                touchscreen-swapped-x-y;
             };
         };
     };

@@ -1,4 +1,4 @@
-# Build artifacts
+# ── Compiled build artifacts ─────────────────────────────────────────
 *.img
 *.o
 *.a
@@ -10,8 +10,29 @@
 *.map
 *.lst
 
-# Common build directories
-Phase-1/build/
+# Compiled device tree overlays (generated from .dts source by post-build.sh)
+# Never commit .dtbo — they are binary build outputs, not source files.
+*.dtbo
 
-# macOS
+# ── Build directories ─────────────────────────────────────────────────
+Phase-1/build/
+output/
+buildroot/
+
+# ── IDE / editor configs (user-specific, not part of the project) ─────
+.vscode/
+.idea/
+*.code-workspace
+
+# ── Claude / AI tool local settings ──────────────────────────────────
+.claude/
+
+# ── macOS metadata ────────────────────────────────────────────────────
 .DS_Store
+.AppleDouble
+.LSOverride
+
+# ── Documents / generated reports ────────────────────────────────────
+*.docx
+*.docx~
+*.pdf
