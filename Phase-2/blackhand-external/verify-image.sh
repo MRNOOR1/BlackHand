@@ -114,6 +114,71 @@ else
     fail "rcS does NOT call hyperpixel4-init"
 fi
 
+# 6. BlackHand init system
+echo ""
+echo "── 6. BlackHand Init System ──"
+
+# PID 1 binary — the kernel executes this directly on boot
+if [ -e "${TARGET_DIR}/sbin/blackhand-init" ]; then
+    pass "blackhand-init (PID 1 binary)"
+else
+    fail "blackhand-init NOT FOUND — device will not boot with blackhand init"
+fi
+
+# service manager — first child spawned by PID 1
+if [ -e "${TARGET_DIR}/usr/bin/blackhand-svc-mgr" ]; then
+    pass "blackhand-svc-mgr (service manager)"
+else
+    warn "blackhand-svc-mgr NOT FOUND — services will not start automatically"
+fi
+
+# services config — read by service manager on startup
+if [ -f "${TARGET_DIR}/etc/blackhand/services.conf" ]; then
+    pass "services.conf"
+    # verify all four services are listed
+    grep -q "blackhand-audio"   "${TARGET_DIR}/etc/blackhand/services.conf" && pass "  services.conf: blackhand-audio listed"   || fail "  services.conf: blackhand-audio MISSING"
+    grep -q "blackhand-storage" "${TARGET_DIR}/etc/blackhand/services.conf" && pass "  services.conf: blackhand-storage listed" || fail "  services.conf: blackhand-storage MISSING"
+    grep -q "blackhand-modem"   "${TARGET_DIR}/etc/blackhand/services.conf" && pass "  services.conf: blackhand-modem listed"   || fail "  services.conf: blackhand-modem MISSING"
+    grep -q "blackhand-ui"      "${TARGET_DIR}/etc/blackhand/services.conf" && pass "  services.conf: blackhand-ui listed"      || fail "  services.conf: blackhand-ui MISSING"
+else
+    fail "services.conf NOT FOUND — service manager will abort on boot"
+fi
+
+# 7. BlackHand service binaries
+echo ""
+echo "── 7. BlackHand Service Binaries ──"
+
+for bin in \
+    "/usr/bin/blackhand-audio" \
+    "/usr/bin/blackhand-storage" \
+    "/usr/bin/blackhand-modem" \
+    "/usr/bin/blackhand-ui"; do
+    if [ -e "${TARGET_DIR}${bin}" ]; then
+        pass "$(basename ${bin})"
+    else
+        warn "$(basename ${bin}) NOT FOUND — service will fail to start"
+    fi
+done
+
+# 8. BlackHand IPC library
+echo ""
+echo "── 8. BlackHand IPC Library ──"
+
+if [ -f "${TARGET_DIR}/usr/lib/libblackhand-ipc.a" ]; then
+    pass "libblackhand-ipc.a"
+else
+    warn "libblackhand-ipc.a NOT FOUND — services may not have linked correctly"
+fi
+
+# check IPC headers were installed
+for hdr in ipc.h ipc_framing.h ipc_dispatch.h cJSON.h; do
+    if [ -f "${TARGET_DIR}/usr/include/blackhand/${hdr}" ]; then
+        pass "  header: ${hdr}"
+    else
+        warn "  header: ${hdr} NOT FOUND"
+    fi
+done
+
 # Summary
 echo ""
 echo "============================================"

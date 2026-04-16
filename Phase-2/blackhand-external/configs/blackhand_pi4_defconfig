@@ -18,6 +18,9 @@ BR2_TARGET_GENERIC_ISSUE="Black Hand OS"
 BR2_TARGET_GENERIC_ROOT_PASSWD="blackhand"
 BR2_SYSTEM_DHCP="eth0"
 BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_DEVTMPFS=y
+# Keep busybox so /sbin/init, /bin/sh and standard tools are present.
+# blackhand-init becomes PID 1 via init=/sbin/blackhand-init in cmdline.txt,
+# not by replacing /sbin/init — that way verify-image.sh section 4 still passes.
 BR2_INIT_BUSYBOX=y
 
 # Kernel
@@ -58,6 +61,16 @@ BR2_PACKAGE_GPM=y
 
 # Notcurses TUI library (built with GPM support)
 BR2_PACKAGE_NOTCURSES=y
+
+# Black Hand OS packages
+# Build order enforced by DEPENDENCIES fields in each .mk file:
+#   blackhand-ipc → blackhand-audio, blackhand-storage, blackhand-modem, blackhand-ui
+#   blackhand-init (PID 1 + service manager) has no blackhand dependencies
+BR2_PACKAGE_BLACKHAND_IPC=y
+BR2_PACKAGE_BLACKHAND_INIT=y
+BR2_PACKAGE_BLACKHAND_AUDIO=y
+BR2_PACKAGE_BLACKHAND_STORAGE=y
+BR2_PACKAGE_BLACKHAND_MODEM=y
 
 # Black Hand UI (notcurses TUI app)
 BR2_PACKAGE_BLACKHAND_UI=y
