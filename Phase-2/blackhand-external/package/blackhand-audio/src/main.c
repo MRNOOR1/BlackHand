@@ -12,11 +12,18 @@
 #include "cJSON.h"
 #include "ipc_framing.h"
 #include "ipc_dispatch.h"
+#include "audio_alsa.h"
 #define SOCKET_PATH "/run/bh-audio.sock"
 #define BUFFER_SIZE 1024
 
 int main()
 {
+	#You must initialise the ALSA (audio library before continuing)
+	if (audio_init() != 0) {
+        fprintf(stderr, "Failed to initialise ALSA\n");
+        exit(EXIT_FAILURE);
+    }
+
 	int fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (fd == -1)
 	{
