@@ -1,389 +1,666 @@
-/*
- * ============================================================================
+/* ============================================================================
  * BlackHand OS — init.c  (PID 1)
  * ============================================================================
  *
- * WHAT IS THIS FILE?
- * ------------------
- * This is the very first program the Linux kernel runs after it finishes
- * loading. It gets Process ID 1 — PID 1 — which means it is the ancestor
- * of every single process that will ever run on this device. Nothing runs
- * before this file. Nothing is above it. The kernel executes it directly.
+ * Rewritten to follow BusyBox init patterns:
+ *   - setsid() + TIOCSCTTY for proper tty/session management
+ *   - Correct signal handler ordering (registered before any spawning)
+ *   - waitpid(-1) reaping loop handles multiple simultaneous child deaths
+ *   - kspawn_shell() waits for the shell (like ASKFIRST) or runs as respawn
+ *   - PID 1 never returns — infinite pause loop with safe shutdown path
+ *   - shutdown_requested handled with actual reboot(3) call
  *
- * The kernel finds this binary at /sbin/blackhand-init, set via the kernel
- * command line parameter: init=/sbin/blackhand-init
- *
- * WHAT DOES IT DO?
- * ----------------
- * init.c has exactly four responsibilities — nothing more:
- *
- *   1. MOUNT VIRTUAL FILESYSTEMS
- *      The kernel creates /proc, /sys, /dev, /run, and /tmp entirely in RAM.
- *      They are not on disk. Without them nothing works — no device files,
- *      no process information, no socket files for IPC, no temporary storage.
- *      init mounts all five before doing anything else.
- *
- *   2. SET UP SIGNAL HANDLERS
- *      When a child process dies, the kernel sends SIGCHLD to its parent.
- *      For PID 1 this means every orphaned process on the entire system
- *      becomes our responsibility. We register ksigchld_handler to reap
- *      dead processes by calling waitpid() — this prevents zombie processes
- *      from accumulating and eventually filling the process table.
- *      We also register ksigterm_handler for graceful shutdown.
- *
- *   3. SPAWN THE SERVICE MANAGER
- *      init does not start services directly. It spawns one child process —
- *      the service manager (blackhand-svc-mgr) — which takes over all
- *      service lifecycle management. This keeps init.c simple and focused.
- *
- *   4. WAIT FOREVER
- *      PID 1 can never exit. If it exits the kernel panics. After spawning
- *      the service manager, init enters an infinite loop calling pause(),
- *      which sleeps until a signal arrives. SIGCHLD wakes it to reap
- *      zombies, then it goes back to sleep.
- *
- * RELATIONSHIP TO OTHER FILES
- * ---------------------------
- *
- *   init.c  ──spawns──▶  service_manager.c
- *                              │
- *                              ├──starts──▶ blackhand-audio  (owns /run/bh-audio.sock)
- *                              ├──starts──▶ blackhand-storage (owns /run/bh-storage.sock)
- *                              ├──starts──▶ blackhand-modem  (owns /run/bh-modem.sock)
- *                              └──starts──▶ blackhand-ui     (connects to all sockets)
- *
- *   The socket files that services communicate through live in /run/ —
- *   which only exists because init.c mounted tmpfs there. So init.c is
- *   the prerequisite for all IPC communication in the system.
- *
- *   IPC (blackhand-ipc) provides the send_msg/recv_msg framing and the
- *   JSON-RPC dispatch layer that services use to talk to each other.
- *   init.c has no direct knowledge of IPC — it just ensures /run exists
- *   so the socket files can be created.
- *
- * WHY INIT IS SEPARATE FROM THE SERVICE MANAGER
- * -----------------------------------------------
- *   init.c must be kept as small and simple as possible. If it has a bug
- *   and crashes, the kernel panics — there is no recovery. The service
- *   manager is a normal child process. If it crashes, init can restart it.
- *   Separating concerns means bugs in service management cannot bring down
- *   the entire system.
- *
- * BOOT SEQUENCE
- * -------------
- *   Power on
- *     → BCM2711 bootloader loads kernel + device tree
- *     → Linux kernel initialises hardware, mounts root filesystem
- *     → kernel executes /sbin/blackhand-init  ← YOU ARE HERE
- *         → ksetup_signals()
- *         → kmount_vfs()
- *         → kspawn_services()   spawns service manager
- *         → for(;;) { pause(); }
+ * Boot sequence:
+ *   kernel executes /sbin/blackhand-init
+ *     → kmount_vfs()           mount proc/sys/dev/run/tmp
+ *     → ksetup_console()       bind stdin/stdout/stderr to /dev/console
+ *     → ksetup_signals()       register SIGCHLD + SIGTERM + SIGINT handlers
+ *     → krun_sysinit()         run /etc/init.d/rcS synchronously (no SIGCHLD race)
+ *     → kspawn_shell()         interactive shell on console (like busybox ASKFIRST)
+ *     → kspawn_services()      service manager takes over
+ *     → for(;;) { pause(); }   sleep forever, handlers do the work
  *
  * ============================================================================
  */
 
-#include <stdio.h>     /* fprintf, perror                                    */
-#include <stdlib.h>    /* exit, EXIT_FAILURE                                 */
-#include <unistd.h>    /* fork, execv, pause, getpid, write                  */
-#include <signal.h>    /* sigaction, SIGCHLD, SIGTERM, sig_atomic_t          */
-#include <sys/wait.h>  /* waitpid, WNOHANG                                   */
-#include <sys/mount.h> /* mount(), MS_NOSUID, MS_NOEXEC, MS_NODEV            */
-#include <sys/stat.h>  /* mkdir                                              */
-#include <string.h>    /* memset, strerror                                   */
-#include <errno.h>     /* errno, EEXIST                                      */
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+#include <sys/wait.h>
+#include <sys/mount.h>
+#include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <sys/reboot.h>
+#include <termios.h>
+#include <string.h>
+#include <errno.h>
+
+/* ============================================================================
+ * Global state
+ * ============================================================================
+ */
 
 /*
- * shutdown_requested — global flag set by ksigterm_handler.
+ * shutdown_requested — set by signal handler, checked in main loop.
  *
- * volatile: tells the compiler this variable can change at any time from
- * outside normal code flow (i.e. from a signal handler). Without volatile
- * the compiler might cache the value in a register and never see the update.
- *
- * sig_atomic_t: guaranteed by the C standard to be read/written atomically —
- * the CPU cannot be interrupted halfway through accessing it. The correct
- * type for variables shared between signal handlers and normal code.
+ * volatile sig_atomic_t: the only type safe to read/write from both a signal
+ * handler and normal code. volatile prevents the compiler from caching it in
+ * a register; sig_atomic_t guarantees the CPU cannot be interrupted mid-access.
  */
 volatile sig_atomic_t shutdown_requested = 0;
 
 /*
- * ksigchld_handler — reap all zombie child processes.
+ * ctrlaltdel_requested — set when SIGINT arrives (kernel sends SIGINT to PID 1
+ * when Ctrl-Alt-Del is pressed, same as busybox init behaviour).
+ */
+volatile sig_atomic_t ctrlaltdel_requested = 0;
+
+/* ============================================================================
+ * Signal handlers
+ * ============================================================================
+ */
+
+/*
+ * ksigchld_handler — reap all zombie children.
  *
- * The kernel invokes this function automatically whenever a child process
- * dies. We do not call it ourselves. The kernel calls it.
+ * Called automatically by the kernel when any child process dies.
+ * We loop with WNOHANG because multiple children may die simultaneously and
+ * signals are not queued — one SIGCHLD may represent several deaths.
  *
- * When a process dies it does not disappear immediately. The kernel keeps
- * a small record of it — its PID and exit status — until the parent
- * acknowledges the death by calling waitpid(). Until then the dead process
- * sits in the process table as a "zombie". If zombies are never collected
- * they accumulate until the process table fills and no new processes can
- * be created.
+ * write() is used instead of printf because stdio is NOT async-signal-safe.
+ * write() is on the POSIX async-signal-safe list.
  *
- * We loop until waitpid() returns 0 (no more children ready) because
- * multiple children may have died at once and signals are not queued —
- * we might receive one SIGCHLD for three deaths and must collect all three.
- *
- * waitpid(-1, NULL, WNOHANG):
- *   -1      = collect any child, not a specific one
- *   NULL    = we do not care about the exit status, just acknowledge death
- *   WNOHANG = do not block — return 0 immediately if no child is ready
- *
- * write() is used instead of printf/fprintf because stdio functions are
- * not async-signal-safe. write() is on the POSIX async-signal-safe list.
+ * Mirrors busybox init's mark_terminated() + waitpid loop.
  */
 static void ksigchld_handler(int sig)
 {
-	(void)sig; /* parameter required by signal handler signature but unused */
+	(void)sig;
 	while (1)
 	{
 		pid_t pid = waitpid(-1, NULL, WNOHANG);
 		if (pid <= 0)
-			break; /* 0 = no more zombies ready, -1 = error, both mean stop */
-		write(2, "init: reaped child\n", 19);
+			break; /* 0 = no zombie ready, -1 = no children at all */
+		/* In a fuller implementation you would walk an action list here
+		 * (like busybox's mark_terminated) and schedule respawns.
+		 * For now we just reap and log. */
+		write(STDERR_FILENO, "init: reaped child\n", 19);
 	}
 }
 
 /*
- * ksigterm_handler — handle graceful shutdown request.
+ * ksigterm_handler — graceful shutdown on SIGUSR1 (halt), SIGTERM (reboot),
+ * SIGUSR2 (poweroff). Mirrors busybox halt_reboot_pwoff().
  *
- * The kernel or another process sends SIGTERM to request a clean shutdown.
- * Rather than shutting down immediately inside the signal handler (which is
- * unsafe), we set a flag and let the main loop handle the shutdown sequence.
- *
- * The main loop checks shutdown_requested after each pause() returns and
- * runs the clean shutdown sequence when it is set.
+ * Sets a flag rather than acting directly — signal handlers should do as
+ * little as possible. The main loop calls kdo_shutdown() when it sees the flag.
  */
 static void ksigterm_handler(int sig)
 {
-	if (sig == SIGTERM)
-	{
-		shutdown_requested = 1;
-	}
+	(void)sig;
+	shutdown_requested = 1;
 }
 
 /*
- * ksetup_signals — register signal handlers with the kernel.
+ * ksigint_handler — Ctrl-Alt-Del.
  *
- * This function runs once at startup. It fills in a struct sigaction and
- * calls sigaction() to tell the kernel: "when this signal arrives, call
- * this function." After this call returns the kernel knows about our
- * handlers and will invoke them automatically.
+ * The kernel sends SIGINT to PID 1 when it detects Ctrl-Alt-Del on the
+ * console. Busybox runs CTRLALTDEL actions here. We request a reboot.
+ */
+static void ksigint_handler(int sig)
+{
+	(void)sig;
+	ctrlaltdel_requested = 1;
+}
+
+/*
+ * ksetup_signals — register all signal handlers.
  *
- * struct sigaction fields we set:
- *   sa_handler  = the function to call when the signal arrives
- *   sa_flags    = behavioural flags (see below)
- *   sa_mask     = signals to block while the handler runs (none)
+ * Called BEFORE any fork/spawn so the handlers are in place from the moment
+ * children can start dying.
  *
- * SA_RESTART:    if a system call like pause() is interrupted by the signal,
- *                automatically restart it instead of returning EINTR. Keeps
- *                the main loop clean.
- * SA_NOCLDSTOP:  only fire SIGCHLD when a child dies, not when it is stopped
- *                or continued. Filters out spurious signals.
+ * SA_RESTART:   automatically restart syscalls (like pause()) interrupted by
+ *               the signal, instead of returning EINTR. Keeps main loop clean.
+ * SA_NOCLDSTOP: only fire SIGCHLD for child death, not for stop/continue.
+ *               Prevents spurious wakeups.
  *
- * sigemptyset() zeroes the sa_mask field properly. memset() already zeroed
- * it but sigemptyset() makes the intent explicit and is the correct API.
+ * SIGSTOP and SIGKILL cannot be caught or ignored — the kernel handles them
+ * specially for all processes including PID 1.
  */
 static void ksetup_signals(void)
 {
 	struct sigaction sa;
 
-	/* register SIGCHLD handler — reap zombie children */
+	/* SIGCHLD — reap zombies */
 	memset(&sa, 0, sizeof(sa));
 	sigemptyset(&sa.sa_mask);
 	sa.sa_handler = ksigchld_handler;
-	sa.sa_flags   = SA_RESTART | SA_NOCLDSTOP;
+	sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
 	sigaction(SIGCHLD, &sa, NULL);
 
-	/* register SIGTERM handler — graceful shutdown */
+	/* SIGTERM — reboot */
 	memset(&sa, 0, sizeof(sa));
 	sigemptyset(&sa.sa_mask);
 	sa.sa_handler = ksigterm_handler;
-	sa.sa_flags   = SA_RESTART;
+	sa.sa_flags = SA_RESTART;
 	sigaction(SIGTERM, &sa, NULL);
+
+	/* SIGUSR1 — halt */
+	sigaction(SIGUSR1, &sa, NULL);
+
+	/* SIGUSR2 — poweroff */
+	sigaction(SIGUSR2, &sa, NULL);
+
+	/* SIGINT — Ctrl-Alt-Del (kernel sends this to PID 1) */
+	memset(&sa, 0, sizeof(sa));
+	sigemptyset(&sa.sa_mask);
+	sa.sa_handler = ksigint_handler;
+	sa.sa_flags = SA_RESTART;
+	sigaction(SIGINT, &sa, NULL);
+
+	/* SIGHUP — ignore for now (busybox uses it to reload inittab) */
+	signal(SIGHUP, SIG_IGN);
+}
+
+/* ============================================================================
+ * Console and terminal
+ * ============================================================================
+ */
+
+/*
+ * ksetup_console — open /dev/console and bind fd 0/1/2 to it.
+ *
+ * After kmount_vfs() mounts devtmpfs the kernel populates /dev/console.
+ * We open it and dup2 onto stdin/stdout/stderr so all subsequent writes
+ * go to the physical console.
+ *
+ * Mirrors busybox console_init().
+ */
+static void ksetup_console(void)
+{
+	int fd = open("/dev/console", O_RDWR | O_NOCTTY);
+	if (fd < 0)
+	{
+		/* devtmpfs may not be mounted yet — fall back to /dev/tty1 */
+		fd = open("/dev/tty1", O_RDWR | O_NOCTTY);
+	}
+	if (fd >= 0)
+	{
+		dup2(fd, STDIN_FILENO);
+		dup2(fd, STDOUT_FILENO);
+		dup2(fd, STDERR_FILENO);
+		if (fd > STDERR_FILENO)
+			close(fd);
+	}
 }
 
 /*
- * kmount_vfs — mount the five virtual filesystems.
+ * kset_sane_term — put the terminal into a known-good state.
  *
- * Virtual filesystems are not on disk. The kernel creates them entirely in
- * RAM. We must mount them before any service starts because:
+ * After a fresh boot terminal settings may be undefined. This mirrors
+ * busybox's set_sane_term() exactly — same control chars, same flags.
  *
- *   /proc  — exposes kernel data as files. Required by almost every program
- *             for process info, memory info, CPU info.
+ * Called in the child process after fork() so it only affects the child's
+ * terminal, not init itself.
+ */
+static void kset_sane_term(void)
+{
+	struct termios tty;
+
+	if (tcgetattr(STDIN_FILENO, &tty) != 0)
+		return;
+
+	/* Control characters — standard POSIX defaults */
+	tty.c_cc[VINTR] = 3;	/* Ctrl-C  */
+	tty.c_cc[VQUIT] = 28;	/* Ctrl-\  */
+	tty.c_cc[VERASE] = 127; /* DEL     */
+	tty.c_cc[VKILL] = 21;	/* Ctrl-U  */
+	tty.c_cc[VEOF] = 4;		/* Ctrl-D  */
+	tty.c_cc[VSTART] = 17;	/* Ctrl-Q  */
+	tty.c_cc[VSTOP] = 19;	/* Ctrl-S  */
+	tty.c_cc[VSUSP] = 26;	/* Ctrl-Z  */
+
+	/* Input: translate CR→NL, enable XON/XOFF */
+	tty.c_iflag = ICRNL | IXON | IXOFF;
+
+	/* Output: post-process, NL→CR+NL */
+	tty.c_oflag = OPOST | ONLCR;
+
+	/* Local: echo, canonical mode, signals */
+	tty.c_lflag = ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHOCTL | ECHOKE | IEXTEN;
+
+	/* Control: 8-bit, enable receiver, local line, hang-up-on-close */
+	tty.c_cflag &= ~(CSIZE | CSTOPB | PARENB | PARODD);
+	tty.c_cflag |= CS8 | CREAD | HUPCL | CLOCAL;
+
+	tcsetattr(STDIN_FILENO, TCSANOW, &tty);
+}
+
+/*
+ * kopen_tty — open a tty device and redirect stdio to it.
  *
- *   /sys   — exposes device and driver information. Required for touchscreen
- *             detection (/sys/class/input) and hardware management.
+ * Called in the child process (after fork) before exec. Returns 1 on
+ * success, 0 on failure. Mirrors busybox open_stdio_to_tty().
  *
- *   /dev   — device files. /dev/tty1 for display, /dev/input/event* for
- *             touch, /dev/snd for audio. Nothing hardware-related works
- *             without this.
+ * setsid() makes the child a new session leader — it has no controlling
+ * terminal yet. TIOCSCTTY then assigns the opened tty as the controlling
+ * terminal for this session, enabling job control and Ctrl-C delivery.
+ */
+static int kopen_tty(const char *tty_name)
+{
+	int fd;
+
+	/* Become session leader — detach from parent's controlling terminal */
+	setsid();
+
+	close(STDIN_FILENO);
+	fd = open(tty_name, O_RDWR);
+	if (fd < 0)
+	{
+		write(STDERR_FILENO, "init: can't open tty\n", 21);
+		return 0;
+	}
+
+	/* Claim this tty as the controlling terminal for our new session */
+	ioctl(fd, TIOCSCTTY, 0);
+
+	if (fd != STDIN_FILENO)
+	{
+		dup2(fd, STDIN_FILENO);
+		close(fd);
+	}
+	dup2(STDIN_FILENO, STDOUT_FILENO);
+	dup2(STDIN_FILENO, STDERR_FILENO);
+
+	kset_sane_term();
+	return 1;
+}
+
+/* ============================================================================
+ * Virtual filesystem mounts
+ * ============================================================================
+ */
+
+/*
+ * kmount_vfs — mount the five virtual filesystems required before any
+ * service or program can run.
  *
- *   /run   — tmpfs runtime data. Unix socket files live here:
- *             /run/bh-audio.sock, /run/bh-storage.sock etc.
- *             IPC between services cannot happen without this mount.
- *             Cleared on every reboot.
+ * Order matters:
+ *   1. /proc and /sys first — many programs expect them unconditionally.
+ *   2. /dev  — devtmpfs; the kernel populates device nodes automatically.
+ *   3. /run  — tmpfs; Unix socket files for IPC go here.
+ *   4. /tmp  — tmpfs; mode 1777 (sticky bit, world-writable).
  *
- *   /tmp   — tmpfs temporary files. Standard scratch space expected by
- *             many libraries and programs.
+ * After mounting /dev we call ksetup_console() to rebind fd 0/1/2 to the
+ * newly available /dev/console.
  *
- * mkdir() is called first to ensure the mount point directory exists.
- * errno != EEXIST means we only fail if the error is NOT "already exists" —
- * the directory existing is fine, any other mkdir error is fatal.
- *
- * Mount flags:
- *   MS_NOSUID  — prevent setuid binaries from elevating privileges
- *   MS_NOEXEC  — prevent executing binaries directly from this filesystem
- *   MS_NODEV   — prevent device files on proc/sys (they do not belong there)
- *
- * /tmp uses mode 1777 — the sticky bit means only the owner of a file can
- * delete it, which is the standard for shared tmp directories.
+ * Remounting / read-write at the end: the kernel mounts rootfs read-only
+ * so fsck can run. We must remount rw before rcS writes any files.
+ * Non-fatal: some embedded setups intentionally keep rootfs read-only.
  */
 static void kmount_vfs(void)
 {
-	if (mkdir("/proc", 0755) < 0 && errno != EEXIST)
-		exit(1);
-	if (mkdir("/sys",  0755) < 0 && errno != EEXIST)
-		exit(1);
-	if (mkdir("/dev",  0755) < 0 && errno != EEXIST)
-		exit(1);
-	if (mkdir("/run",  0755) < 0 && errno != EEXIST)
-		exit(1);
-	if (mkdir("/tmp",  1777) < 0 && errno != EEXIST)
-		exit(1);
+	/* Create mount points — ignore EEXIST, fail on anything else */
+#define MKDIR(path, mode)                             \
+	do                                                \
+	{                                                 \
+		if (mkdir(path, mode) < 0 && errno != EEXIST) \
+		{                                             \
+			perror("init: mkdir " path);              \
+			exit(1);                                  \
+		}                                             \
+	} while (0)
 
-	if (mount("proc",     "/proc", "proc",     MS_NOSUID | MS_NOEXEC | MS_NODEV, NULL) < 0)
+	MKDIR("/proc", 0755);
+	MKDIR("/sys", 0755);
+	MKDIR("/dev", 0755);
+	MKDIR("/run", 0755);
+	MKDIR("/tmp", 1777);
+
+#undef MKDIR
+
+	/* Mount — MS_NOSUID/MS_NOEXEC/MS_NODEV: standard security hardening */
+	if (mount("proc", "/proc", "proc", MS_NOSUID | MS_NOEXEC | MS_NODEV, NULL) < 0)
 		perror("mount /proc"), exit(1);
 
-	if (mount("sysfs",    "/sys",  "sysfs",    MS_NOSUID | MS_NOEXEC | MS_NODEV, NULL) < 0)
+	if (mount("sysfs", "/sys", "sysfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, NULL) < 0)
 		perror("mount /sys"), exit(1);
 
-	if (mount("devtmpfs", "/dev",  "devtmpfs", MS_NOSUID, "mode=755") < 0)
-		perror("mount /dev"), exit(1);
+	/* CONFIG_DEVTMPFS_MOUNT=y: the kernel already mounted devtmpfs at /dev
+	 * before init starts, fully populated with device nodes.  Mounting
+	 * devtmpfs again creates a NEW empty instance that hides all those nodes
+	 * (/dev/gpiomem, /dev/tty1, /dev/console disappear).  Only mount it
+	 * ourselves if the kernel did not (i.e. /dev/null does not exist yet). */
+	if (access("/dev/null", F_OK) != 0)
+	{
+		if (mount("devtmpfs", "/dev", "devtmpfs", MS_NOSUID | MS_NOEXEC, "mode=755") < 0)
+			perror("mount /dev"), exit(1);
+	}
 
-	if (mount("tmpfs",    "/run",  "tmpfs",    MS_NOSUID | MS_NODEV, "mode=755") < 0)
+	/* /dev is live — rebind console before any further write() calls */
+	ksetup_console();
+
+	if (mount("tmpfs", "/run", "tmpfs", MS_NOSUID | MS_NODEV, "mode=755") < 0)
 		perror("mount /run"), exit(1);
 
-	if (mount("tmpfs",    "/tmp",  "tmpfs",    MS_NOSUID | MS_NODEV, "mode=1777") < 0)
+	if (mount("tmpfs", "/tmp", "tmpfs", MS_NOSUID | MS_NODEV, "mode=1777") < 0)
 		perror("mount /tmp"), exit(1);
+
+	/* Remount rootfs read-write so rcS can write files */
+	if (mount(NULL, "/", NULL, MS_REMOUNT, NULL) < 0)
+		perror("init: remount / rw (non-fatal)"); /* non-fatal */
 }
 
+/* ============================================================================
+ * Process spawning
+ * ============================================================================
+ */
+
 /*
- * kspawn — fork and exec a binary at the given path.
+ * kspawn — fork + execv a binary. Returns child PID or -1 on error.
  *
- * This is the standard Unix pattern for starting a new process:
+ * The child gets a fresh session (setsid) and its stdio redirected to the
+ * console so it has a controlling terminal from birth.
  *
- *   fork()  — duplicates the current process. After fork() two processes
- *              run identical code. They are distinguished only by the return
- *              value: 0 in the child, child's PID in the parent, -1 on error.
- *
- *   execv() — called in the child only. Replaces the child's code, stack,
- *              and heap entirely with the binary at path. The child ceases
- *              to be a copy of init and becomes the target program.
- *
- * argv[0] is conventionally the program name (the path itself here).
- * The array must be NULL-terminated — execv uses the NULL to know where
- * the argument list ends.
- *
- * _exit() is used (not exit()) if execv fails in the child. exit() flushes
- * stdio buffers which can corrupt the parent's output since both share the
- * same file descriptors immediately after fork.
- *
- * Returns the child PID on success, -1 if fork failed.
+ * _exit() in child (not exit()) avoids flushing shared stdio buffers.
  */
 static pid_t kspawn(const char *path)
 {
 	pid_t pid = fork();
 
-	if (pid == -1)
+	if (pid < 0)
 	{
-		perror("init: fork failed");
+		perror("init: fork");
 		return -1;
 	}
-	else if (pid == 0)
-	{
-		/* child process — replace with the target binary */
-		char *argv[] = { (char *)path, NULL };
-		execv(path, argv);
 
-		/* execv only returns if it failed */
-		perror("init: execv failed");
+	if (pid == 0)
+	{
+		/* Child: reset all signal handlers to defaults, unblock signals.
+		 * Mirrors busybox reset_sighandlers_and_unblock_sigs(). */
+		signal(SIGCHLD, SIG_DFL);
+		signal(SIGTERM, SIG_DFL);
+		signal(SIGUSR1, SIG_DFL);
+		signal(SIGUSR2, SIG_DFL);
+		signal(SIGINT, SIG_DFL);
+		signal(SIGHUP, SIG_DFL);
+		sigset_t mask;
+		sigemptyset(&mask);
+		sigprocmask(SIG_SETMASK, &mask, NULL);
+
+		/* New session + controlling terminal */
+		kopen_tty("/dev/console");
+
+		char *argv[] = {(char *)path, NULL};
+		execv(path, argv);
+		perror("init: execv");
 		_exit(EXIT_FAILURE);
 	}
-	else
-	{
-		/* parent process — return child PID to caller */
-		return pid;
-	}
+
+	return pid; /* parent returns child PID */
 }
 
 /*
- * kspawn_services — spawn the service manager as init's first child.
+ * krun_sysinit — run /etc/init.d/rcS and wait for it to finish.
  *
- * init does not start services directly. It delegates all service lifecycle
- * management to a dedicated child process — the service manager. This keeps
- * init.c minimal and means a bug in service management cannot crash PID 1.
+ * rcS is synchronous: nothing starts until it completes. This is the same
+ * guarantee busybox gives for SYSINIT actions — they must finish before
+ * WAIT, ONCE, and RESPAWN actions begin.
  *
- * The service manager reads /etc/blackhand/services.conf and starts all
- * BlackHand services in the correct order. If a service crashes, the service
- * manager restarts it — init is not involved.
+ * Called BEFORE ksetup_signals() to avoid a race between our manual
+ * waitpid(pid) and the SIGCHLD handler's waitpid(-1). Without SIGCHLD
+ * registered, the kernel won't fire the handler, so our blocking wait
+ * is the only waitpid in flight — no conflict.
  *
- * If the service manager itself fails to spawn, that is fatal — the system
- * cannot function without services, so we exit which causes a kernel panic.
- * This is intentional: a device that cannot start its service manager needs
- * human intervention.
+ * rcS on BlackHand should:
+ *   - Run hyperpixel4-init (DPI pin mux + LCD controller init + backlight)
+ *   - modprobe snd_bcm2835
+ *   - Start GPM (touchscreen daemon)
+ */
+static void krun_sysinit(void)
+{
+	pid_t pid = fork();
+
+	if (pid < 0)
+	{
+		perror("init: fork rcS");
+		return;
+	}
+
+	if (pid == 0)
+	{
+		/* Child: reset signals and get a tty */
+		signal(SIGCHLD, SIG_DFL);
+		signal(SIGTERM, SIG_DFL);
+		sigset_t mask;
+		sigemptyset(&mask);
+		sigprocmask(SIG_SETMASK, &mask, NULL);
+
+		kopen_tty("/dev/console");
+
+		char *argv[] = {"/bin/sh", "/etc/init.d/rcS", NULL};
+		execv("/bin/sh", argv);
+		perror("init: exec rcS");
+		_exit(1);
+	}
+
+	/* Parent: block until rcS finishes */
+	waitpid(pid, NULL, 0);
+	write(STDERR_FILENO, "init: sysinit done\n", 19);
+}
+
+/*
+ * kspawn_shell — spawn an interactive shell on /dev/console.
+ *
+ * Mirrors busybox ASKFIRST behaviour: the shell is a normal child of init.
+ * When it exits (user logs out), init's SIGCHLD handler reaps it.
+ *
+ * For a respawn-on-exit loop you would track the shell PID and re-spawn
+ * in the main loop, exactly as busybox does for RESPAWN actions. That
+ * extension is left as a TODO — the current behaviour is "spawn once".
+ *
+ * The leading '-' convention (like busybox uses "-/bin/sh") makes the
+ * shell treat itself as a login shell. We achieve this by setting argv[0]
+ * to "-sh".
+ */
+static pid_t kspawn_shell(void)
+{
+	pid_t pid = fork();
+
+	if (pid < 0)
+	{
+		perror("init: fork shell");
+		return -1;
+	}
+
+	if (pid == 0)
+	{
+		/* Child: reset all signal handlers */
+		signal(SIGCHLD, SIG_DFL);
+		signal(SIGTERM, SIG_DFL);
+		signal(SIGUSR1, SIG_DFL);
+		signal(SIGUSR2, SIG_DFL);
+		signal(SIGINT, SIG_DFL);
+		signal(SIGHUP, SIG_DFL);
+		sigset_t mask;
+		sigemptyset(&mask);
+		sigprocmask(SIG_SETMASK, &mask, NULL);
+
+		/* New session + controlling tty — open tty1, which is what the
+		 * framebuffer displays. /dev/console = tty3 (console=tty3 in cmdline)
+		 * so opening console would put the shell on a VT that is invisible. */
+		if (!kopen_tty("/dev/tty1"))
+			_exit(EXIT_FAILURE);
+
+		/* argv[0] = "-sh" signals a login shell to the shell itself */
+		char *argv[] = {"-sh", NULL};
+		execv("/bin/sh", argv);
+		perror("init: exec shell");
+		_exit(EXIT_FAILURE);
+	}
+
+	write(STDERR_FILENO, "init: shell spawned\n", 20);
+	return pid;
+}
+
+/*
+ * kspawn_services — launch the BlackHand service manager.
+ *
+ * The service manager is a normal child of init. It reads
+ * /etc/blackhand/services.conf and starts all services in order.
+ * If it crashes, init reaps it via SIGCHLD. Restarting it is a TODO
+ * (track its PID, respawn in main loop — same busybox RESPAWN pattern).
+ *
+ * If fork itself fails we cannot start services, so we hang in pause()
+ * rather than exiting (which would kernel panic).
  */
 static void kspawn_services(void)
 {
-	const char *svc_mgr_path = "/usr/bin/blackhand-svc-mgr";
-	pid_t pid = kspawn(svc_mgr_path);
+	const char *path = "/usr/bin/blackhand-svc-mgr";
+	pid_t pid = kspawn(path);
 	if (pid < 0)
 	{
-		write(2, "init: failed to spawn service manager\n", 38);
-		exit(1);
+		write(STDERR_FILENO, "init: FATAL — service manager failed to spawn\n", 46);
+		/* Don't exit — PID 1 exiting = kernel panic */
+		for (;;)
+			pause();
 	}
-	write(2, "init: service manager spawned\n", 30);
+	write(STDERR_FILENO, "init: service manager spawned\n", 30);
 }
 
+/* ============================================================================
+ * Shutdown
+ * ============================================================================
+ */
+
 /*
- * main — PID 1 entry point.
+ * kdo_shutdown — kill all processes and reboot/halt.
  *
- * The kernel calls main() directly. There is no shell, no script, no parent
- * process. This is the root of the entire process tree.
+ * Mirrors busybox run_shutdown_and_kill_processes() + pause_and_low_level_reboot().
  *
- * After setup, main enters an infinite loop calling pause(). pause() sleeps
- * until any signal arrives. When SIGCHLD arrives (a child died), pause()
- * returns, ksigchld_handler runs automatically (reaping the zombie), then
- * pause() is called again. The loop uses essentially zero CPU while idle.
+ * Step 1: SIGTERM — ask processes to exit cleanly.
+ * Step 2: sync()  — flush all pending disk writes.
+ * Step 3: sleep(1) — give processes time to respond.
+ * Step 4: SIGKILL — kill anything still alive.
+ * Step 5: sync() again — flush any writes from dying processes.
+ * Step 6: reboot(2) — ask the kernel to halt/reboot/poweroff.
  *
- * The shutdown_requested flag is checked after each pause() returns. When
- * SIGTERM sets it, the loop breaks and the shutdown sequence runs.
+ * kill(-1, sig) sends the signal to every process except PID 1 itself.
  *
- * main() must NEVER return. If PID 1 exits, the kernel panics.
+ * We use RB_AUTOBOOT (reboot) as the default. A production implementation
+ * would distinguish halt/reboot/poweroff based on which signal arrived,
+ * exactly as busybox halt_reboot_pwoff() does with RB_HALT_SYSTEM /
+ * RB_AUTOBOOT / RB_POWER_OFF.
+ */
+static void kdo_shutdown(void)
+{
+	write(STDERR_FILENO, "init: shutdown — terminating all processes\n", 43);
+
+	kill(-1, SIGTERM);
+	sync();
+	sleep(1);
+
+	kill(-1, SIGKILL);
+	sync();
+	sleep(1);
+
+	write(STDERR_FILENO, "init: rebooting\n", 16);
+
+	/* Fork before calling reboot() — the kernel calls do_exit() inside
+	 * reboot() which can panic if called directly by PID 1 on some kernels.
+	 * Busybox init does this too (pause_and_low_level_reboot). */
+	pid_t pid = fork();
+	if (pid == 0)
+	{
+		reboot(RB_AUTOBOOT);
+		_exit(0);
+	}
+
+	/* Parent hangs — we must never return from main() */
+	for (;;)
+		sleep(1);
+}
+
+/* ============================================================================
+ * main
+ * ============================================================================
+ */
+
+/*
+ * main — PID 1 entry point. The kernel calls this directly.
+ *
+ * Order of operations mirrors busybox init_main():
+ *
+ *   1. kmount_vfs()      — virtual filesystems (prereq for everything)
+ *   2. ksetup_console()  — already called inside kmount_vfs() after /dev mounts
+ *   3. krun_sysinit()    — blocking rcS run (before SIGCHLD registered)
+ *   4. ksetup_signals()  — register handlers (after blocking sysinit, before spawning)
+ *   5. kspawn_shell()    — interactive console shell
+ *   6. kspawn_services() — service manager
+ *   7. for(;;) pause()   — sleep, wake on signal, check flags, repeat
+ *
+ * main() must NEVER return. If PID 1 exits, the kernel panics immediately.
  */
 int main(void)
 {
-	/* safety check — only run as PID 1 */
+	/* Safety check — only run as PID 1 */
 	if (getpid() != 1)
 	{
-		write(2, "init: not PID 1, aborting\n", 26);
+		write(STDERR_FILENO, "init: must be run as PID 1\n", 27);
 		return 1;
 	}
 
-	ksetup_signals();   /* register SIGCHLD and SIGTERM handlers            */
-	kmount_vfs();       /* mount /proc /sys /dev /run /tmp                  */
-	kspawn_services();  /* spawn the service manager                        */
+	/* 1. Mount virtual filesystems (also calls ksetup_console inside) */
+	kmount_vfs();
 
-	/* sit and wait forever — signal handlers do the work */
+	write(STDERR_FILENO, "init: BlackHand OS starting\n", 28);
+
+	/* 2. Set up environment */
+	putenv("HOME=/");
+	putenv("PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
+	putenv("SHELL=/bin/sh");
+	putenv("TERM=linux");
+	putenv("USER=root");
+
+	/* 3. Run sysinit script synchronously — BEFORE SIGCHLD handler is live
+	 *    to avoid race between our waitpid(pid) and handler's waitpid(-1). */
+	krun_sysinit();
+
+	/* 4. Register signal handlers — after blocking sysinit, before any spawning */
+	ksetup_signals();
+
+	/* 5. Interactive shell on console */
+	kspawn_shell();
+
+	/* 6. Service manager */
+	kspawn_services();
+
+	/* 7. Main loop — sleep until a signal arrives, check flags, repeat.
+	 *
+	 * pause() sleeps until any signal is delivered. SA_RESTART means the
+	 * kernel automatically restarts pause() after the signal handler returns,
+	 * UNLESS we set a flag the handler wants to act on.
+	 *
+	 * The flag check order follows busybox check_delayed_sigs().
+	 */
 	for (;;)
 	{
-		pause(); /* sleep until a signal arrives */
+		pause();
+
+		if (ctrlaltdel_requested)
+		{
+			ctrlaltdel_requested = 0;
+			write(STDERR_FILENO, "init: Ctrl-Alt-Del — rebooting\n", 31);
+			kdo_shutdown(); /* does not return */
+		}
+
 		if (shutdown_requested)
 		{
-			write(2, "init: shutdown requested\n", 25);
-			/* TODO: stop services, unmount filesystems, call reboot() */
-			break;
+			shutdown_requested = 0;
+			kdo_shutdown(); /* does not return */
 		}
 	}
 
-	return 0; /* never reached */
+	return 0; /* unreachable — satisfies compiler */
 }

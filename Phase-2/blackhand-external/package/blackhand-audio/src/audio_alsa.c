@@ -12,9 +12,13 @@ static snd_mixer_t *mixer_handle = NULL;
 static snd_mixer_elem_t *master_elem = NULL;
 
 /* Playback state */
-static pthread_t play_thread_id;
-static int playback_active = 0;      /* 1 if a thread is playing */
-static int stop_requested = 0;        /* set by audio_stop() to interrupt playback */
+static pthread_t play_thread_id = 0;
+static int playback_active = 0;           /* 1 if a thread is playing */
+static volatile int stop_requested = 0;   /* FIX: volatile — compiler must not cache this in a
+                                             register. The playback loop reads it every iteration;
+                                             audio_stop() writes it from the main thread. Without
+                                             volatile the compiler may optimise the loop read away
+                                             and the thread never sees the flag change. */
 static pthread_mutex_t state_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* Volume state */
@@ -44,11 +48,15 @@ static void apply_volume(void) {
 
 /* Thread function: plays a WAV file */
 static void *playback_thread(void *arg) { /* arg is file path, */
-    const char *path = (const char *)arg;
+    /* FIX: cast to char* (not const char*) so we can call free(path) when the
+       thread exits. audio_play() strdup'd this string specifically for us —
+       we own it and must free it at every exit point to avoid a memory leak. */
+    char *path = (char *)arg;
     FILE *wav = fopen(path, "rb"); /* open file in binary mode*/
     /* If the file fails to open, then*/
     if (!wav) {
         fprintf(stderr, "audio_play: cannot open %s\n", path);
+        free(path); /* FIX: free before exit */
         pthread_mutex_lock(&state_mutex);
         playback_active = 0;
         pthread_mutex_unlock(&state_mutex);
@@ -77,6 +85,7 @@ static void *playback_thread(void *arg) { /* arg is file path, */
     /* Compares the identifiers; if not "RIFF" or not "WAVE", return NULL*/
     if (memcmp(chunk_id, "RIFF", 4) != 0 || memcmp(format, "WAVE", 4) != 0) {
         fprintf(stderr, "Not a valid WAV file\n");
+        free(path); /* FIX: free before exit */
         fclose(wav);
         pthread_mutex_lock(&state_mutex);
         playback_active = 0;
@@ -105,6 +114,7 @@ static void *playback_thread(void *arg) { /* arg is file path, */
         fseek(wav, data_size, SEEK_CUR);
         if (feof(wav)) {
             fprintf(stderr, "No data chunk found\n");
+            free(path); /* FIX: free before exit */
             fclose(wav);
             pthread_mutex_lock(&state_mutex);
             playback_active = 0;
@@ -118,6 +128,7 @@ static void *playback_thread(void *arg) { /* arg is file path, */
         bits_per_sample != 16 || audio_format != 1) {
         fprintf(stderr, "Unsupported WAV format: %d ch, %d Hz, %d bit\n",
                 num_channels, sample_rate, bits_per_sample);
+        free(path); /* FIX: free before exit */
         fclose(wav);
         pthread_mutex_lock(&state_mutex);
         playback_active = 0;
@@ -128,6 +139,7 @@ static void *playback_thread(void *arg) { /* arg is file path, */
     /* ----- Playback loop ----- */
     char *buffer = malloc(PERIOD_FRAMES * CHANNELS * (bits_per_sample/8)); /* Allocates a buffer that holds one period of audio data. */
     if (!buffer) {
+        free(path); /* FIX: free before exit */
         fclose(wav);
         pthread_mutex_lock(&state_mutex);
         playback_active = 0;
@@ -160,8 +172,9 @@ static void *playback_thread(void *arg) { /* arg is file path, */
         }
         frames_remaining -= frames_written; /* update frames remaining*/
     }
-    /* free buffer and close the WAV file*/
+    /* free buffer, path, and close the WAV file */
     free(buffer);
+    free(path); /* FIX: free the strdup'd path — we own it, we free it */
     fclose(wav);
 
     /* Drain and clean up: if not stopping is requested wait for all pending frames before closing 
@@ -237,21 +250,25 @@ int audio_init(void) {
         return -1;
     }
 
-    /* Find Master control */
+    /* Find a playback volume control — prefer "Master", fall back to the
+     * first element that has playback volume.  The BCM2835 ALSA driver
+     * exposes "PCM" (not "Master"), so requiring "Master" causes the service
+     * to crash on Pi hardware.  Any playback volume control is usable. */
     snd_mixer_elem_t *elem = snd_mixer_first_elem(mixer_handle);
     while (elem) {
-        if (snd_mixer_selem_has_playback_volume(elem) &&
-            strcmp(snd_mixer_selem_get_name(elem), "Master") == 0) {
-            master_elem = elem;
-            break;
+        if (snd_mixer_selem_has_playback_volume(elem)) {
+            if (!master_elem)
+                master_elem = elem;   /* first available — keep as fallback */
+            if (strcmp(snd_mixer_selem_get_name(elem), "Master") == 0) {
+                master_elem = elem;
+                break;                /* prefer "Master" if present */
+            }
         }
         elem = snd_mixer_elem_next(elem);
     }
     if (!master_elem) {
-        fprintf(stderr, "audio_init: Master playback control not found\n");
-        snd_mixer_close(mixer_handle);
-        snd_pcm_close(pcm_handle);
-        return -1;
+        fprintf(stderr, "audio_init: no playback volume control found — volume control disabled\n");
+        /* non-fatal: PCM playback still works, just without volume control */
     }
 
     /* Set initial volume */
@@ -285,19 +302,32 @@ void audio_play(const char *path) {
         pthread_mutex_unlock(&state_mutex);
         return;
     }
-    /* Creates a new thread executing playback_thread, passing the duplicated path as argument. */
+    /* Creates a new thread executing playback_thread, passing the duplicated path as argument.
+       FIX: do NOT detach — we need to pthread_join in audio_stop() to guarantee the old
+       thread is fully finished before a new one starts. Without join, both threads could
+       call snd_pcm_writei on pcm_handle simultaneously which is not thread-safe. */
     pthread_create(&play_thread_id, NULL, playback_thread, path_copy);
-    pthread_detach(play_thread_id);   /* thread will free path_copy itself */
 }
 
 void audio_stop(void) {
     pthread_mutex_lock(&state_mutex);
     if (playback_active) {
         stop_requested = 1;
-        /* Wait for thread to finish? We'll just set flag; thread will exit. */
-        /* No join to avoid blocking – thread will clean up. */
     }
     pthread_mutex_unlock(&state_mutex);
+
+    /* FIX: join the thread to wait until it fully exits before returning.
+       This guarantees the old thread has finished with pcm_handle before
+       audio_play() can start a new thread that also uses pcm_handle.
+       Without this, two threads could call snd_pcm_writei simultaneously.
+       We must unlock the mutex BEFORE joining — the playback thread needs
+       the mutex to set playback_active = 0 before it can exit. If we held
+       the mutex here and called join, we'd deadlock — each side waiting
+       for the other forever. */
+    if (play_thread_id != 0) {
+        pthread_join(play_thread_id, NULL);
+        play_thread_id = 0;
+    }
 }
 
 void audio_set_volume(int percent) {

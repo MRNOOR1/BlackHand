@@ -1,21 +1,20 @@
+# Mount essential filesystems FIRST
 ::sysinit:/bin/mount -t proc proc /proc
+::sysinit:/bin/mount -t sysfs sysfs /sys
 ::sysinit:/bin/mount -o remount,rw /
-::sysinit:/bin/mkdir -p /dev/pts /dev/shm
-::sysinit:/bin/mount -a
+::sysinit:/bin/mkdir -p /dev/pts /dev/shm /run /tmp
+::sysinit:/bin/mount -t devpts devpts /dev/pts
+::sysinit:/bin/mount -t tmpfs tmpfs /run
+::sysinit:/bin/mount -t tmpfs tmpfs /tmp
 ::sysinit:/bin/hostname -F /etc/hostname
 ::sysinit:/etc/init.d/rcS
 
-# Clear tty1 and hide cursor before launching the UI
-tty1::once:/usr/bin/clear >/dev/tty1 2>/dev/null
-tty1::once:/bin/sh -c 'printf "\033[?25l" >/dev/tty1'
+# Console for debugging (ALWAYS have this)
+console::respawn:/sbin/getty -L console 115200 vt100
+tty1::respawn:/sbin/getty -L tty1 0 vt100
 
-# Run blackhand-ui on the framebuffer console (tty1)
-# TERM=linux enables correct rendering on fbcon
-# Input from /dev/tty1 enables touch/key events
-tty1::respawn:/bin/sh -c 'exec env TERM=linux /usr/bin/blackhand-ui </dev/tty1 >/dev/tty1 2>/dev/null'
-
-# Rescue login on tty2 (switch with Alt+F2 over SSH/keyboard)
-tty2::respawn:/sbin/getty -L tty2 115200 vt100
+# Uncomment when blackhand-ui is ready:
+# tty1::respawn:/usr/bin/blackhand-ui
 
 ::shutdown:/etc/init.d/rcK
 ::shutdown:/bin/umount -a -r

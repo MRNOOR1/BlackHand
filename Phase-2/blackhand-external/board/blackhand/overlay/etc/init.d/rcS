@@ -1,71 +1,32 @@
 #!/bin/sh
-# Black Hand OS — minimal init
+echo ">>> Black Hand OS starting..."
 
-# Initialize HyperPixel display (SPI bit-bang to wake LCD controller)
-# NOTE: The vc4-kms-dpi-hyperpixel4 overlay should handle this via
-# kernel SPI-GPIO, but we keep hyperpixel4-init as a fallback.
-if [ -x /usr/bin/hyperpixel4-init ]; then
-    /usr/bin/hyperpixel4-init
-fi
-
-# Runtime data directories
-mkdir -p /data /data/notes /data/music /data/voice-memos /data/alarms
-
-# Audio (Pi analog/HDMI)
-modprobe snd_bcm2835 2>/dev/null || true
-
-# ── GPM (General Purpose Mouse) ──────────────────────────────────────
-# GPM translates touchscreen events into console mouse escape sequences
-# that notcurses reads via /dev/gpmctl on TERM=linux (fbcon).
-#
-# The GT911 is an evdev absolute touchscreen.  /dev/input/mice only
-# carries relative PS/2 movement and silently drops absolute coords,
-# so we must use the specific event node with -t evdev.
-#
-# Wait up to 10 seconds for the GT911 driver to probe and create its
-# /dev/input/event* node — devtmpfs + i2c-gpio can be slow on first boot.
-GPM_WAIT=0
-while [ "${GPM_WAIT}" -lt 10 ]; do
-    TS_DEV=""
-    for evdev in /dev/input/event*; do
-        [ -e "$evdev" ] || continue
-        name=$(cat /sys/class/input/$(basename "$evdev")/device/name 2>/dev/null || echo "")
-        case "$name" in
-            *[Gg]oodix*|*[Gg][Tt]911*|*[Tt]ouch*) TS_DEV="$evdev"; break ;;
-        esac
-    done
-    [ -n "$TS_DEV" ] && break
-    sleep 1
-    GPM_WAIT=$((GPM_WAIT + 1))
-done
-
-if [ -x /usr/sbin/gpm ] && [ -n "$TS_DEV" ]; then
-    /usr/sbin/gpm -m "$TS_DEV" -t evdev
-    echo "GPM started on $TS_DEV (evdev, waited ${GPM_WAIT}s)"
-else
-    echo "WARNING: touchscreen evdev node not found after 10s — touch will not work"
-    echo "  Check: dmesg | grep -i goodix"
-    echo "  Check: dmesg | grep -i i2c"
-fi
-
-# Networking
+# Network FIRST (so SSH works for debugging)
 /sbin/ifconfig lo 127.0.0.1 up
 /sbin/ifconfig eth0 up 2>/dev/null
 if [ -x /sbin/udhcpc ]; then
-    /sbin/udhcpc -i eth0 -t 5 -A 3 -b -q 2>/dev/null &
+    /sbin/udhcpc -i eth0 -t 5 -A 3 -b -q &
 fi
 
-# SSH
+# SSH (start immediately)
 if [ -x /usr/sbin/dropbear ]; then
     mkdir -p /etc/dropbear
     /usr/sbin/dropbear -R
 fi
 
-# Mount boot FAT partition for debug inspection
-mkdir -p /boot
-modprobe vfat 2>/dev/null || true
+# Display init — must run before anything else tries to use the screen
+if [ -x /usr/bin/hyperpixel4-init ]; then
+    /usr/bin/hyperpixel4-init
+fi
+
+# Now do slower things...
+mkdir -p /data /boot
+
+# Mount boot partition
 mount -t vfat /dev/mmcblk0p1 /boot 2>/dev/null || true
 
-echo "Black Hand OS started"
+# Load audio
+modprobe snd_bcm2835 2>/dev/null || true
+
+echo ">>> Black Hand OS ready"
 echo "fb0: $(cat /sys/class/graphics/fb0/virtual_size 2>/dev/null || echo 'not found')"
-echo "input: $(ls /dev/input/ 2>/dev/null || echo 'none')"

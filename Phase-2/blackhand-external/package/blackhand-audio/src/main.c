@@ -18,7 +18,9 @@
 
 int main()
 {
-	#You must initialise the ALSA (audio library before continuing)
+	/* Initialise the ALSA audio library before opening the socket.
+	   If hardware is not available the service exits immediately rather
+	   than starting and silently failing on every play request. */
 	if (audio_init() != 0) {
         fprintf(stderr, "Failed to initialise ALSA\n");
         exit(EXIT_FAILURE);

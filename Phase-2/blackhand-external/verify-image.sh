@@ -160,24 +160,38 @@ for bin in \
     fi
 done
 
-# 8. BlackHand IPC library
+# 8. BlackHand IPC Library
+#
+# libblackhand-ipc.a is a STATIC library — its code is copied directly into
+# each service binary at link time. The .a file itself is not needed at runtime
+# and Buildroot removes it from TARGET_DIR during its cleanup pass to save space.
+# The correct place to verify it is STAGING_DIR (the cross-compilation sysroot),
+# which is where the compiler finds it when building dependent services.
+#
+# STAGING_DIR path: output/host/<arch>-buildroot-linux-gnu/sysroot
+# We locate it dynamically so this works regardless of toolchain tuple.
 echo ""
-echo "── 8. BlackHand IPC Library ──"
+echo "── 8. BlackHand IPC Library (staging) ──"
 
-if [ -f "${TARGET_DIR}/usr/lib/libblackhand-ipc.a" ]; then
-    pass "libblackhand-ipc.a"
+STAGING_DIR=$(ls -d "${BUILD_DIR}/host/"*"-buildroot-linux-gnu/sysroot" 2>/dev/null | head -1)
+
+if [ -z "${STAGING_DIR}" ]; then
+    warn "Cannot locate STAGING_DIR — toolchain may not be built yet"
 else
-    warn "libblackhand-ipc.a NOT FOUND — services may not have linked correctly"
-fi
-
-# check IPC headers were installed
-for hdr in ipc.h ipc_framing.h ipc_dispatch.h cJSON.h; do
-    if [ -f "${TARGET_DIR}/usr/include/blackhand/${hdr}" ]; then
-        pass "  header: ${hdr}"
+    if [ -f "${STAGING_DIR}/usr/lib/libblackhand-ipc.a" ]; then
+        pass "libblackhand-ipc.a (in staging — correct for static library)"
     else
-        warn "  header: ${hdr} NOT FOUND"
+        fail "libblackhand-ipc.a NOT FOUND in staging — services will fail to link"
     fi
-done
+
+    for hdr in ipc.h ipc_framing.h ipc_dispatch.h cJSON.h; do
+        if [ -f "${STAGING_DIR}/usr/include/blackhand/${hdr}" ]; then
+            pass "  header: ${hdr}"
+        else
+            fail "  header: ${hdr} NOT FOUND in staging — dependent packages cannot compile"
+        fi
+    done
+fi
 
 # Summary
 echo ""

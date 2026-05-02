@@ -18,10 +18,13 @@ CC     ?= $(CROSS_COMPILE)gcc
 AR     ?= $(CROSS_COMPILE)ar
 CFLAGS ?= -O2 -Wall -Wextra -fPIC
 
-# all source files that make up the library
+# all source files that make up the library.
+# NOTE: ipc_dispatch.c is NOT included here. The dispatch table is
+# service-specific — each service (blackhand-audio, blackhand-storage etc)
+# compiles its own ipc_dispatch.c with its own handler table. The library
+# only provides the transport layer: framing, send/recv, and cJSON.
 SRCS = ipc.c \
        ipc_framing.c \
-       ipc_dispatch.c \
        cJSON.c
 
 # derive object file list from source list

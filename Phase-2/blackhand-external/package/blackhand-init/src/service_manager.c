@@ -100,8 +100,9 @@
  */
 
 #include <stdio.h>    /* fopen, fgets, fclose, perror                       */
-#include <stdlib.h>   /* exit, EXIT_FAILURE                                 */
-#include <unistd.h>   /* fork, execv, pause, write                          */
+#include <stdlib.h>   /* exit, EXIT_FAILURE, setenv                         */
+#include <unistd.h>   /* fork, execv, pause, write, dup2, close             */
+#include <fcntl.h>    /* open, O_RDWR                                       */
 #include <signal.h>   /* sigaction, SIGCHLD, sig_atomic_t                   */
 #include <sys/wait.h> /* waitpid, WNOHANG                                   */
 #include <string.h>   /* memset, strncpy, strcspn, strcmp, strncmp, strchr  */
@@ -288,6 +289,23 @@ static void start_service(Service *service)
 	}
 	else if (pid == 0)
 	{
+		/* blackhand-ui must render on tty1 (the framebuffer's active VT).
+		 * Without this redirect the UI inherits /dev/console = tty3
+		 * (set by console=tty3 in cmdline.txt) and renders on a VT that
+		 * is never visible on screen. */
+		if (strcmp(service->name, "blackhand-ui") == 0)
+		{
+			int ttyfd = open("/dev/tty1", O_RDWR);
+			if (ttyfd >= 0)
+			{
+				dup2(ttyfd, 0);
+				dup2(ttyfd, 1);
+				dup2(ttyfd, 2);
+				if (ttyfd > 2) close(ttyfd);
+			}
+			setenv("TERM", "linux", 1);
+		}
+
 		/* child process — replace with the service binary */
 		char *argv[] = { (char *)service->path, NULL };
 		execv(service->path, argv);
