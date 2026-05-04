@@ -57,6 +57,51 @@ volatile sig_atomic_t shutdown_requested = 0;
  */
 volatile sig_atomic_t ctrlaltdel_requested = 0;
 
+/*
+ * log_fd — open file descriptor to /dev/tty1 for on-screen log messages.
+ *
+ * The HyperPixel display renders the framebuffer for tty1. /dev/console is
+ * wired to tty3 (via console=tty3 in cmdline.txt) for the serial console.
+ * Any write to STDERR_FILENO goes to tty3 — invisible on the screen.
+ *
+ * By opening /dev/tty1 separately we can write startup logs to the display
+ * without changing the console binding that the rest of the system expects.
+ *
+ * -1 = not yet open (before devtmpfs is mounted). Checked in klog().
+ */
+static int log_fd = -1;
+
+/* ============================================================================
+ * Logging
+ * ============================================================================
+ */
+
+/*
+ * klog — write a message to both the serial console (STDERR → tty3) and the
+ * display (log_fd → tty1).
+ *
+ * This is async-signal-safe: it uses only write(), which is on the POSIX
+ * async-signal-safe list. Safe to call from signal handlers.
+ *
+ * strlen() is NOT async-signal-safe, so we compute the length with a plain
+ * pointer walk instead.
+ */
+static void klog(const char *msg)
+{
+	size_t len = 0;
+	const char *p = msg;
+	while (*p++)
+		len++;
+
+	/* Always write to serial console (tty3) for headless/SSH debugging */
+	write(STDERR_FILENO, msg, len);
+
+	/* Also write to tty1 so the message appears on the HyperPixel display.
+	 * log_fd is -1 until after devtmpfs is mounted in kmount_vfs(). */
+	if (log_fd >= 0)
+		write(log_fd, msg, len);
+}
+
 /* ============================================================================
  * Signal handlers
  * ============================================================================
@@ -85,7 +130,7 @@ static void ksigchld_handler(int sig)
 		/* In a fuller implementation you would walk an action list here
 		 * (like busybox's mark_terminated) and schedule respawns.
 		 * For now we just reap and log. */
-		write(STDERR_FILENO, "init: reaped child\n", 19);
+		klog("init: reaped child\n");
 	}
 }
 
@@ -341,6 +386,12 @@ static void kmount_vfs(void)
 	/* /dev is live — rebind console before any further write() calls */
 	ksetup_console();
 
+	/* Open tty1 for on-screen logging. The display shows tty1; /dev/console
+	 * is tty3 (console=tty3 in cmdline). O_NOCTTY: don't steal tty1 as our
+	 * controlling terminal — kspawn_shell() does that explicitly later. */
+	log_fd = open("/dev/tty1", O_WRONLY | O_NOCTTY);
+	/* Non-fatal: if tty1 isn't available yet, logs still go to serial tty3. */
+
 	if (mount("tmpfs", "/run", "tmpfs", MS_NOSUID | MS_NODEV, "mode=755") < 0)
 		perror("mount /run"), exit(1);
 
@@ -447,7 +498,7 @@ static void krun_sysinit(void)
 
 	/* Parent: block until rcS finishes */
 	waitpid(pid, NULL, 0);
-	write(STDERR_FILENO, "init: sysinit done\n", 19);
+	klog("init: sysinit done\n");
 }
 
 /*
@@ -490,7 +541,7 @@ static pid_t kspawn_shell(void)
 		/* New session + controlling tty — open tty1, which is what the
 		 * framebuffer displays. /dev/console = tty3 (console=tty3 in cmdline)
 		 * so opening console would put the shell on a VT that is invisible. */
-		if (!kopen_tty("/dev/tty1"))
+		if (!kopen_tty("/dev/tty2"))
 			_exit(EXIT_FAILURE);
 
 		/* argv[0] = "-sh" signals a login shell to the shell itself */
@@ -500,7 +551,7 @@ static pid_t kspawn_shell(void)
 		_exit(EXIT_FAILURE);
 	}
 
-	write(STDERR_FILENO, "init: shell spawned\n", 20);
+	klog("init: shell spawned\n");
 	return pid;
 }
 
@@ -521,12 +572,12 @@ static void kspawn_services(void)
 	pid_t pid = kspawn(path);
 	if (pid < 0)
 	{
-		write(STDERR_FILENO, "init: FATAL — service manager failed to spawn\n", 46);
+		klog("init: FATAL -- service manager failed to spawn\n");
 		/* Don't exit — PID 1 exiting = kernel panic */
 		for (;;)
 			pause();
 	}
-	write(STDERR_FILENO, "init: service manager spawned\n", 30);
+	klog("init: service manager spawned\n");
 }
 
 /* ============================================================================
@@ -555,7 +606,7 @@ static void kspawn_services(void)
  */
 static void kdo_shutdown(void)
 {
-	write(STDERR_FILENO, "init: shutdown — terminating all processes\n", 43);
+	klog("init: shutdown -- terminating all processes\n");
 
 	kill(-1, SIGTERM);
 	sync();
@@ -565,7 +616,7 @@ static void kdo_shutdown(void)
 	sync();
 	sleep(1);
 
-	write(STDERR_FILENO, "init: rebooting\n", 16);
+	klog("init: rebooting\n");
 
 	/* Fork before calling reboot() — the kernel calls do_exit() inside
 	 * reboot() which can panic if called directly by PID 1 on some kernels.
@@ -611,12 +662,25 @@ int main(void)
 		return 1;
 	}
 
-	/* 1. Mount virtual filesystems (also calls ksetup_console inside) */
+	/* 1. Mount virtual filesystems.
+	 *    ksetup_console() is called inside to bind fd 0/1/2 to /dev/console.
+	 *    log_fd is opened to /dev/tty1 here so klog() writes to the display. */
 	kmount_vfs();
 
-	write(STDERR_FILENO, "init: BlackHand OS starting\n", 28);
+	/* Banner — printed to both serial console (tty3) and display (tty1) */
+	klog("\n");
+	klog("  ██████╗ ██╗      █████╗  ██████╗██╗  ██╗    ██╗  ██╗ █████╗ ███╗  ██╗██████╗\n");
+	klog("  ██╔══██╗██║     ██╔══██╗██╔════╝██║ ██╔╝    ██║  ██║██╔══██╗████╗ ██║██╔══██╗\n");
+	klog("  ██████╔╝██║     ███████║██║     █████╔╝     ███████║███████║██╔██╗██║██║  ██║\n");
+	klog("  ██╔══██╗██║     ██╔══██║██║     ██╔═██╗     ██╔══██║██╔══██║██║╚████║██║  ██║\n");
+	klog("  ██████╔╝███████╗██║  ██║╚██████╗██║  ██╗    ██║  ██║██║  ██║██║  ███║██████╔╝\n");
+	klog("  ╚═════╝ ╚══════╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝    ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝   ╚═╝╚═════╝\n");
+	klog("\n");
+	klog("  BlackHand OS — booting...\n");
+	klog("\n");
 
 	/* 2. Set up environment */
+	klog("init: setting environment\n");
 	putenv("HOME=/");
 	putenv("PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
 	putenv("SHELL=/bin/sh");
@@ -625,16 +689,23 @@ int main(void)
 
 	/* 3. Run sysinit script synchronously — BEFORE SIGCHLD handler is live
 	 *    to avoid race between our waitpid(pid) and handler's waitpid(-1). */
+	klog("init: running /etc/init.d/rcS...\n");
 	krun_sysinit();
 
 	/* 4. Register signal handlers — after blocking sysinit, before any spawning */
+	klog("init: registering signal handlers\n");
 	ksetup_signals();
 
-	/* 5. Interactive shell on console */
+	/* 5. Interactive shell on tty1 (the display) */
+	klog("init: spawning shell on tty1\n");
 	kspawn_shell();
 
 	/* 6. Service manager */
+	klog("init: spawning service manager\n");
 	kspawn_services();
+
+	klog("init: boot complete — system ready\n");
+	klog("\n");
 
 	/* 7. Main loop — sleep until a signal arrives, check flags, repeat.
 	 *
@@ -651,7 +722,7 @@ int main(void)
 		if (ctrlaltdel_requested)
 		{
 			ctrlaltdel_requested = 0;
-			write(STDERR_FILENO, "init: Ctrl-Alt-Del — rebooting\n", 31);
+			klog("init: Ctrl-Alt-Del -- rebooting\n");
 			kdo_shutdown(); /* does not return */
 		}
 

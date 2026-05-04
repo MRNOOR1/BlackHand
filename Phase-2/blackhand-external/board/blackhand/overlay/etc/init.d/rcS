@@ -1,11 +1,18 @@
 #!/bin/sh
 echo ">>> Black Hand OS starting..."
 
+# Essential pseudo-filesystems — must be mounted before SSH, PTY, or anything
+# that needs a terminal. blackhand-init mounts proc/sys/dev/run/tmp but NOT
+# devpts (required for SSH PTY allocation) or devshm.
+mkdir -p /dev/pts /dev/shm
+mount -t devpts devpts /dev/pts -o gid=5,mode=620 2>/dev/null || true
+mount -t tmpfs tmpfs /dev/shm 2>/dev/null || true
+
 # Network FIRST (so SSH works for debugging)
 /sbin/ifconfig lo 127.0.0.1 up
 /sbin/ifconfig eth0 up 2>/dev/null
 if [ -x /sbin/udhcpc ]; then
-    /sbin/udhcpc -i eth0 -t 5 -A 3 -b -q &
+    /sbin/udhcpc -i eth0 -t 5 -A 3 -q
 fi
 
 # SSH (start immediately)
