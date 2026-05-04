@@ -83,7 +83,7 @@ Registers three signal handlers:
 Registered AFTER rcS because rcS is run with a blocking `waitpid()`. If SIGCHLD was registered first, the kernel could fire the handler which also calls `waitpid(-1)`, stealing the exit status before our blocking wait returns.
 
 **`kspawn_shell()`**
-Forks a child that opens `/dev/tty1` as its controlling terminal (via `setsid()` + `TIOCSCTTY`) and execs `/bin/sh`. This is the debug shell you see on the display. `setsid()` creates a new session. `TIOCSCTTY` claims tty1 as the controlling terminal for that session so Ctrl-C works. The shell is started with `argv[0] = "-sh"` which tells the shell to behave as a login shell.
+Forks a child that opens `/dev/tty2` as its controlling terminal (via `setsid()` + `TIOCSCTTY`) and execs `/bin/sh`. This is the debug shell accessible by switching to tty2. tty1 is reserved for the UI.
 
 **`kspawn_services()`**
 Calls `kspawn()` which forks and execs `/usr/bin/blackhand-svc-mgr`. The service manager becomes a child of PID 1.
@@ -101,7 +101,7 @@ This script runs as a child of init and init waits for it to finish. It does:
 
 1. Mounts `/dev/pts` (devpts) — required for PTY allocation. SSH uses PTYs. Without this, SSH connects but immediately prints "PTY allocation request failed".
 2. Mounts `/dev/shm` — shared memory tmpfs.
-3. Brings up `eth0` and runs `udhcpc` to get an IP via DHCP.
+3. Brings up `eth0` and runs `udhcpc` synchronously to get an IP via DHCP.
 4. Starts `dropbear` SSH server.
 5. Runs `hyperpixel4-init` if present (wakes the display controller).
 6. Mounts the boot partition at `/boot`.
@@ -230,7 +230,7 @@ No compilation needed — these files are deployed as-is.
 **File:** `board/blackhand/post-build.sh`
 
 Runs after all packages are built and installed but before the filesystem image is created. Used for things that need shell scripting rather than Makefile rules:
-- Creates `/data/notes`, `/data/music`, `/data/alarms` directories.
+- Creates `/data/notes`, `/data/music`, `/data/alarms`, `/data/voice-memos` directories.
 - Compiles the HyperPixel touch device tree overlay.
 - Generates the dropbear SSH host key using `HOST_DIR/bin/dropbearkey` (the host-side build tool) so SSH works from first boot without any manual setup.
 
@@ -352,7 +352,265 @@ ALSA has two layers:
 
 ---
 
-## Part 5: Files Changed and Why
+## Part 5: Storage Architecture — File-Based (MongoDB Approach)
+
+BlackHand uses a file-based storage approach. There is no SQL database. Every piece of user data is a file or a JSON file in a predictable location. This keeps the code simple, makes data easy to debug (you can read any file with cat), and fits the small dataset sizes a phone produces.
+
+The storage service (`blackhand-storage`) owns the `/data` directory. The UI talks to it over IPC just like it talks to audio.
+
+---
+
+### Notes
+
+**Location:** `/data/notes/`
+
+Each note is a plain text file. The filename IS the title. The file contains only the note body — no title inside, no metadata.
+
+```
+/data/notes/Shopping_List.md     ← title is "Shopping List"
+/data/notes/Meeting_Notes.md     ← title is "Meeting Notes"
+/data/notes/Ideas.md
+```
+
+**Rules:**
+- Spaces in titles are stored as underscores in the filename and converted back to spaces for display.
+- The `.md` extension is stripped for display.
+- When a note is renamed, the file on disk is renamed. There is no separate metadata file.
+- If a new note's title would create a duplicate filename, a numeric suffix is appended: `Ideas_1.md`, `Ideas_2.md`.
+- Writing is atomic: the UI writes content directly and the OS filesystem provides atomicity at the file level.
+
+**Navigation (screen_notes.c):**
+
+| Key | Action |
+|-----|--------|
+| Up / Down | Select note in list |
+| Left | Delete selected note (confirmation prompt) |
+| Right | Edit selected note |
+| Center | View note in read-only mode |
+| LSK (Q) | Back to menu |
+| RSK (E) | Create new note |
+
+In read-only mode: Up/Down scroll content, LSK goes back (always prompts to save/rename), RSK enables editing.
+
+On any exit from view or edit, the user is always prompted to save the name or update it. The current title is pre-filled and highlighted so one keypress starts replacing it.
+
+**Implementation files:**
+- `blackhand-ui/src/services/notes_service.c` — file I/O, in-memory index, CRUD operations
+- `blackhand-ui/src/screens/screen_notes.c` — all four modes: list, view, edit, save prompt
+
+**Status: Complete.** One pending fix: change `NOTES_PATH` from `"./Notes"` to `"/data/notes"`.
+
+---
+
+### Voice Memos
+
+**Location:** `/data/voice-memos/`
+
+Each memo is a WAV file. The filename is the memo name (date-stamped by default, user-renameable).
+
+```
+/data/voice-memos/2024-01-15_09-30.wav
+/data/voice-memos/Team_Briefing.wav
+```
+
+**Format:** 16 kHz, mono, 16-bit PCM WAV. Lower sample rate than music (which is 44.1 kHz stereo) because voice memos do not need high fidelity — this saves significant storage space.
+
+**Navigation (screen_voice_memo.c):**
+
+| Key | Action |
+|-----|--------|
+| Up / Down | Select memo in list |
+| Left | Delete selected memo |
+| Right | Rename selected memo |
+| Center | Play selected memo |
+| LSK | Back to menu |
+| RSK | Record new memo |
+
+During recording: on finish, user is prompted for a name. A default date-based name is pre-filled and highlighted — pressing any number key immediately clears it and starts the new name (the pristine flag pattern, same as notes).
+
+During playback:
+- Left / Right — scrub backward / forward in the recording
+- Up / Down — speed up / slow down playback
+- LSK — back (memo continues playing)
+- RSK — stop and delete
+
+**Implementation files:**
+- `blackhand-ui/src/services/voice_memo_service.c` — recording, playback, speed control, file management
+- `blackhand-ui/src/screens/screen_voice_memo.c` — list, record, playback modes
+
+**Status: Complete.**
+
+---
+
+### Music
+
+**Location:** `/data/music/`
+
+Music is folder-based. The folder structure defines the hierarchy — no metadata database needed.
+
+```
+/data/music/
+  Hip Hop/                   ← category (genre)
+    Drake/                   ← collection (artist)
+      Track_One.mp3
+      Track_Two.mp3
+    Kendrick_Lamar/
+      HUMBLE.mp3
+  Ambient/
+    Standalone_Track.mp3     ← direct track (no collection layer needed)
+```
+
+**Rules:**
+- Top-level folders are categories.
+- Folders inside categories are collections.
+- `.mp3` files inside collections are tracks.
+- If a category folder contains `.mp3` files directly (no collection subfolder), those files appear as tracks without needing a collection layer.
+- Subfolders inside collections are ignored.
+- Hidden files (starting with `.`) are ignored.
+- Only `.mp3` files are loaded — other file types are silently skipped.
+- Track display name: filename without `.mp3`, underscores replaced with spaces.
+- If mp3 metadata exists, the title field is used. If not, the filename is used.
+
+**Limits:** 50 categories, 200 collections per category, 1000 tracks per collection.
+
+**Navigation:**
+
+First screen shows categories. Center key opens. Inside category shows collections. Center key opens. Inside collection shows tracks. Center key starts playback from that track — remaining tracks in the collection form the queue.
+
+| Key | In lists | In player |
+|-----|----------|-----------|
+| Up / Down | Move through list | — |
+| Left | — | Previous track |
+| Right | — | Next track |
+| Up | — | Volume up |
+| Down | — | Volume down |
+| Center | Open selected item | Play / Pause |
+| LSK | Back to previous screen | Back to track list (music keeps playing) |
+| RSK | Return to main menu | Stop playback |
+
+**Playback rules:**
+- When the last track ends, playback stops.
+- Next on last track does nothing.
+- Previous on first track restarts the track.
+- Exiting the player while music plays returns to the track list with music still playing.
+- Re-entering music while playing shows the player screen with the current track.
+
+**Implementation files:**
+- `blackhand-ui/src/services/mp3_service.c` — library scanning, mpg123 playback, background thread, volume, progress
+- `blackhand-ui/src/screens/screen_mp3.c` — category, collection, track list screens and player screen
+
+**Status: Complete.**
+
+---
+
+### Alarms
+
+**Location:** `/data/alarms/`
+
+Each alarm is a JSON file. One file per alarm.
+
+```
+/data/alarms/abc123.json
+/data/alarms/def456.json
+```
+
+Each file contains:
+```json
+{
+  "id": "abc123",
+  "hour": 6,
+  "minute": 30,
+  "enabled": true,
+  "label": "Morning Training",
+  "repeat": "daily"
+}
+```
+
+**Repeat options:** `once`, `daily`, `weekdays`
+
+**Max alarms:** 20
+
+**Navigation (screen_alarm.c):**
+
+| Key | Action |
+|-----|--------|
+| Up / Down | Select alarm in list |
+| Left | Delete selected alarm |
+| Right | Edit selected alarm |
+| Center | Toggle enabled / disabled |
+| LSK | Back to main menu |
+| RSK | Create new alarm |
+
+**Creating/editing an alarm:** Center key switches between hours and minutes fields. Up/Down changes the value. Center confirms. Repeat mode is selectable.
+
+**Alarm trigger behavior:**
+- When alarm time is reached, the alarm screen overrides everything on the display.
+- Alarm sound plays.
+- Center key stops the alarm.
+- LSK snoozes for 5 minutes.
+- RSK dismisses permanently.
+- Snooze re-triggers after 5 minutes and does not permanently disable the alarm.
+- If music is playing when an alarm triggers, music pauses, alarm plays, music resumes on dismiss.
+
+**Implementation files:**
+- `blackhand-ui/src/services/alarm_service.c` — load/save, tick check, snooze, repeat logic
+- `blackhand-ui/src/screens/screen_alarm.c` — list, create, edit, ringing screens
+
+**Status: Complete.** One pending fix: change `ALARMS_PATH` from `"./Alarms"` to `"/data/alarms"`.
+
+---
+
+### Settings
+
+**Location:** `/data/settings.conf`
+
+Settings are stored as a flat key=value text file. Simple, human-readable, no JSON parser needed.
+
+```
+night_mode=1
+bluetooth=0
+hand_white=0
+light_theme=2
+volume=7
+brightness=8
+timeout_sec=60
+pin=0000
+```
+
+**Appearance:**
+- Dark mode / Light mode toggle. Updates immediately, persists after reboot.
+- Themes (Desert Storm, Neon Grid, Ocean Steel, Solar Ember, Monochrome Ops). Themes change accent colors and highlights but do not override dark/light mode. Selecting a theme applies it immediately.
+- Screen brightness control (1–10 scale).
+- Screen timeout duration.
+
+**Security:**
+- **Hands White** — survival mode. Activating it puts the phone into a minimal display showing only time, coordinates, and battery. Navigation is disabled. To exit: hold both soft keys simultaneously, then enter the 4-digit PIN.
+- **White Wipe** — permanently erases all user data. Requires PIN entry followed by confirmation. Erases: notes, voice memos, alarms, settings, Bluetooth pairings. Music files may or may not be erased depending on whether they are on removable storage.
+- **PIN Management** — user enters current PIN, then new PIN, then confirms new PIN. If pins match the new PIN is saved to `settings.conf`.
+
+**Connectivity:**
+- **Bluetooth** — toggle on/off. When enabled, scans for audio devices (earphones, headphones, speakers). Shows list of available devices. Connected devices show a connected indicator.
+
+**System Info screen** — device model, OS version, battery level, storage capacity, available storage, Bluetooth status.
+
+**Navigation inside settings:**
+- Up/Down move through list.
+- Center opens the selected setting.
+- LSK goes back.
+- RSK returns to main menu.
+- Toggles update immediately unless confirmation is required (destructive actions like White Wipe always require confirmation).
+
+**Implementation files:**
+- `blackhand-ui/src/services/settings_service.c` — load/save, theme management, all getters/setters
+- `blackhand-ui/src/services/pin_service.c` — PIN verify, PIN update (stub, needs completion)
+- `blackhand-ui/src/screens/screen_settings.c` — settings list, theme picker, bluetooth screen
+- `blackhand-ui/src/screens/screen_theme.c` — theme selection screen
+
+**Status:** Settings core complete. PIN service is a stub (66 lines) — needs full implementation. Hands White and White Wipe screens need to be built.
+
+---
+
+## Part 6: Files Changed and Why
 
 | File | What Changed | Why |
 |------|-------------|-----|
@@ -369,101 +627,78 @@ ALSA has two layers:
 
 ---
 
-## Part 6: Roadmap
+## Part 7: Roadmap
 
 ---
 
-### Your Tasks (Stabilization + UI)
+### Your Tasks (UI completion)
 
-**Priority 1 — Stable Build**
+**Priority 1 — Two path fixes (quick, do first)**
 
-These are already coded. You just need to rebuild and reflash:
-- Rebuild: `make blackhand_pi4_defconfig && make`
-- Verify on device: SSH works without manual steps, boot messages on display, all 3 service sockets exist
-
-**Priority 2 — UI on Display**
-
-The UI is already starting (PID 127 in your last ps output). One change needed:
-
-In `init.c`, find `kspawn_shell()` and change:
+In `notes_service.c`:
 ```c
-if (!kopen_tty("/dev/tty1"))
-```
-to:
-```c
-if (!kopen_tty("/dev/tty2"))
+static const char *NOTES_PATH = "/data/notes";
 ```
 
-This moves the debug shell to tty2, freeing tty1 for the UI. The service manager already redirects the UI to tty1. Rebuild and reflash after this change.
+In `alarm_service.c`:
+```c
+static const char *ALARMS_PATH = "/data/alarms";
+```
 
-**Priority 3 — Test Everything**
+**Priority 2 — PIN service completion**
 
-After reflash, verify in this order:
-1. SSH into device, run `ls /run/bh-*.sock` — should show all 3
-2. Run `ipc_test_client /run/bh-audio.sock '{"jsonrpc":"2.0","method":"ping","id":1}'`
-3. Copy a WAV file to the device, test playback via IPC
-4. Confirm UI renders on the display
+`pin_service.c` is a stub (66 lines). It needs:
+- Load PIN from `/data/settings.conf` on init
+- `pin_service_verify(pin)` — compare against stored PIN
+- `pin_service_update(old_pin, new_pin)` — verify old, write new to settings file
+
+**Priority 3 — Hands White screen**
+
+When `hand_white` is enabled in settings, the display switches to a minimal overlay showing:
+- Current time (large)
+- Current GPS coordinates (or "--" if unavailable)
+- Battery level
+
+All navigation keys are disabled. To exit: hold LSK + RSK simultaneously (detect both pressed), then enter PIN via the PIN entry UI. Correct PIN returns to home screen.
+
+**Priority 4 — White Wipe flow**
+
+From settings, selecting White Wipe:
+1. PIN entry screen
+2. Confirmation screen ("ALL DATA WILL BE ERASED — ARE YOU SURE?")
+3. On confirm: delete contents of `/data/notes/`, `/data/alarms/`, `/data/voice-memos/`, `/data/settings.conf`
+4. Reboot
+
+**Priority 5 — Test every screen on device**
+
+Boot, SSH in, confirm all sockets, then work through each screen manually. Notes, voice memos, music, alarms, settings — each needs a pass on real hardware to find rendering issues specific to the HyperPixel resolution.
 
 ---
 
 ### Other Engineer Tasks
 
-**Task 1 — Define the IPC contract (do this first)**
+**Task 1 — Storage service IPC (blackhand-storage)**
 
-Before writing any service code, document every JSON command for storage and modem in a shared file. Both you and the other engineer agree on the exact request/response format. This prevents the UI from being built against one format while the service implements another.
+The service listens on `/run/bh-storage.sock` but drops all connections. Since the UI's notes, alarm, voice memo, and settings services read/write files directly (no IPC needed for local data), the storage service is mainly needed for data that must be shared between processes or queried remotely. Define what commands it needs to expose and implement the dispatch table.
 
-Example for storage:
-```json
-// Save a note
-Request:  {"jsonrpc":"2.0","method":"note_save","params":{"title":"...","body":"..."},"id":1}
-Response: {"jsonrpc":"2.0","result":{"id":42},"id":1}
+**Task 2 — Modem service (blackhand-modem)**
 
-// List all notes
-Request:  {"jsonrpc":"2.0","method":"note_list","id":2}
-Response: {"jsonrpc":"2.0","result":[{"id":1,"title":"..."},{"id":2,"title":"..."}],"id":2}
-```
+Three things needed:
+1. Open the modem serial device (`/dev/ttyUSB0` or `/dev/ttyAMA0`), configure baud rate via termios.
+2. AT command layer — `at_parser.c` stub exists. `ATD+number;` dials, `AT+CMGS` sends SMS, responses are `OK` or `ERROR`.
+3. `ipc_dispatch.c` — `handle_call_dial`, `handle_call_hangup`, `handle_sms_send`, `handle_signal_strength`.
 
-**Task 2 — Storage Service**
+**Task 3 — IPC test client in build**
 
-The service already starts and creates its socket. It needs three things:
-
-1. **Database init** — at startup, open (or create) `/data/blackhand.db` using SQLite. Run `CREATE TABLE IF NOT EXISTS` for notes, alarms, contacts, settings. The `IF NOT EXISTS` ensures the tables are only created on first boot, not wiped on every restart.
-
-2. **`ipc_dispatch.c`** — create this file inside `package/blackhand-storage/src/`. Follow the exact same pattern as `blackhand-audio/src/ipc_dispatch.c`. One handler per IPC method. Each handler parses the JSON params, runs a SQLite query, and sends back a JSON result.
-
-3. **SQLite queries** — each handler calls the sqlite3 C API. The basic pattern:
-   ```c
-   sqlite3_stmt *stmt;
-   sqlite3_prepare_v2(db, "INSERT INTO notes (title, body) VALUES (?,?)", -1, &stmt, NULL);
-   sqlite3_bind_text(stmt, 1, title, -1, SQLITE_STATIC);
-   sqlite3_bind_text(stmt, 2, body,  -1, SQLITE_STATIC);
-   sqlite3_step(stmt);
-   sqlite3_finalize(stmt);
-   ```
-
-**Task 3 — Modem Service**
-
-Similar to storage but talks to hardware. Three things:
-
-1. **Serial port setup** — open the modem's serial device (likely `/dev/ttyUSB0` for a USB modem or `/dev/ttyAMA0` for the Pi's UART). Configure baud rate, parity, stop bits using the `termios` API.
-
-2. **AT command layer** — the `at_parser.c` stub already exists. AT commands are text strings sent over the serial port. `ATD+1234567890;` dials a number. `AT+CMGS="+1234567890"` sends an SMS. The modem responds with `OK` or `ERROR`.
-
-3. **`ipc_dispatch.c`** — same pattern. `handle_call_dial` sends the AT dial command. `handle_sms_send` sends the SMS AT command.
-
-**Task 4 — IPC Test Client in Build**
-
-Add `ipc_test_client.c` to the `blackhand-ipc` Makefile so it is compiled and installed to `/usr/bin/ipc_test_client` on the device. Useful for testing any service directly from an SSH session without needing the UI.
+Add `ipc_test_client.c` to the blackhand-ipc Makefile so it is compiled and installed to `/usr/bin/ipc_test_client` on the device automatically with every build.
 
 ---
 
 ### Future Phases
 
-After the above is complete, the system will be fully functional. Future work:
-
-- **Contacts screen** — storage service needs a contacts table, UI needs a contacts screen
-- **Audio for calls** — modem uses its own audio path (not ALSA). When a call connects, the modem streams audio over its serial connection. This needs a separate handler.
-- **Voice memos** — audio capture via ALSA (recording, not just playback). `snd_pcm_open(..., SND_PCM_STREAM_CAPTURE, ...)`.
-- **Bluetooth** — the `blackhand-stt` (speech-to-text) package exists but is a stub. Bluetooth keyboard input for text entry.
-- **PIN lock screen** — `pin_service.c` exists in the UI package. Needs to be wired to boot sequence.
-- **OTA updates** — mechanism to pull a new sdcard.img over the network and reflash.
+- **Contacts** — storage service needs a contacts JSON file, UI screen exists as stub
+- **Call audio** — modem streams audio over its own path, separate from ALSA
+- **Bluetooth audio** — route audio output to paired headphones/speakers
+- **PIN lock screen on boot** — prompt for PIN before showing home screen
+- **OTA updates** — pull new image over network and reflash
+- **Shuffle / loop for music** — optional, defined in spec as future addition
