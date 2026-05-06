@@ -24,7 +24,6 @@ CFLAGS ?= -O2 -Wall -Wextra -fPIC
 # compiles its own ipc_dispatch.c with its own handler table. The library
 # only provides the transport layer: framing, send/recv, and cJSON.
 SRCS = ipc.c \
-       ipc_framing.c \
        cJSON.c
 
 # derive object file list from source list

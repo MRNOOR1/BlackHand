@@ -9,7 +9,8 @@
  *   ping    — returns "pong", used to check the service is alive
  *   echo    — returns a test string, used during development
  *   play    — starts playing a WAV file (params: { "file": "/path/to.wav" })
- *   pause   — stops current playback
+ *   pause   — pauses current playback (can resume with play)
+ *   stop    — stops current playback and clears state
  *   volume  — sets master volume (params: { "volume": 0-100 })
  *   status  — returns { "playing": bool, "volume": int }
  */
@@ -27,6 +28,7 @@ static void handle_ping(int fd, cJSON *req);
 static void handle_echo(int fd, cJSON *req);
 static void handle_play(int fd, cJSON *req);
 static void handle_pause(int fd, cJSON *req);
+static void handle_stop(int fd, cJSON *req);
 static void handle_volume(int fd, cJSON *req);
 static void handle_status(int fd, cJSON *req);
 
@@ -41,6 +43,7 @@ static struct handler table[] = {
     {"echo",   handle_echo},
     {"play",   handle_play},
     {"pause",  handle_pause},
+    {"stop",   handle_stop},
     {"volume", handle_volume},
     {"status", handle_status},
     {NULL, NULL}
@@ -179,6 +182,12 @@ static void handle_play(int fd, cJSON *req)
 }
 
 static void handle_pause(int fd, cJSON *req)
+{
+    audio_stop();
+    send_result(fd, req, "ok");
+}
+
+static void handle_stop(int fd, cJSON *req)
 {
     audio_stop();
     send_result(fd, req, "ok");

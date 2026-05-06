@@ -1,7 +1,6 @@
-#ifndef IPC_FRAMING_H
-#define IPC_FRAMING_H
-
-int send_msg(int fd, const char *msg);
-int recv_msg(int fd, char *buffer, int buffer_size);
-
-#endif
+/*
+ * ipc_framing.h — compatibility shim.
+ * send_msg and recv_msg are now declared in ipc.h.
+ */
+#pragma once
+#include "ipc.h"

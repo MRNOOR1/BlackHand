@@ -13,7 +13,7 @@
 static Note **notes_index = NULL;
 static size_t notes_count = 0;
 static size_t notes_capacity = 0;
-static const char *NOTES_PATH = "./Notes";
+static const char *NOTES_PATH = "/data/notes";
 
 static int ensure_capacity(void)
 {
@@ -39,15 +39,19 @@ static void insert_at_front(Note *note)
 /* Extract display title from filename by removing .md extension */
 static char *title_from_filename(const char *filename)
 {
-	if (!filename) return strdup("Untitled");
+	if (!filename)
+		return strdup("Untitled");
 	char *copy = strdup(filename);
-	if (!copy) return strdup("Untitled");
+	if (!copy)
+		return strdup("Untitled");
 	char *dot = strrchr(copy, '.');
 	if (dot && strcmp(dot, ".md") == 0)
 		*dot = '\0';
 	/* Replace underscores with spaces for display */
-	for (char *p = copy; *p; p++) {
-		if (*p == '_') *p = ' ';
+	for (char *p = copy; *p; p++)
+	{
+		if (*p == '_')
+			*p = ' ';
 	}
 	return copy;
 }
@@ -55,34 +59,43 @@ static char *title_from_filename(const char *filename)
 /* Create a safe filename from a title string */
 static void make_safe_filename(const char *title, char *out, size_t out_size)
 {
-	if (!title || !out || out_size < 8) {
-		if (out && out_size > 0) out[0] = '\0';
+	if (!title || !out || out_size < 8)
+	{
+		if (out && out_size > 0)
+			out[0] = '\0';
 		return;
 	}
 
 	size_t j = 0;
 	int last_underscore = 0;
-	for (size_t i = 0; title[i] != '\0' && j + 5 < out_size; i++) {
+	for (size_t i = 0; title[i] != '\0' && j + 5 < out_size; i++)
+	{
 		unsigned char ch = (unsigned char)title[i];
-		if (isalnum(ch)) {
+		if (isalnum(ch))
+		{
 			out[j++] = (char)ch;
 			last_underscore = 0;
-		} else if (ch == ' ' || ch == '-' || ch == '_') {
-			if (!last_underscore && j > 0) {
+		}
+		else if (ch == ' ' || ch == '-' || ch == '_')
+		{
+			if (!last_underscore && j > 0)
+			{
 				out[j++] = '_';
 				last_underscore = 1;
 			}
 		}
 	}
-	while (j > 0 && out[j - 1] == '_') j--;
-	if (j == 0) {
+	while (j > 0 && out[j - 1] == '_')
+		j--;
+	if (j == 0)
+	{
 		/* fallback to timestamp */
 		time_t now = time(NULL);
 		struct tm tm_now;
 		localtime_r(&now, &tm_now);
 		j = (size_t)snprintf(out, out_size, "note_%04d%02d%02d_%02d%02d%02d",
-		                      tm_now.tm_year + 1900, tm_now.tm_mon + 1, tm_now.tm_mday,
-		                      tm_now.tm_hour, tm_now.tm_min, tm_now.tm_sec);
+							 tm_now.tm_year + 1900, tm_now.tm_mon + 1, tm_now.tm_mday,
+							 tm_now.tm_hour, tm_now.tm_min, tm_now.tm_sec);
 	}
 	out[j] = '\0';
 	/* Append .md */
@@ -107,21 +120,25 @@ void notes_service_init(void)
 	notes_capacity = INITIAL_NOTES_CAPACITY;
 
 	struct stat st = {0};
-	if (stat(NOTES_PATH, &st) == -1) {
-		if (mkdir(NOTES_PATH, 0755) != 0) {
+	if (stat(NOTES_PATH, &st) == -1)
+	{
+		if (mkdir(NOTES_PATH, 0755) != 0)
+		{
 			perror("Failed to create notes directory");
 			return;
 		}
 	}
 
 	DIR *dir = opendir(NOTES_PATH);
-	if (!dir) {
+	if (!dir)
+	{
 		perror("Could not open notes directory");
 		return;
 	}
 
 	struct dirent *entry;
-	while ((entry = readdir(dir)) != NULL) {
+	while ((entry = readdir(dir)) != NULL)
+	{
 		if (entry->d_name[0] == '.')
 			continue;
 		const char *ext = strrchr(entry->d_name, '.');
@@ -132,7 +149,8 @@ void notes_service_init(void)
 		snprintf(filepath, sizeof(filepath), "%s/%s", NOTES_PATH, entry->d_name);
 
 		FILE *f = fopen(filepath, "r");
-		if (!f) continue;
+		if (!f)
+			continue;
 
 		/* Get file size */
 		fseek(f, 0, SEEK_END);
@@ -140,27 +158,38 @@ void notes_service_init(void)
 		fseek(f, 0, SEEK_SET);
 
 		Note *new_note = malloc(sizeof(Note));
-		if (!new_note) { fclose(f); continue; }
+		if (!new_note)
+		{
+			fclose(f);
+			continue;
+		}
 
 		new_note->filename = strdup(entry->d_name);
 		new_note->title = title_from_filename(entry->d_name);
 
 		/* Read entire file as content (no metadata header) */
-		if (file_size > 0) {
+		if (file_size > 0)
+		{
 			new_note->content = malloc((size_t)file_size + 1);
-			if (new_note->content) {
+			if (new_note->content)
+			{
 				size_t read_bytes = fread(new_note->content, 1, (size_t)file_size, f);
 				new_note->content[read_bytes] = '\0';
-			} else {
+			}
+			else
+			{
 				new_note->content = strdup("");
 			}
-		} else {
+		}
+		else
+		{
 			new_note->content = strdup("");
 		}
 
 		fclose(f);
 
-		if (ensure_capacity() != 0) {
+		if (ensure_capacity() != 0)
+		{
 			free(new_note->filename);
 			free(new_note->title);
 			free(new_note->content);
@@ -176,7 +205,8 @@ void notes_service_init(void)
 Note *notes_service_create(const char *title, const char *content)
 {
 	Note *new_note = malloc(sizeof(Note));
-	if (!new_note) return NULL;
+	if (!new_note)
+		return NULL;
 
 	const char *use_title = (title && title[0] != '\0') ? title : "Untitled";
 
@@ -186,15 +216,19 @@ Note *notes_service_create(const char *title, const char *content)
 	/* Handle duplicates: append _N if file exists */
 	char filepath[1024];
 	snprintf(filepath, sizeof(filepath), "%s/%s", NOTES_PATH, filename);
-	if (path_exists(filepath)) {
+	if (path_exists(filepath))
+	{
 		char base[256];
 		snprintf(base, sizeof(base), "%s", filename);
 		char *dot = strrchr(base, '.');
-		if (dot) *dot = '\0';
-		for (int suffix = 1; suffix < 1000; suffix++) {
+		if (dot)
+			*dot = '\0';
+		for (int suffix = 1; suffix < 1000; suffix++)
+		{
 			snprintf(filename, sizeof(filename), "%s_%d.md", base, suffix);
 			snprintf(filepath, sizeof(filepath), "%s/%s", NOTES_PATH, filename);
-			if (!path_exists(filepath)) break;
+			if (!path_exists(filepath))
+				break;
 		}
 	}
 
@@ -202,7 +236,8 @@ Note *notes_service_create(const char *title, const char *content)
 	new_note->title = title_from_filename(filename);
 	new_note->content = strdup(content ? content : "");
 
-	if (ensure_capacity() != 0) {
+	if (ensure_capacity() != 0)
+	{
 		free(new_note->filename);
 		free(new_note->title);
 		free(new_note->content);
@@ -214,7 +249,8 @@ Note *notes_service_create(const char *title, const char *content)
 	/* Write content-only file */
 	snprintf(filepath, sizeof(filepath), "%s/%s", NOTES_PATH, new_note->filename);
 	FILE *f = fopen(filepath, "w");
-	if (f) {
+	if (f)
+	{
 		fprintf(f, "%s", new_note->content);
 		fclose(f);
 	}
@@ -229,7 +265,8 @@ size_t notes_service_note_count(void)
 
 Note **notes_service_list_all(size_t *out_count)
 {
-	if (out_count) *out_count = notes_count;
+	if (out_count)
+		*out_count = notes_count;
 	return notes_index;
 }
 
@@ -237,9 +274,11 @@ int notes_service_delete_note(const Note *n)
 {
 	if (!n || notes_count == 0)
 		return 1;
-	for (size_t i = 0; i < notes_count; i++) {
+	for (size_t i = 0; i < notes_count; i++)
+	{
 		Note *note = notes_index[i];
-		if (strcmp(note->filename, n->filename) == 0) {
+		if (strcmp(note->filename, n->filename) == 0)
+		{
 			char filepath[1024];
 			snprintf(filepath, sizeof(filepath), "%s/%s", NOTES_PATH, note->filename);
 			remove(filepath);
@@ -263,16 +302,20 @@ int notes_service_update_note(Note *n)
 	if (!n || notes_count == 0)
 		return 1;
 
-	for (size_t i = 0; i < notes_count; i++) {
+	for (size_t i = 0; i < notes_count; i++)
+	{
 		Note *note = notes_index[i];
-		if (strcmp(note->filename, n->filename) == 0) {
-			if (n != note) {
+		if (strcmp(note->filename, n->filename) == 0)
+		{
+			if (n != note)
+			{
 				free(note->content);
 				note->content = strdup(n->content ? n->content : "");
 			}
 
 			/* Move to front (most recently modified) */
-			if (i != 0) {
+			if (i != 0)
+			{
 				Note *tmp = note;
 				for (size_t j = i; j > 0; j--)
 					notes_index[j] = notes_index[j - 1];
@@ -283,7 +326,8 @@ int notes_service_update_note(Note *n)
 			char filepath[1024];
 			snprintf(filepath, sizeof(filepath), "%s/%s", NOTES_PATH, note->filename);
 			FILE *f = fopen(filepath, "w");
-			if (f) {
+			if (f)
+			{
 				fprintf(f, "%s", note->content);
 				fclose(f);
 			}
@@ -300,21 +344,25 @@ int notes_service_rename_note(Note *n, const char *new_title)
 
 	/* Find the note in our index */
 	int found = 0;
-	for (size_t i = 0; i < notes_count; i++) {
-		if (notes_index[i] == n || strcmp(notes_index[i]->filename, n->filename) == 0) {
+	for (size_t i = 0; i < notes_count; i++)
+	{
+		if (notes_index[i] == n || strcmp(notes_index[i]->filename, n->filename) == 0)
+		{
 			n = notes_index[i];
 			found = 1;
 			break;
 		}
 	}
-	if (!found) return -1;
+	if (!found)
+		return -1;
 
 	/* Build new filename from title */
 	char new_filename[256];
 	make_safe_filename(new_title, new_filename, sizeof(new_filename));
 
 	/* If same filename, just update the display title */
-	if (strcmp(n->filename, new_filename) == 0) {
+	if (strcmp(n->filename, new_filename) == 0)
+	{
 		free(n->title);
 		n->title = title_from_filename(new_filename);
 		return 0;
@@ -323,15 +371,19 @@ int notes_service_rename_note(Note *n, const char *new_title)
 	/* Handle duplicate filenames */
 	char filepath[1024];
 	snprintf(filepath, sizeof(filepath), "%s/%s", NOTES_PATH, new_filename);
-	if (path_exists(filepath)) {
+	if (path_exists(filepath))
+	{
 		char base[256];
 		snprintf(base, sizeof(base), "%s", new_filename);
 		char *dot = strrchr(base, '.');
-		if (dot) *dot = '\0';
-		for (int suffix = 1; suffix < 1000; suffix++) {
+		if (dot)
+			*dot = '\0';
+		for (int suffix = 1; suffix < 1000; suffix++)
+		{
 			snprintf(new_filename, sizeof(new_filename), "%s_%d.md", base, suffix);
 			snprintf(filepath, sizeof(filepath), "%s/%s", NOTES_PATH, new_filename);
-			if (!path_exists(filepath)) break;
+			if (!path_exists(filepath))
+				break;
 		}
 	}
 
@@ -356,9 +408,11 @@ void notes_service_shutdown(void)
 {
 	if (!notes_index)
 		return;
-	for (size_t i = 0; i < notes_count; i++) {
+	for (size_t i = 0; i < notes_count; i++)
+	{
 		Note *n = notes_index[i];
-		if (!n) continue;
+		if (!n)
+			continue;
 		free(n->filename);
 		free(n->title);
 		free(n->content);

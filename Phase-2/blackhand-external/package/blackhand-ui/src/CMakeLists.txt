@@ -32,6 +32,7 @@ add_executable(blackhand-ui
   services/multitap_service.c
   services/pin_service.c
   services/bluetooth_service.c
+  ui-ipcs/audio_ipc.c
 )
 
 target_include_directories(blackhand-ui PRIVATE
@@ -39,6 +40,7 @@ target_include_directories(blackhand-ui PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/platform
   ${CMAKE_CURRENT_SOURCE_DIR}/screens
   ${CMAKE_CURRENT_SOURCE_DIR}/services
+  ${CMAKE_CURRENT_SOURCE_DIR}/ui-ipcs
 )
 
 target_compile_definitions(blackhand-ui PRIVATE
@@ -88,6 +90,27 @@ find_library(OUT123_LIBRARY
     "${CMAKE_SYSROOT}/usr/lib"
     "${CMAKE_FIND_ROOT_PATH}/usr/lib"
 )
+find_path(BLACKHAND_IPC_INCLUDE_DIR
+  NAMES blackhand/ipc.h
+  HINTS
+    "${CMAKE_SYSROOT}/usr/include"
+    "${CMAKE_FIND_ROOT_PATH}/usr/include"
+)
+find_library(BLACKHAND_IPC_LIBRARY
+  NAMES blackhand-ipc
+  HINTS
+    "${CMAKE_SYSROOT}/usr/lib"
+    "${CMAKE_FIND_ROOT_PATH}/usr/lib"
+)
+
+if(NOT BLACKHAND_IPC_INCLUDE_DIR)
+  message(FATAL_ERROR "blackhand-ipc headers not found — build blackhand-ipc first")
+endif()
+if(NOT BLACKHAND_IPC_LIBRARY)
+  message(FATAL_ERROR "libblackhand-ipc.a not found — build blackhand-ipc first")
+endif()
+
+target_include_directories(blackhand-ui PRIVATE "${BLACKHAND_IPC_INCLUDE_DIR}/blackhand")
 
 if(NOT MPG123_LIBRARY)
   message(FATAL_ERROR "libmpg123 not found")
@@ -99,6 +122,7 @@ endif()
 find_package(Threads REQUIRED)
 
 set(BLACKHAND_UI_LINK_LIBS
+  "${BLACKHAND_IPC_LIBRARY}"
   "${MPG123_LIBRARY}"
   "${OUT123_LIBRARY}"
   Threads::Threads

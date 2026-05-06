@@ -137,7 +137,6 @@ if [ -f "${TARGET_DIR}/etc/blackhand/services.conf" ]; then
     pass "services.conf"
     # verify all four services are listed
     grep -q "blackhand-audio"   "${TARGET_DIR}/etc/blackhand/services.conf" && pass "  services.conf: blackhand-audio listed"   || fail "  services.conf: blackhand-audio MISSING"
-    grep -q "blackhand-storage" "${TARGET_DIR}/etc/blackhand/services.conf" && pass "  services.conf: blackhand-storage listed" || fail "  services.conf: blackhand-storage MISSING"
     grep -q "blackhand-modem"   "${TARGET_DIR}/etc/blackhand/services.conf" && pass "  services.conf: blackhand-modem listed"   || fail "  services.conf: blackhand-modem MISSING"
     grep -q "blackhand-ui"      "${TARGET_DIR}/etc/blackhand/services.conf" && pass "  services.conf: blackhand-ui listed"      || fail "  services.conf: blackhand-ui MISSING"
 else

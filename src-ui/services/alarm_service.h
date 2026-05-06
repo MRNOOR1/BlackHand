@@ -32,6 +32,7 @@ int alarm_service_set_time(const char *id, int hour, int minute);
 int alarm_service_set_label(const char *id, const char *label);
 int alarm_service_set_repeat(const char *id, alarm_repeat_t repeat);
 int alarm_service_delete(const char *id);
+void alarm_service_tick(void);
 void alarm_service_shutdown(void);
 
 #endif
