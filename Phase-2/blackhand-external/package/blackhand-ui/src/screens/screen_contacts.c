@@ -172,9 +172,11 @@ void screen_contacts_draw(struct ncplane *phone) {
         put_clipped(phone, card_top + 3, CONTENT_COL + 2, width - 4, "Phone:");
         put_clipped(phone, card_top + 3, CONTENT_COL + 9, width - 11, number);
 
-        ghost_text(phone, card_top + 4, CONTENT_COL + 2, theme_text_muted(),
+        ghost_text(phone, card_top + 4, CONTENT_COL + 2,
+                   s_action == 0 ? theme_text_primary() : theme_text_muted(),
                    s_action == 0 ? "> CALL" : "  CALL");
-        ghost_text(phone, card_top + 5, CONTENT_COL + 2, theme_text_muted(),
+        ghost_text(phone, card_top + 5, CONTENT_COL + 2,
+                   s_action == 1 ? theme_text_primary() : theme_text_muted(),
                    s_action == 1 ? "> MESSAGE" : "  MESSAGE");
 
         ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(), "Up/Down:Action  Enter:Send");

@@ -306,7 +306,7 @@ void screen_home_draw(struct ncplane *phone) {
             int h = 6;
             int top = ((int)rows - h) / 2;
             int left = ((int)cols - w) / 2;
-            if (top < 3) top = 3;
+            if (top < CONTENT_START_ROW) top = CONTENT_START_ROW;
             if (left < 1) left = 1;
             ghost_fill_rect(phone, top, left, h, w, ' ', theme_text_primary(), theme_bg());
             ghost_text(phone, top + 1, left + 2, theme_text_primary(), "ENTER PIN");
@@ -343,7 +343,16 @@ void screen_home_draw(struct ncplane *phone) {
      *       printf("%d\n", i);  // Prints 0, 1, 2, ..., 9
      *   }
      */
-    ghost_text(phone, CONTENT_START_ROW, CONTENT_COL, theme_text_muted(), "MODE: READY");
+    int width = INNER_WIDTH(cols);
+
+    ghost_text(phone, CONTENT_START_ROW, CONTENT_COL, theme_text_primary(), "BH-OPS");
+
+    /* Content rule under title */
+    ncplane_set_fg_rgb(phone, theme_border());
+    ncplane_set_bg_rgb(phone, theme_bg());
+    const char *rule = theme_rule_glyph();
+    for (int x = 0; x < width && CONTENT_COL + x < (int)cols - 1; x++)
+        ncplane_putstr_yx(phone, CONTENT_START_ROW + 1, CONTENT_COL + x, (rule && rule[0]) ? rule : "-");
 
     for (int i = 0; i < item_count; i++) {
         /*

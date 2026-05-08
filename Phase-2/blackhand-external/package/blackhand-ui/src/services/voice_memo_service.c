@@ -219,6 +219,18 @@ static int path_exists(const char *p) {
     return access(p, F_OK) == 0;
 }
 
+static int cmd_exists(const char *cmd) {
+    static const char *dirs[] = {
+        "/usr/bin/", "/bin/", "/usr/sbin/", "/sbin/", NULL
+    };
+    char full[256];
+    for (int i = 0; dirs[i]; i++) {
+        snprintf(full, sizeof(full), "%s%s", dirs[i], cmd);
+        if (access(full, X_OK) == 0) return 1;
+    }
+    return 0;
+}
+
 static int spawn_arecord(const char *out_path)
 {
 	pid_t pid = fork();
@@ -227,8 +239,8 @@ static int spawn_arecord(const char *out_path)
 	if (pid == 0)
 	{
 		if (settings_service_get_bool("aux_input"))
-			execlp("arecord", "arecord", "-q", "-D", "hw:1,0", "-f", "S16_LE", "-c", "1", "-r", "16000", out_path, (char *)NULL);
-		execlp("arecord", "arecord", "-q", "-f", "S16_LE", "-c", "1", "-r", "16000", out_path, (char *)NULL);
+			execlp("arecord", "arecord", "-q", "-t", "wav", "-D", "hw:1,0", "-f", "S16_LE", "-c", "1", "-r", "16000", out_path, (char *)NULL);
+		execlp("arecord", "arecord", "-q", "-t", "wav", "-f", "S16_LE", "-c", "1", "-r", "16000", out_path, (char *)NULL);
 		_exit(127);
 	}
 	io_pid = pid;
@@ -280,8 +292,8 @@ void voice_memo_service_init(void)
 	io_paused = 0;
 	elapsed_before_pause_ms = 0;
 	active_started_ms = 0;
-	backend_record_supported = (access("/usr/bin/arecord", X_OK) == 0 || access("/bin/arecord", X_OK) == 0);
-	backend_play_supported = (access("/usr/bin/aplay", X_OK) == 0 || access("/bin/aplay", X_OK) == 0);
+	backend_record_supported = cmd_exists("arecord");
+	backend_play_supported   = cmd_exists("aplay");
 
 	struct stat st = {0};
 	if (stat(VOICE_MEMO_PATH, &st) == -1)

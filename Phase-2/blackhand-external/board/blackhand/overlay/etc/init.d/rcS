@@ -8,11 +8,19 @@ mkdir -p /dev/pts /dev/shm
 mount -t devpts devpts /dev/pts -o gid=5,mode=620 2>/dev/null || true
 mount -t tmpfs tmpfs /dev/shm 2>/dev/null || true
 
-# Network FIRST (so SSH works for debugging)
+# Display init FIRST — before anything that can block (networking, udhcpc)
+if [ -x /usr/bin/hyperpixel4-init ]; then
+    /usr/bin/hyperpixel4-init
+fi
+
+# Disable console blanking on tty1 so the screen stays lit without keyboard input
+printf "\033[9;0]" > /dev/tty1 2>/dev/null || true
+
+# Network — background udhcpc so it never blocks boot
 /sbin/ifconfig lo 127.0.0.1 up
 /sbin/ifconfig eth0 up 2>/dev/null
 if [ -x /sbin/udhcpc ]; then
-    /sbin/udhcpc -i eth0 -t 5 -A 3 -q
+    /sbin/udhcpc -i eth0 -t 5 -A 3 -b -q 2>/dev/null &
 fi
 
 # SSH (start immediately)
@@ -21,19 +29,20 @@ if [ -x /usr/sbin/dropbear ]; then
     /usr/sbin/dropbear -R
 fi
 
-# Display init — must run before anything else tries to use the screen
-if [ -x /usr/bin/hyperpixel4-init ]; then
-    /usr/bin/hyperpixel4-init
-fi
-
 # Now do slower things...
 mkdir -p /data /boot
+mkdir -p /data/notes /data/alarms /data/contacts /data/music /data/voice-memos
 
 # Mount boot partition
 mount -t vfat /dev/mmcblk0p1 /boot 2>/dev/null || true
 
 # Load audio
 modprobe snd_bcm2835 2>/dev/null || true
+
+# Route BCM2835 audio to headphone jack (1=headphone, 2=HDMI, 0=auto)
+amixer -q cset numid=3 1 2>/dev/null || true
+# Set headphone volume to max
+amixer -q set PCM 100% 2>/dev/null || true
 
 echo ">>> Black Hand OS ready"
 echo "fb0: $(cat /sys/class/graphics/fb0/virtual_size 2>/dev/null || echo 'not found')"

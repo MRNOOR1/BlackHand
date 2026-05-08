@@ -132,7 +132,7 @@ static void draw_name_prompt(struct ncplane *phone, unsigned rows, unsigned cols
     int h = 7;
     int top = ((int)rows - h) / 2;
     int left = ((int)cols - w) / 2;
-    if (top < 3) top = 3;
+    if (top < CONTENT_START_ROW) top = CONTENT_START_ROW;
     if (left < 1) left = 1;
 
     ghost_fill_rect(phone, top, left, h, w, ' ', theme_text_primary(), theme_bg());

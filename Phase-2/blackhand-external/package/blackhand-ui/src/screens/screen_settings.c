@@ -293,7 +293,7 @@ static void draw_info(struct ncplane *phone) {
     int row = CONTENT_START_ROW + 3;
     ghost_label_value(phone, row,     CONTENT_COL, CONTENT_COL + 12, "MODEL", "BlackHand OS");
     ghost_label_value(phone, row + 1, CONTENT_COL, CONTENT_COL + 12, "VERSION", "Phase 2.0");
-    ghost_label_value(phone, row + 2, CONTENT_COL, CONTENT_COL + 12, "PLATFORM", "RPi5");
+    ghost_label_value(phone, row + 2, CONTENT_COL, CONTENT_COL + 12, "PLATFORM", "RPi4");
     ghost_label_value(phone, row + 3, CONTENT_COL, CONTENT_COL + 12, "DISPLAY", "HyperPixel 4");
 
     ghost_softkeys(phone, "[Back]", "");
@@ -308,7 +308,7 @@ static void draw_pin_entry(struct ncplane *phone) {
     int h = 7;
     int top = ((int)rows - h) / 2;
     int left = ((int)cols - w) / 2;
-    if (top < 3) top = 3;
+    if (top < CONTENT_START_ROW) top = CONTENT_START_ROW;
     if (left < 1) left = 1;
 
     ghost_fill_rect(phone, top, left, h, w, ' ', theme_text_primary(), theme_bg());

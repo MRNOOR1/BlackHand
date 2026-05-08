@@ -262,107 +262,105 @@ static void draw_tracks(struct ncplane *phone, unsigned rows, unsigned cols) {
     ghost_softkeys(phone, "[Back]", "[Menu]");
 }
 
-/* ── Draw: Now Playing ───────────────────────────────────────────────── */
 static void draw_now_playing(struct ncplane *phone, unsigned rows, unsigned cols) {
     mp3_playback_state st = mp3_service_get_state();
     if (st == MP3_STOPPED) {
-        /* If playback stopped, return to track list */
-        if (playing_direct)
-            mode = MP3_MODE_COLLECTIONS;
-        else
-            mode = MP3_MODE_TRACKS;
+        mode = playing_direct ? MP3_MODE_COLLECTIONS : MP3_MODE_TRACKS;
         return;
     }
 
     unsigned elapsed = mp3_service_get_elapsed();
-    unsigned total = mp3_service_get_total_duration();
+    unsigned total   = mp3_service_get_total_duration();
     int footer = (int)rows - FOOTER_ROW_OFFSET;
-    int width = INNER_WIDTH(cols);
+    int width  = INNER_WIDTH(cols);
 
     /* Header */
     ncplane_set_fg_rgb(phone, theme_text_primary());
     ncplane_set_bg_rgb(phone, theme_bg());
     ncplane_putstr_yx(phone, CONTENT_START_ROW, CONTENT_COL, "NOW PLAYING");
 
-    ncplane_set_fg_rgb(phone, theme_text_muted());
+    ncplane_set_fg_rgb(phone, theme_border());
     const char *rule = theme_rule_glyph();
     for (int x = 0; x < width && CONTENT_COL + x < (int)cols - 1; x++)
-        ncplane_putstr_yx(phone, CONTENT_START_ROW + 1, CONTENT_COL + x, (rule && rule[0]) ? rule : "-");
+        ncplane_putstr_yx(phone, CONTENT_START_ROW + 1, CONTENT_COL + x,
+                          (rule && rule[0]) ? rule : "-");
 
-    int info_row = CONTENT_START_ROW + 3;
+    /* Info block — each item increments r */
+    int r = CONTENT_START_ROW + 2;
 
-    /* Play/pause icon + state */
-    const char *state_str = (st == MP3_PLAYING) ? "PLAYING" : "PAUSED";
-    const char *icon = (st == MP3_PLAYING) ? "\u25B6" : "\u258C\u258C";
-    char status_line[128];
-    unsigned mins = elapsed / 60;
-    unsigned secs = elapsed % 60;
-    unsigned tmins = total / 60;
-    unsigned tsecs = total % 60;
-    snprintf(status_line, sizeof(status_line), "%s  %s  %02u:%02u / %02u:%02u",
-             icon, state_str, mins, secs, tmins, tsecs);
-    ghost_text(phone, info_row, CONTENT_COL, theme_text_primary(), status_line);
+    /* State icon + elapsed / total time */
+    const char *icon = (st == MP3_PLAYING) ? "▶" : "▌▌";
+    char time_str[32];
+    snprintf(time_str, sizeof(time_str), "%s  %02u:%02u / %02u:%02u",
+             icon, elapsed / 60, elapsed % 60, total / 60, total % 60);
+    ghost_text(phone, r++, CONTENT_COL, theme_text_primary(), time_str);
+
+    /* Track position in playlist */
+    {
+        size_t track_total = playing_direct
+            ? mp3_service_category_count()
+            : mp3_service_track_count((size_t)sel_cat, (size_t)sel_col);
+        if (track_total > 0 && r < footer - 5) {
+            char pos_str[24];
+            snprintf(pos_str, sizeof(pos_str), "Track %d / %zu",
+                     sel_track + 1, track_total);
+            ghost_text(phone, r, CONTENT_COL, theme_text_muted(), pos_str);
+        }
+        r++;
+    }
 
     /* Track name */
-    const char *track = mp3_service_current_track_name();
-    ncplane_set_fg_rgb(phone, theme_text_primary());
-    put_clipped(phone, info_row + 2, CONTENT_COL, width, track ? track : "Unknown");
-
-    /* Collection name */
-    const char *collection = mp3_service_current_collection_name();
-    if (collection && collection[0] != '\0') {
-        ncplane_set_fg_rgb(phone, theme_text_muted());
-        put_clipped(phone, info_row + 3, CONTENT_COL, width, collection);
+    const char *track_name = mp3_service_current_track_name();
+    if (r < footer - 4) {
+        ncplane_set_fg_rgb(phone, theme_text_primary());
+        ncplane_set_bg_rgb(phone, theme_bg());
+        put_clipped(phone, r++, CONTENT_COL, width, track_name ? track_name : "Unknown");
     }
 
-    /* Category name */
+    /* Collection / category */
+    const char *collection = mp3_service_current_collection_name();
+    if (collection && collection[0] != '\0' && r < footer - 3)
+        ghost_text(phone, r++, CONTENT_COL, theme_text_muted(), collection);
+
     const char *category = mp3_service_current_category_name();
-    ncplane_set_fg_rgb(phone, theme_text_muted());
-    put_clipped(phone, info_row + 4, CONTENT_COL, width, category ? category : "");
+    if (category && category[0] != '\0' && r < footer - 3)
+        ghost_text(phone, r++, CONTENT_COL, theme_text_muted(), category);
 
     /* Progress bar */
-    int bar_row = info_row + 6;
-    if (bar_row < footer - 3) {
-        int bar_width = width - 2;
-        if (bar_width > 0) {
-            int meter_width = bar_width;
-            if (meter_width < 1) meter_width = 1;
-            int fill = (total > 0) ? (int)((elapsed * meter_width) / total) : 0;
-            if (fill > meter_width) fill = meter_width;
+    int bar_row = r + 1;
+    if (bar_row < footer - 2) {
+        int bar_w = width;
+        if (bar_w < 4) bar_w = 4;
+        int fill = (total > 0)
+            ? (int)((unsigned long)elapsed * (unsigned)bar_w / total) : 0;
+        if (fill > bar_w) fill = bar_w;
+        if (fill < 0)     fill = 0;
 
-            ncplane_set_fg_rgb(phone, theme_text_primary());
-            ncplane_set_bg_rgb(phone, theme_bg());
-            for (int x = 0; x < meter_width; x++)
-                ncplane_putstr_yx(phone, bar_row, CONTENT_COL + x,
-                                  (x < fill) ? "\u2588" : "\u2591");
-        }
+        ncplane_set_fg_rgb(phone, theme_border());
+        ncplane_set_bg_rgb(phone, theme_bg());
+        for (int x = 0; x < bar_w; x++)
+            ncplane_putstr_yx(phone, bar_row, CONTENT_COL + x,
+                              (x < fill) ? "█" : "░");
     }
 
-    /* Volume */
-    int vol_row = bar_row + 2;
+    /* Volume bar */
+    int vol_row = bar_row + 1;
     if (vol_row < footer - 1) {
         int vol = mp3_service_get_volume();
-        char vol_str[32];
-        snprintf(vol_str, sizeof(vol_str), "VOL: %d%%", vol);
-        ghost_text(phone, vol_row, CONTENT_COL, theme_text_muted(), vol_str);
-    }
-
-    /* Visualizer */
-    int viz_row = vol_row + 1;
-    if (viz_row < footer - 1) {
-        unsigned char levels[16] = {0};
-        size_t bins = mp3_service_get_visualizer(levels, 16);
-        if (bins == 0) bins = 16;
-        char meter[64];
+        int vol_bar_w = 10;
+        int vol_fill = vol * vol_bar_w / 100;
+        if (vol_fill > vol_bar_w) vol_fill = vol_bar_w;
+        char vol_buf[48];
         int p = 0;
-        for (int i = 0; i < 10 && p < (int)sizeof(meter) - 2; i++)
-            meter[p++] = (levels[i % bins] >= 4) ? '|' : '.';
-        meter[p] = '\0';
-        ghost_text(phone, viz_row, CONTENT_COL, theme_text_muted(), meter);
+        for (int i = 0; i < vol_bar_w; i++)
+            vol_buf[p++] = (i < vol_fill) ? '#' : '.';
+        snprintf(vol_buf + p, sizeof(vol_buf) - (size_t)p, " %d%%", vol);
+        ghost_text(phone, vol_row, CONTENT_COL, theme_text_muted(), vol_buf);
     }
 
+    /* Controls hint — visible now (ghost_softkeys no longer overwrites row footer-1) */
     ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(),
-               "\u25C0:Prev \u25B6:Next \u25B2\u25BC:Vol");
+               "◄ Prev  ► Next  ▲▼ Vol");
     ghost_softkeys(phone, "[Back]", "[Stop]");
 }
 

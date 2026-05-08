@@ -73,75 +73,20 @@ Nav bar
 #define COL_GHOST_OFF 0x1E1E1E
 #define COL_GHOST_PCT 0x2C2C2C
 #define COL_GHOST_LOW 0x7F1D1D
-#define STATUS_BATTERY_PCT_COL (STATUS_BATTERY_COL + 5)
+
 /* ═══════════════════════════════════════════════════════════════════════════
- *  PHONE DIMENSIONS
+ *  PHONE DIMENSIONS  (HyperPixel 4.0: 480×800 portrait)
  * ═══════════════════════════════════════════════════════════════════════════
  *
- *  These define the size of the "phone" display in terminal characters.
+ *  The TUI fills the full terminal (full-bleed, no border).
+ *  Physical screen: ~35 mm wide × ~45 mm tall.
+ *  At Iosevka 10pt (~8×16 px/cell): ≈60 cols × 50 rows.
  *
- *  TERMINAL CHARACTER SIZES:
- *    - Most terminals use characters about twice as tall as wide
- *    - A 50x15 phone is roughly square visually
- *    - Increase for more content area, decrease for smaller footprint
- *
- *  MINIMUM SIZES:
- *    - PHONE_COLS should be at least 30 for menu items + border
- *    - PHONE_ROWS should be at least 10 for status bar + content + footer
+ *  PHONE_COLS / PHONE_SCREEN_ROWS are kept as soft defaults for reference.
+ *  All draw code reads actual plane dimensions at runtime.
  */
-
-/* ─── HyperPixel 4.0 Display: 400×800 pixels ──────────────────────────── */
-/*
- * At a monospace font of ~10×20 pixels per cell (e.g. Iosevka 10pt):
- *   400 / 10 = 40 columns
- *   800 / 20 = 40 rows
- *
- * The display is split into two zones:
- *   PHONE_SCREEN_ROWS  — the "display" (status, content, softkey footer)
- *   KEYPAD_ROWS         — visual on-screen keypad below the screen
- *
- * Total plane height = PHONE_SCREEN_ROWS + KEYPAD_ROWS
- */
-
-/* Width of the phone plane in terminal columns */
-#define PHONE_COLS 36
-
-/* Height of the screen portion (border + status + content + footer) */
-#define PHONE_SCREEN_ROWS 20
-
-/* Height of the on-screen keypad area below the screen */
-#define KEYPAD_ROWS 16
-
-/* Total height of the combined phone plane */
-#define PHONE_ROWS (PHONE_SCREEN_ROWS + KEYPAD_ROWS)
-
-/* ─── Keypad Layout Constants ──────────────────────────────────────────── */
-/*
- *  Keypad region spans rows PHONE_SCREEN_ROWS .. PHONE_ROWS-1 on the plane.
- *
- *  Visual layout (row offsets relative to PHONE_SCREEN_ROWS):
- *
- *    +0   ┌─ separator ─────────────────────────────────┐
- *    +1   │  [LSK]                            [RSK]     │
- *    +2   │                                             │
- *    +3   │              ▲                              │
- *    +4   │          ◀  [OK]  ▶                         │
- *    +5   │              ▼                              │
- *    +6   │                                             │
- *    +7   │         [ 1 ] [ 2 ] [ 3 ]                   │
- *    +8   │                                             │
- *    +9   │         [ 4 ] [ 5 ] [ 6 ]                   │
- *    +10  │                                             │
- *    +11  │         [ 7 ] [ 8 ] [ 9 ]                   │
- *    +12  │                                             │
- *    +13  │         [ * ] [ 0 ] [ # ]                   │
- *    +14  │                                             │
- *    +15  └─────────────────────────────────────────────┘
- */
-#define KEYPAD_START_ROW    PHONE_SCREEN_ROWS
-#define KEYPAD_SOFTKEY_ROW  (KEYPAD_START_ROW + 1)
-#define KEYPAD_DPAD_ROW     (KEYPAD_START_ROW + 3)
-#define KEYPAD_NUM_ROW      (KEYPAD_START_ROW + 7)
+#define PHONE_COLS        40
+#define PHONE_SCREEN_ROWS 40
 
 /* ═══════════════════════════════════════════════════════════════════════════
  *  COLOR PALETTE
@@ -319,76 +264,74 @@ Nav bar
  *
  * If the plane is smaller than this, we skip drawing to avoid garbled output.
  */
-#define FRAME_MIN_ROWS 3
-#define FRAME_MIN_COLS 10
+#define FRAME_MIN_ROWS 5
+#define FRAME_MIN_COLS 20
 
 /* ─── Status Bar Layout ────────────────────────────────────────────────── */
 
 /*
- * STATUS_ROW - Row where battery and signal are drawn
- *
- * Row 0 is the top border, so row 1 is the first interior row.
- * The status bar is drawn here, with a separator line at row 2.
+ * STATUS_ROW - Row where battery, clock, and signal are drawn.
+ * Row 0 = first row — the TUI is borderless, content fills top-to-bottom.
  */
-#define STATUS_ROW 1
+#define STATUS_ROW 0
 
 /*
- * STATUS_BATTERY_COL - Column where battery icon starts
- * STATUS_SIGNAL_COL  - Column where signal icon starts
- *
- * Battery is on the left (col 2, leaving room for border).
- * Signal is right-anchored dynamically in draw_signal() (cols - 6).
+ * STATUS_BATTERY_COL - Column where battery indicator starts (left side).
  */
-#define STATUS_BATTERY_COL 2
+#define STATUS_BATTERY_COL 1
+
+/* ─── Unified Layout Constants ─────────────────────────────────────────── */
+
+/*
+ * CONTENT_START_ROW - First row of screen content (title, list items, etc.)
+ * Row 0 = status bar
+ * Row 1 = separator line
+ * Row 2 = first content row
+ */
+#define CONTENT_START_ROW 2
+
+/*
+ * CONTENT_COL - Left margin column for all content.
+ */
+#define CONTENT_COL 2
+
+/*
+ * FOOTER_ROW_OFFSET - Distance from bottom for the soft-key area.
+ * ghost_softkeys() draws:
+ *   separator at  rows - FOOTER_ROW_OFFSET        (= rows - 2)
+ *   key labels at rows - FOOTER_ROW_OFFSET + 1    (= rows - 1)
+ * Screens must keep content above rows - FOOTER_ROW_OFFSET - 1 (= rows - 3).
+ */
+#define FOOTER_ROW_OFFSET 2
+
+/*
+ * INNER_WIDTH(cols) - Usable column count inside the left/right margins.
+ */
+#define INNER_WIDTH(cols) ((int)(cols) - 2 * CONTENT_COL)
 
 /* ─── Home Screen Layout ───────────────────────────────────────────────── */
 
 /*
- * HOME_CONTENT_START_ROW - First row of menu items
- *
- * Row 0 = border
- * Row 1 = status bar
- * Row 2 = separator
- * Row 3 = first menu item (START_ROW = 3)
+ * HOME_CONTENT_START_ROW - Row of the content-rule under the home title.
+ * Items start at HOME_CONTENT_START_ROW + 1.
  */
 #define HOME_CONTENT_START_ROW 3
 
 /*
- * HOME_CONTENT_COL - Left column for menu items
- *
- * Column 0 is the border, so content starts at column 2.
+ * HOME_CONTENT_COL - Left column for menu items.
  */
-#define HOME_CONTENT_COL 2
+#define HOME_CONTENT_COL CONTENT_COL
 
 /*
- * HOME_ROW_SPACING - Rows between menu items
- *
- * 1 = items on consecutive rows (dense)
- * 2 = one empty row between items (spacious)
+ * HOME_ROW_SPACING - Rows between menu items (1 = dense, 2 = spacious).
  */
 #define HOME_ROW_SPACING 1
 
 /*
- * HOME_MIN_* - Minimum size to draw the menu
- *
- * Below this, we show "Too small" message instead.
+ * HOME_MIN_* - Minimum plane size to attempt drawing the menu.
  */
-#define HOME_MIN_ROWS 6
+#define HOME_MIN_ROWS 8
 #define HOME_MIN_COLS 20
-
-/* ─── Settings Screen Layout ───────────────────────────────────────────── */
-
-#define SETTINGS_HEADER_ROW 3  /* "Settings" heading row */
-#define SETTINGS_CONTENT_COL 3 /* Left column for content */
-#define SETTINGS_FIRST_ROW 5   /* First setting item row */
-#define SETTINGS_MIN_ROWS 6
-#define SETTINGS_MIN_COLS 20
-
-/* ─── Unified Layout Constants ─────────────────────────────────────────── */
-#define CONTENT_START_ROW 3 /* first row below separator */
-#define CONTENT_COL 3       /* left margin for content */
-#define FOOTER_ROW_OFFSET 2 /* footer is rows - this */
-#define INNER_WIDTH(cols) ((int)(cols) - 2 * CONTENT_COL)
 
 /* ═══════════════════════════════════════════════════════════════════════════
  *  TEXT LABELS

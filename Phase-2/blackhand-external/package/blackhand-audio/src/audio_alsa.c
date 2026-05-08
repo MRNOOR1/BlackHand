@@ -5,6 +5,9 @@
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 /* ALSA handles */
 static snd_pcm_t *pcm_handle = NULL;
@@ -13,12 +16,9 @@ static snd_mixer_elem_t *master_elem = NULL;
 
 /* Playback state */
 static pthread_t play_thread_id = 0;
-static int playback_active = 0;           /* 1 if a thread is playing */
-static volatile int stop_requested = 0;   /* FIX: volatile — compiler must not cache this in a
-                                             register. The playback loop reads it every iteration;
-                                             audio_stop() writes it from the main thread. Without
-                                             volatile the compiler may optimise the loop read away
-                                             and the thread never sees the flag change. */
+static int playback_active = 0;
+static volatile int stop_requested = 0;
+static pid_t mp3_pid = -1;               /* PID of mpg123 subprocess, -1 when idle */
 static pthread_mutex_t state_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* Volume state */
@@ -30,20 +30,29 @@ static int current_volume = 50;       /* default 50% */
 #define FORMAT SND_PCM_FORMAT_S16_LE
 #define PERIOD_FRAMES 1024
 
-/* Helper: convert percent to the correct value in a given range (also called mixer linear value) 
-i.e what is the 75% value in the range from 10 to 85 */
-static long percent_to_mixer_value(int percent, long min, long max) {
-    return min + (percent * (max - min)) / 100;
-}
+/* Helper: update mixer volume from current_volume using dB range.
+ *
+ * BCM2835 ALSA "PCM" control has a dB range of roughly -102 dB to +4 dB.
+ * Mapping percent linearly to raw hardware units puts 50% at -49 dB which
+ * is nearly inaudible. Instead we map percent linearly within a practical
+ * dB window (-30 dB to max), so the full slider is in the audible range.
+ * 0% = true mute (hardware minimum), 1-100% = -30 dB to max dB.
+ */
+#define VOLUME_FLOOR_MB (-3000)   /* -30 dB in millibels — bottom of usable range */
 
-/* Helper: update mixer volume from current_volume */
-/* In other words, Set the hardware specific value that correspond to the master element.*/
 static void apply_volume(void) {
-    if (!master_elem) return; /* if master element doesn't exist terminate*/
-    long min, max;
-    snd_mixer_selem_get_playback_volume_range(master_elem, &min, &max); /* retrieves the hardware’s min and max volume values */
-    long value = percent_to_mixer_value(current_volume, min, max); /* Compute hardware specific value*/
-    snd_mixer_selem_set_playback_volume_all(master_elem, value); /* set the volume */
+    if (!master_elem) return;
+    long min_db, max_db;
+    snd_mixer_selem_get_playback_dB_range(master_elem, &min_db, &max_db);
+
+    long db_value;
+    if (current_volume == 0) {
+        db_value = min_db;  /* true mute */
+    } else {
+        long floor = (min_db > VOLUME_FLOOR_MB) ? min_db : VOLUME_FLOOR_MB;
+        db_value = floor + (long)(current_volume) * (max_db - floor) / 100;
+    }
+    snd_mixer_selem_set_playback_dB_all(master_elem, db_value, 0);
 }
 
 /* Thread function: plays a WAV file */
@@ -192,6 +201,40 @@ static void *playback_thread(void *arg) { /* arg is file path, */
     return NULL;
 }
 
+/* Returns 1 if path ends with .mp3 (case-insensitive) */
+static int is_mp3(const char *path) {
+    const char *ext = strrchr(path, '.');
+    if (!ext) return 0;
+    return (strcmp(ext, ".mp3") == 0 || strcmp(ext, ".MP3") == 0);
+}
+
+/* Thread: forks mpg123 to play an MP3 file, waits for it to finish. */
+static void *mp3_playback_thread(void *arg) {
+    char *path = (char *)arg;
+
+    pid_t pid = fork();
+    if (pid == 0) {
+        /* Child: exec mpg123 quietly on the default ALSA device */
+        execlp("mpg123", "mpg123", "-q", path, NULL);
+        _exit(1);   /* exec failed */
+    } else if (pid > 0) {
+        pthread_mutex_lock(&state_mutex);
+        mp3_pid = pid;
+        pthread_mutex_unlock(&state_mutex);
+
+        int status;
+        waitpid(pid, &status, 0);   /* blocks until mpg123 exits or is killed */
+    }
+    /* else: fork failed — playback_active cleared below */
+
+    free(path);
+    pthread_mutex_lock(&state_mutex);
+    mp3_pid = -1;
+    playback_active = 0;
+    pthread_mutex_unlock(&state_mutex);
+    return NULL;
+}
+
 /* Public functions */
 
 int audio_init(void) {
@@ -302,17 +345,17 @@ void audio_play(const char *path) {
         pthread_mutex_unlock(&state_mutex);
         return;
     }
-    /* Creates a new thread executing playback_thread, passing the duplicated path as argument.
-       FIX: do NOT detach — we need to pthread_join in audio_stop() to guarantee the old
-       thread is fully finished before a new one starts. Without join, both threads could
-       call snd_pcm_writei on pcm_handle simultaneously which is not thread-safe. */
-    pthread_create(&play_thread_id, NULL, playback_thread, path_copy);
+    void *(*thread_fn)(void *) = is_mp3(path) ? mp3_playback_thread : playback_thread;
+    pthread_create(&play_thread_id, NULL, thread_fn, path_copy);
 }
 
 void audio_stop(void) {
     pthread_mutex_lock(&state_mutex);
     if (playback_active) {
         stop_requested = 1;
+        if (mp3_pid > 0) {
+            kill(mp3_pid, SIGTERM);   /* signal mpg123 subprocess to exit */
+        }
     }
     pthread_mutex_unlock(&state_mutex);
 

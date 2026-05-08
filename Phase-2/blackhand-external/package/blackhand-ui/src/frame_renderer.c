@@ -67,39 +67,29 @@
 void draw_battery(struct ncplane *phone, int percent,
                          bool charging, int tick) {
 
-    /* Map 0-100% → 0-4 filled segments using ceiling-like division */
     int segs = (percent + 24) / 25;
     if (segs > 4) segs = 4;
     if (segs < 0) segs = 0;
 
-    /*
-     * LOW BATTERY BLINK
-     * tick % 10 cycles 0–9.  Ticks 0-4: visible.  Ticks 5-9: hidden.
-     * We overwrite with spaces rather than ncplane_erase() because erase()
-     * clears the ENTIRE plane (wiping clock and signal too).
-     * 15 spaces covers the longest possible battery string comfortably.
-     */
-    if (percent < 15 && !charging) {
-        if ((tick % 10) >= 5) {
-            ghost_set(phone, theme_bg());
-            ncplane_putstr_yx(phone, STATUS_ROW, STATUS_BATTERY_COL,
-                              "               ");
-            return;
-        }
+    /* Blink the battery widget when critically low */
+    if (percent < 15 && !charging && (tick % 10) >= 5) {
+        ghost_set(phone, theme_bg());
+        ncplane_putstr_yx(phone, STATUS_ROW, STATUS_BATTERY_COL, "          ");
+        return;
     }
 
-    char label[24];
     static const char *bars[] = { "░░░░", "█░░░", "██░░", "███░", "████" };
+    char label[20];
 
     if (charging) {
         ghost_set(phone, theme_text_primary());
-        snprintf(label, sizeof(label), "BAT %s %3d%% CHG", bars[segs], percent);
+        snprintf(label, sizeof(label), "%s %d%%+", bars[segs], percent);
     } else if (percent < 15) {
         ghost_set(phone, COL_GHOST_LOW);
-        snprintf(label, sizeof(label), "BAT %s %3d%% LOW", bars[segs], percent);
+        snprintf(label, sizeof(label), "%s %d%%!", bars[segs], percent);
     } else {
         ghost_set(phone, theme_text_muted());
-        snprintf(label, sizeof(label), "BAT %s %3d%%", bars[segs], percent);
+        snprintf(label, sizeof(label), "%s %d%%", bars[segs], percent);
     }
     ncplane_putstr_yx(phone, STATUS_ROW, STATUS_BATTERY_COL, label);
 }
@@ -146,24 +136,25 @@ void draw_signal(struct ncplane *phone, int bars,
 
     unsigned rows, cols;
     ncplane_dim_yx(phone, &rows, &cols);
-
-    int sig_col = (int)cols - 13;
-
-    if (sig_col < 1) return;
+    (void)rows;
 
     int level = bars;
     if (level < 0) level = 0;
     if (level > 4) level = 4;
     static const char *sigbars[] = { "░░░░", "▓░░░", "▓▓░░", "▓▓▓░", "▓▓▓▓" };
 
-    char text[20];
+    char text[12];
     if (!connected) {
         ghost_set(phone, ((tick % 8) < 4) ? theme_text_muted() : theme_border());
-        snprintf(text, sizeof(text), "SIG ░░░░ LOST");
+        snprintf(text, sizeof(text), "░░░░");
     } else {
         ghost_set(phone, theme_text_muted());
-        snprintf(text, sizeof(text), "SIG %s", sigbars[level]);
+        snprintf(text, sizeof(text), "%s", sigbars[level]);
     }
+
+    /* Right-anchor: signal glyphs flush against the right edge */
+    int sig_col = (int)cols - 1 - (int)strlen(text);
+    if (sig_col < 1) return;
     ncplane_putstr_yx(phone, STATUS_ROW, sig_col, text);
 }
 
@@ -184,23 +175,28 @@ void draw_signal(struct ncplane *phone, int bars,
 void draw_status_bar(struct ncplane *phone, int tick) {
     battery_status_t  batt = hardware_get_battery();
     cellular_status_t cell = hardware_get_cellular();
-    draw_battery(phone, batt.percent,     batt.charging,  tick);
-    draw_signal (phone, cell.signal_bars, cell.connected, tick);
+
+    /* Battery on the left */
+    draw_battery(phone, batt.percent, batt.charging, tick);
 
     unsigned rows, cols;
     ncplane_dim_yx(phone, &rows, &cols);
     (void)rows;
 
+    /* Clock centred */
     time_t now = time(NULL);
     struct tm tm_now;
     if (localtime_r(&now, &tm_now)) {
-        char clockbuf[8];
+        char clockbuf[6];
         snprintf(clockbuf, sizeof(clockbuf), "%02d:%02d", tm_now.tm_hour, tm_now.tm_min);
-        int col = (int)cols - 20;
-        if (col < 20) col = 20;
+        int col = ((int)cols - 5) / 2;
+        if (col < 1) col = 1;
         ghost_set(phone, theme_text_primary());
         ncplane_putstr_yx(phone, STATUS_ROW, col, clockbuf);
     }
+
+    /* Signal on the right */
+    draw_signal(phone, cell.signal_bars, cell.connected, tick);
 }
 
 
@@ -287,17 +283,17 @@ void draw_frame(struct ncplane *phone, int tick,
     if (rows < (unsigned)FRAME_MIN_ROWS || cols < (unsigned)FRAME_MIN_COLS)
         return;
 
-    /* ── Full-bleed background (borderless) ───────────────────────────── */
+    /* Full-bleed background */
     ghost_fill_rect(phone, 0, 0, (int)rows, (int)cols, ' ', theme_bg(), theme_bg());
 
-    /* ── Status bar ────────────────────────────────────────────────────── */
+    /* Status bar at row 0 */
     draw_status_bar(phone, tick);
 
-    /* ── Separator line (terminal-first, no duplicate heading) ────────── */
+    /* Separator at STATUS_ROW + 1 = row 1 */
     ncplane_set_fg_rgb(phone, theme_border());
     ncplane_set_bg_rgb(phone, theme_bg());
     const char *rule = theme_rule_glyph();
     for (int x = 0; x < (int)cols; x++) {
-        ncplane_putstr_yx(phone, 2, x, (rule && rule[0]) ? rule : "-");
+        ncplane_putstr_yx(phone, STATUS_ROW + 1, x, (rule && rule[0]) ? rule : "-");
     }
 }

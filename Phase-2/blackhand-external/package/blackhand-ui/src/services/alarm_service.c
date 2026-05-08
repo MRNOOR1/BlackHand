@@ -1,13 +1,17 @@
 #include "alarm_service.h"
 
 #include <dirent.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <time.h>
+#include <unistd.h>
 
 #define INITIAL_ALARM_CAPACITY 16
+#define ALARM_SOUND_PATH "/data/alarm.mp3"
 
 static Alarm **s_alarms = NULL;
 static size_t s_count = 0;
@@ -17,6 +21,7 @@ static Alarm *s_ringing = NULL;
 static Alarm *s_snooze_alarm = NULL;
 static time_t s_snooze_until = 0;
 static time_t s_last_checked_minute = 0;
+static pid_t s_sound_pid = -1;
 
 static void free_alarm(Alarm *a) {
     if (!a) return;
@@ -93,6 +98,24 @@ static int generate_alarm_id(char *buf, size_t len) {
     }
 
     return -1;
+}
+
+static void start_alarm_sound(void) {
+    if (s_sound_pid > 0) return;
+    pid_t pid = fork();
+    if (pid == 0) {
+        /* Loop alarm.mp3 until killed */
+        execlp("mpg123", "mpg123", "-q", "--loop", "-1", ALARM_SOUND_PATH, (char *)NULL);
+        _exit(127);
+    }
+    if (pid > 0) s_sound_pid = pid;
+}
+
+static void stop_alarm_sound(void) {
+    if (s_sound_pid <= 0) return;
+    kill(s_sound_pid, SIGTERM);
+    waitpid(s_sound_pid, NULL, 0);
+    s_sound_pid = -1;
 }
 
 void alarm_service_init(void) {
@@ -279,6 +302,7 @@ int alarm_service_delete(const char *id) {
 }
 
 void alarm_service_shutdown(void) {
+    stop_alarm_sound();
     if (!s_alarms) return;
     for (size_t i = 0; i < s_count; i++) free_alarm(s_alarms[i]);
     free(s_alarms);
@@ -306,6 +330,7 @@ int alarm_service_tick(void) {
         s_ringing = s_snooze_alarm;
         s_snooze_alarm = NULL;
         s_snooze_until = 0;
+        start_alarm_sound();
         return 1;
     }
 
@@ -322,6 +347,7 @@ int alarm_service_tick(void) {
         if (!repeat_matches(a->repeat, &now_tm)) continue;
         if (a->hour == now_tm.tm_hour && a->minute == now_tm.tm_min) {
             s_ringing = a;
+            start_alarm_sound();
             return 1;
         }
     }
@@ -335,6 +361,7 @@ const Alarm *alarm_service_current_ringing(void) {
 
 void alarm_service_stop_ringing(void) {
     if (!s_ringing) return;
+    stop_alarm_sound();
     if (s_ringing->repeat == ALARM_ONCE) {
         s_ringing->enabled = false;
         write_alarm_file(s_ringing);
@@ -346,6 +373,7 @@ void alarm_service_stop_ringing(void) {
 
 void alarm_service_snooze_current(int minutes) {
     if (!s_ringing) return;
+    stop_alarm_sound();
     if (minutes <= 0) minutes = ALARM_SNOOZE_MIN;
     s_snooze_alarm = s_ringing;
     s_snooze_until = time(NULL) + (time_t)(minutes * 60);

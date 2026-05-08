@@ -10,7 +10,7 @@ CC     ?= $(CROSS_COMPILE)gcc
 override CFLAGS += -I$(STAGING_DIR)/usr/include/blackhand
 LIBS    = -L$(STAGING_DIR)/usr/lib -lblackhand-ipc
 
-SRCS = modem_service.c at_parser.c sms.c
+SRCS = modem_service.c ipc_dispatch.c at_parser.c sms.c
 
 all:
 	$(CC) $(CFLAGS) -o blackhand-modem $(SRCS) $(LIBS)
