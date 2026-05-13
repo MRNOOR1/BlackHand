@@ -72,6 +72,23 @@ BR2_PACKAGE_BLACKHAND_AUDIO=y
 BR2_PACKAGE_BLACKHAND_STORAGE=y
 BR2_PACKAGE_BLACKHAND_MODEM=y
 
+# ── Bluetooth ────────────────────────────────────────────────────────────
+# D-Bus is a prerequisite for BlueZ — the daemon talks to bluetoothd
+# entirely over D-Bus. Without it bluetoothd refuses to start.
+BR2_PACKAGE_DBUS=y
+
+# BlueZ 5 — the standard Linux BT stack
+# CLIENT    = bluetoothctl CLI tool (used by bluetooth_service.c)
+# PLUGINS_AUDIO = A2DP and HFP/HSP profile plugins inside bluetoothd
+BR2_PACKAGE_BLUEZ5_UTILS=y
+BR2_PACKAGE_BLUEZ5_UTILS_CLIENT=y
+BR2_PACKAGE_BLUEZ5_UTILS_PLUGINS_AUDIO=y
+
+# bluez-alsa — bridges BT audio to ALSA without PulseAudio.
+# Runs as "bluealsa" daemon. When a BT device is connected with A2DP,
+# it appears as an ALSA PCM device you can put in asound.conf.
+BR2_PACKAGE_BLUEZ_ALSA=y
+
 # Black Hand UI (notcurses TUI app)
 BR2_PACKAGE_BLACKHAND_UI=y
 BR2_PACKAGE_MPG123=y

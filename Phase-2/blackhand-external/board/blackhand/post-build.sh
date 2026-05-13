@@ -78,4 +78,27 @@ else
     echo ">>> Dropbear host key already exists, skipping generation"
 fi
 
+# ── BCM4345C0 Bluetooth firmware ────────────────────────────────────────────
+# The Pi 4 onboard BT chip (BCM4345C0) requires this firmware file.
+# CONFIG_BT_HCIUART_BCM loads it automatically at boot via request_firmware().
+# Without it the chip runs without firmware: pairing is unreliable,
+# A2DP is broken, and bluetoothctl hangs waiting for the adapter.
+BT_FW_DIR="${TARGET_DIR}/lib/firmware/brcm"
+BT_FW_FILE="${BT_FW_DIR}/BCM4345C0.hcd"
+
+if [ ! -f "${BT_FW_FILE}" ]; then
+    echo ">>> Fetching BCM4345C0 Bluetooth firmware..."
+    mkdir -p "${BT_FW_DIR}"
+    if command -v wget >/dev/null 2>&1; then
+        wget -q -O "${BT_FW_FILE}" \
+            "https://github.com/RPi-Distro/pi-bluetooth/raw/master/usr/lib/firmware/brcm/BCM4345C0.hcd" \
+            && echo ">>> BCM4345C0.hcd installed" \
+            || { echo "WARNING: Could not fetch BT firmware — Bluetooth will be unreliable"; rm -f "${BT_FW_FILE}"; }
+    else
+        echo "WARNING: wget not found — place BCM4345C0.hcd in board/blackhand/overlay/lib/firmware/brcm/ manually"
+    fi
+else
+    echo ">>> BCM4345C0.hcd already present, skipping download"
+fi
+
 echo ">>> Post-build complete"

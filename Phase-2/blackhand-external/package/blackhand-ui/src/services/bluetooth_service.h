@@ -21,7 +21,9 @@ int bluetooth_service_is_available(void);
 int bluetooth_service_set_power(int on);
 int bluetooth_service_get_power(void);
 
-int bluetooth_service_refresh_devices(void);
+int bluetooth_service_refresh_devices(void);  /* blocking — use scan_start for UI */
+int bluetooth_service_scan_start(void);       /* start background scan (non-blocking) */
+int bluetooth_service_scan_is_running(void);  /* 1 while scan thread is active */
 size_t bluetooth_service_device_count(void);
 const BtDevice *bluetooth_service_device_at(size_t index);
 

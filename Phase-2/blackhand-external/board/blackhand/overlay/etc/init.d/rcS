@@ -87,5 +87,54 @@ amixer -q -c "$USB_CARD" sset Master 100% 2>/dev/null || true
 amixer -q -c "$USB_CARD" sset PCM    100% 2>/dev/null || true
 amixer -q -c "$USB_CARD" sset Speaker 100% 2>/dev/null || true
 
+# ── Bluetooth ────────────────────────────────────────────────────────────
+
+# D-Bus system bus — bluetoothd won't start without it.
+mkdir -p /run/dbus
+dbus-daemon --system --fork 2>/dev/null || true
+sleep 0.5
+
+# The Pi 4 Device Tree auto-attaches the onboard BCM43455 to hci0 at kernel
+# boot — btattach is NOT needed and must NOT be run (it would try to attach
+# an already-registered adapter and interfere).
+# Just unblock the radio so the kernel driver can use it.
+rfkill unblock bluetooth 2>/dev/null || true
+
+# hci0 is created by the kernel DT node at ~1.2s, well before rcS runs.
+# Confirm it's there before starting bluetoothd.
+if [ -e /sys/class/bluetooth/hci0 ]; then
+    echo "bluetooth: hci0 ready"
+else
+    echo "bluetooth: WARNING — hci0 not found, BT disabled"
+fi
+
+# Start the BlueZ daemon.
+# Buildroot installs bluetoothd to /usr/libexec/bluetooth/ (not /usr/sbin/).
+# --compat keeps the legacy interface alive.
+# --noplugin=sap avoids a plugin that requires extra setup.
+BT_DAEMON=""
+for p in /usr/libexec/bluetooth/bluetoothd /usr/sbin/bluetoothd; do
+    [ -x "$p" ] && BT_DAEMON="$p" && break
+done
+
+if [ -n "$BT_DAEMON" ]; then
+    "$BT_DAEMON" --compat --noplugin=sap &
+    sleep 1
+    echo "bluetooth: bluetoothd started ($BT_DAEMON)"
+else
+    echo "bluetooth: ERROR — bluetoothd not found, BT disabled"
+fi
+
+# Start the bluez-alsa bridge only if bluetoothd came up.
+# -p a2dp-sink  = stream audio from connected device to ALSA
+# -p hfp-hf     = HFP hands-free (mic + earpiece for calls)
+if [ -n "$BT_DAEMON" ]; then
+    bluealsa -p a2dp-sink -p hfp-hf &
+    sleep 0.5
+    echo "bluetooth: bluealsa started"
+fi
+
 echo ">>> Black Hand OS ready"
 echo "fb0: $(cat /sys/class/graphics/fb0/virtual_size 2>/dev/null || echo 'not found')"
+
+
