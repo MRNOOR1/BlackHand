@@ -1,4 +1,5 @@
 #include "mp3_service.h"
+#include "../ui-ipcs/audio_ipc.h"
 
 #include <dirent.h>
 #include <math.h>
@@ -291,7 +292,9 @@ static void *player_thread_fn(void *arg) {
 
     ao = out123_new();
     if (!ao) goto cleanup;
-    if (out123_open(ao, NULL, NULL) != 0) goto cleanup;
+    /* Use ALSA 'default' device — routed to the USB audio card via /etc/asound.conf
+       which rcS generates at boot based on which card is USB (handles wired vs BT USB). */
+    if (out123_open(ao, "alsa", "default") != 0) goto cleanup;
     if (out123_start(ao, rate, channels, encoding) != 0) goto cleanup;
 
     outblock = mpg123_outblock(mh);
@@ -695,6 +698,13 @@ const char *mp3_service_current_category_name(void) {
 }
 
 int mp3_service_get_volume(void) {
+    /* Always read from the audio service — the single source of truth.
+     * This ensures the displayed value stays in sync no matter what changed
+     * the volume (UI keypad, wired headphone buttons, future BT controls, etc.)
+     * Fall back to our last-known value only if the IPC call fails. */
+    int live = audio_ipc_get_volume();
+    if (live >= 0)
+        volume_percent = live;
     return volume_percent;
 }
 
@@ -702,7 +712,10 @@ void mp3_service_set_volume(int percent) {
     if (percent < 0) percent = 0;
     if (percent > 100) percent = 100;
     volume_percent = percent;
-    /* TODO: apply volume to out123 when supported */
+    /* Push to the audio service — the single source of truth for volume.
+     * All other sources (headphone buttons, future BT) also go through
+     * audio_ipc_volume(), so everyone stays in sync automatically. */
+    audio_ipc_volume(percent);
 }
 
 /* Backward compat: total flat track count */

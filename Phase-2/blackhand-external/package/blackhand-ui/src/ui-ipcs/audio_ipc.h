@@ -86,4 +86,20 @@ int audio_ipc_volume(int percent);
  */
 int audio_ipc_status(int *out_playing, int *out_volume);
 
+/*
+ * Convenience: return the current system volume (0–100).
+ *
+ * This is the single canonical read path for volume.  All UI controls,
+ * headphone buttons, and future BT controls should read volume through
+ * this function and write through audio_ipc_volume().
+ *
+ * blackhand-audio is the sole owner of volume state.  Never cache it
+ * locally — always call this before computing a delta (vol +/- step).
+ *
+ * Returns:
+ *   0–100  current volume
+ *  -1      on IPC failure (caller should keep last known value)
+ */
+int audio_ipc_get_volume(void);
+
 #endif

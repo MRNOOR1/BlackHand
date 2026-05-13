@@ -200,6 +200,7 @@
  *    COL_DEV_LABEL       0x1A1A1A    corner dev tag                        */
 
 #include "platform/hardware.h"
+#include "platform/headphone_input.h"
 #include "services/settings_service.h"
 #include "frame_renderer.h"
 #include "draw_utils.h"
@@ -214,98 +215,6 @@
 #include "services/bluetooth_service.h"
 
 
-/* ══════════════════════════════════════════════════════════════════════════
- *  DEBUG INPUT DISPLAY
- *
- *  Shows the last input event on screen so you can verify what the device
- *  is sending.  Remove this section once input is confirmed working.
- * ══════════════════════════════════════════════════════════════════════════ */
-static char g_debug_line1[128] = "NO INPUT YET";
-static char g_debug_line2[128] = "";
-static int  g_debug_touch_x = -1;
-static int  g_debug_touch_y = -1;
-static int  g_debug_event_count = 0;
-
-static void debug_record_event(uint32_t key, const ncinput *ni) {
-    g_debug_event_count++;
-
-    const char *evtype_str = "?";
-    switch (ni->evtype) {
-        case NCTYPE_UNKNOWN: evtype_str = "UNK"; break;
-        case NCTYPE_PRESS:   evtype_str = "PRS"; break;
-        case NCTYPE_REPEAT:  evtype_str = "RPT"; break;
-        case NCTYPE_RELEASE: evtype_str = "REL"; break;
-        default:             evtype_str = "???"; break;
-    }
-
-    if (key == NCKEY_BUTTON1 || key == NCKEY_BUTTON2 || key == NCKEY_BUTTON3) {
-        g_debug_touch_y = (int)ni->y;
-        g_debug_touch_x = (int)ni->x;
-        snprintf(g_debug_line1, sizeof(g_debug_line1),
-                 "#%d TOUCH btn=%d y=%d x=%d %s",
-                 g_debug_event_count,
-                 (key == NCKEY_BUTTON1) ? 1 : (key == NCKEY_BUTTON2) ? 2 : 3,
-                 (int)ni->y, (int)ni->x, evtype_str);
-    } else if (key > 0x100000) {
-        /* Special key (arrow, enter, etc.) */
-        const char *name = "SPECIAL";
-        if (key == NCKEY_UP)        name = "UP";
-        else if (key == NCKEY_DOWN) name = "DOWN";
-        else if (key == NCKEY_LEFT) name = "LEFT";
-        else if (key == NCKEY_RIGHT)name = "RIGHT";
-        else if (key == NCKEY_ENTER)name = "ENTER";
-        else if (key == NCKEY_BACKSPACE) name = "BKSP";
-        else if (key == NCKEY_TAB)  name = "TAB";
-        else if (key == NCKEY_RESIZE) name = "RESIZE";
-        snprintf(g_debug_line1, sizeof(g_debug_line1),
-                 "#%d KEY=0x%X [%s] %s",
-                 g_debug_event_count, key, name, evtype_str);
-    } else if (key >= 32 && key <= 126) {
-        snprintf(g_debug_line1, sizeof(g_debug_line1),
-                 "#%d KEY='%c' (0x%X) %s",
-                 g_debug_event_count, (char)key, key, evtype_str);
-    } else {
-        snprintf(g_debug_line1, sizeof(g_debug_line1),
-                 "#%d KEY=0x%X %s",
-                 g_debug_event_count, key, evtype_str);
-    }
-
-    /* Line 2: touch marker position */
-    if (g_debug_touch_x >= 0) {
-        snprintf(g_debug_line2, sizeof(g_debug_line2),
-                 "LAST TOUCH: y=%d x=%d", g_debug_touch_y, g_debug_touch_x);
-    }
-}
-
-static void debug_draw(struct ncplane *phone) {
-    unsigned rows, cols;
-    ncplane_dim_yx(phone, &rows, &cols);
-
-    /* Draw debug info at the very bottom of the phone plane */
-    int dbg_row1 = (int)rows - 2;
-    int dbg_row2 = (int)rows - 1;
-    if (dbg_row1 < 0) return;
-
-    ncplane_set_fg_rgb(phone, 0x00FF00);  /* bright green for visibility */
-    ncplane_set_bg_rgb(phone, 0x000000);  /* black background */
-
-    /* Clear the debug rows */
-    for (int x = 0; x < (int)cols; x++) {
-        ncplane_putchar_yx(phone, dbg_row1, x, ' ');
-        if (dbg_row2 < (int)rows)
-            ncplane_putchar_yx(phone, dbg_row2, x, ' ');
-    }
-
-    ncplane_set_fg_rgb(phone, 0x00FF00);
-    ncplane_set_bg_rgb(phone, 0x000000);
-    ncplane_putstr_yx(phone, dbg_row1, 0, g_debug_line1);
-
-    if (g_debug_line2[0] && dbg_row2 < (int)rows) {
-        ncplane_set_fg_rgb(phone, 0xFFFF00);  /* yellow */
-        ncplane_set_bg_rgb(phone, 0x000000);
-        ncplane_putstr_yx(phone, dbg_row2, 0, g_debug_line2);
-    }
-}
 
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -431,6 +340,7 @@ int main(void) {
     alarm_service_init();
     comm_service_init();
     bluetooth_service_init();
+    headphone_input_init(); /* inline controls: vol+/-, play/pause, next/prev */
 
     /* ── Notcurses initialisation ───────────────────────────────────────── */
     /*
@@ -578,9 +488,6 @@ int main(void) {
                 break;
         }
 
-        /* ── DEBUG OVERLAY (drawn last, on top of everything) ────────── */
-        debug_draw(phone);
-
         /* ── RENDER ──────────────────────────────────────────────────── */
         notcurses_render(nc);
 
@@ -592,8 +499,6 @@ int main(void) {
         if (key == 0) {
             continue;
         }
-
-        debug_record_event(key, &ni);
 
         if (ni.evtype == NCTYPE_REPEAT) {
             continue;
@@ -694,6 +599,7 @@ int main(void) {
     /* ── Cleanup ─────────────────────────────────────────────────────────── */
     ncplane_destroy(phone);
     notcurses_stop(nc);
+    headphone_input_shutdown();
     mp3_service_shutdown();
     voice_memo_service_shutdown();
     contact_service_shutdown();

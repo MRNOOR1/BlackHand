@@ -167,3 +167,11 @@ int audio_ipc_status(int *out_playing, int *out_volume)
 	cJSON_Delete(root);
 	return 0;
 }
+
+int audio_ipc_get_volume(void)
+{
+	int playing = 0, vol = -1;
+	if (audio_ipc_status(&playing, &vol) != 0)
+		return -1;
+	return vol;
+}

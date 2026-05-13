@@ -10,6 +10,7 @@ add_executable(blackhand-ui
   frame_renderer.c
   keypad_renderer.c
   platform/hardware.c
+  platform/headphone_input.c
   screens/screen_home.c
   screens/screen_settings.c
   screens/screen_calls.c

@@ -1,38 +1,34 @@
 #ifndef AUDIO_ALSA_H
 #define AUDIO_ALSA_H
 
-/*
- * Initialises the ALSA PCM device. Must be called once at startup.
- * Returns 0 on success, -1 on error.
- */
+/* Initialises the mixer. Must be called once at startup.
+   Returns 0 on success, -1 on error. */
 int audio_init(void);
 
-/*
- * Starts playing a WAV file in a background thread.
- * If another playback is already running, it is stopped first.
- * The function returns immediately; playback happens asynchronously.
- */
+/* Starts playing a file (WAV or MP3) via a background subprocess.
+   Stops any current playback first. Returns immediately. */
 void audio_play(const char *path);
 
-/*
- * Stops any ongoing playback and drains the PCM device.
- */
+/* Stops current playback. */
 void audio_stop(void);
 
-/*
- * Sets the master playback volume (0 = mute, 100 = maximum).
- */
+/* Sets master playback volume (0 = mute, 100 = max). */
 void audio_set_volume(int percent);
 
-/*
- * Returns the current volume level (0–100).
- */
+/* Returns current volume (0–100). */
 int audio_get_volume(void);
 
-/*
- * Returns 1 if playback is currently active, otherwise 0.
- */
- 
+/* Returns 1 if playback is active. */
 int audio_is_playing(void);
+
+/* Starts recording from the USB mic to a WAV file (48000Hz, mono, S16_LE).
+   Returns 0 on success, -1 if already recording or device unavailable. */
+int audio_record_start(const char *path);
+
+/* Stops recording, flushes, and finalises the WAV file. */
+void audio_record_stop(void);
+
+/* Returns 1 if recording is active. */
+int audio_is_recording(void);
 
 #endif

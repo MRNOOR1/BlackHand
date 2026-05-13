@@ -13,10 +13,11 @@
 #include <sys/wait.h>
 
 #include "settings_service.h"
+#include "../ui-ipcs/audio_ipc.h"
 
 #define INITIAL_MEMO_CAPACITY 16
 #define TICK_STEP_MS 33
-#define WAV_SAMPLE_RATE 16000
+#define WAV_SAMPLE_RATE 48000   /* USB-C earphones: 48000Hz native rate */
 #define WAV_CHANNELS 1
 #define WAV_BITS_PER_SAMPLE 16
 
@@ -238,9 +239,13 @@ static int spawn_arecord(const char *out_path)
 		return -1;
 	if (pid == 0)
 	{
-		if (settings_service_get_bool("aux_input"))
-			execlp("arecord", "arecord", "-q", "-t", "wav", "-D", "hw:1,0", "-f", "S16_LE", "-c", "1", "-r", "16000", out_path, (char *)NULL);
-		execlp("arecord", "arecord", "-q", "-t", "wav", "-f", "S16_LE", "-c", "1", "-r", "16000", out_path, (char *)NULL);
+		/* 'default' device is routed by /etc/asound.conf to the USB audio card.
+		   Works for both wired USB-C earphones and BT USB dongles.
+		   48000Hz mono — native rate of USB-C earphone microphone. */
+		execlp("arecord", "arecord", "-q", "-t", "wav",
+		       "-D", "default",
+		       "-f", "S16_LE", "-c", "1", "-r", "48000",
+		       out_path, (char *)NULL);
 		_exit(127);
 	}
 	io_pid = pid;
@@ -248,17 +253,13 @@ static int spawn_arecord(const char *out_path)
 	return 0;
 }
 
-static int spawn_aplay(const char *in_path)
+/* Playback via audio IPC — no aplay subprocess needed.
+   io_pid stays -1 for IPC-based playback; tick() uses audio_ipc_status instead. */
+static int spawn_ipc_play(const char *in_path)
 {
-	pid_t pid = fork();
-	if (pid < 0)
+	if (audio_ipc_play(in_path) != 0)
 		return -1;
-	if (pid == 0)
-	{
-		execlp("aplay", "aplay", "-q", in_path, (char *)NULL);
-		_exit(127);
-	}
-	io_pid = pid;
+	io_pid = -1;   /* no child process */
 	io_is_recording = 0;
 	return 0;
 }
@@ -293,7 +294,7 @@ void voice_memo_service_init(void)
 	elapsed_before_pause_ms = 0;
 	active_started_ms = 0;
 	backend_record_supported = cmd_exists("arecord");
-	backend_play_supported   = cmd_exists("aplay");
+	backend_play_supported   = 1; /* always supported via audio IPC */
 
 	struct stat st = {0};
 	if (stat(VOICE_MEMO_PATH, &st) == -1)
@@ -556,10 +557,7 @@ int voice_memo_service_play_start(const char *filename)
 	snprintf(path, sizeof(path), "%s/%s", VOICE_MEMO_PATH, found->filename);
 	if (backend_play_supported)
 	{
-		if (spawn_aplay(path) != 0)
-		{
-			io_pid = -1;
-		}
+		spawn_ipc_play(path); /* non-fatal if IPC not available */
 	}
 
 	current_memo = (VoiceMemo *)found;
@@ -577,11 +575,8 @@ int voice_memo_service_play_pause(void)
 	if (current_state != VM_PLAYING)
 		return -1;
 	elapsed_before_pause_ms = timed_elapsed_ms();
-	if (io_pid > 0)
-	{
-		kill(io_pid, SIGSTOP);
-		io_paused = 1;
-	}
+	audio_ipc_pause(); /* pause via IPC */
+	io_paused = 1;
 	current_state = VM_PAUSED;
 	return 0;
 }
@@ -590,11 +585,13 @@ int voice_memo_service_play_resume(void)
 {
 	if (current_state != VM_PAUSED)
 		return -1;
-	if (io_pid > 0 && io_paused)
-	{
-		kill(io_pid, SIGCONT);
-		io_paused = 0;
+	/* Resume: replay from current position (IPC has no seek, restart is acceptable) */
+	if (current_memo) {
+		char path[1024];
+		snprintf(path, sizeof(path), "%s/%s", VOICE_MEMO_PATH, current_memo->filename);
+		audio_ipc_play(path);
 	}
+	io_paused = 0;
 	active_started_ms = monotonic_ms();
 	current_state = VM_PLAYING;
 	return 0;
@@ -605,7 +602,9 @@ int voice_memo_service_play_stop(void)
 	if (current_state != VM_PLAYING && current_state != VM_PAUSED)
 		return -1;
 	if (io_pid > 0)
-		stop_child_process(SIGTERM);
+		stop_child_process(SIGTERM); /* legacy: stop arecord if somehow set */
+	audio_ipc_stop(); /* stop IPC-based playback */
+	io_paused = 0;
 	current_state = VM_IDLE;
 	current_memo = NULL;
 	current_elapsed_ms = 0;
@@ -748,14 +747,12 @@ int voice_memo_service_tick(void)
 	if (current_state == VM_RECORDING || current_state == VM_PLAYING)
 		current_elapsed_ms = timed_elapsed_ms();
 
-	if (current_state == VM_PLAYING && io_pid > 0)
+	if (current_state == VM_PLAYING)
 	{
-		int status = 0;
-		pid_t done = waitpid(io_pid, &status, WNOHANG);
-		if (done == io_pid)
+		/* Check if the audio service has finished playing */
+		int playing = 0, vol = 0;
+		if (audio_ipc_status(&playing, &vol) == 0 && !playing && !io_paused)
 		{
-			io_pid = -1;
-			io_paused = 0;
 			if (play_mode == VM_PLAYMODE_REPEAT_ONE && current_memo)
 				return voice_memo_service_play_start(current_memo->filename);
 			return voice_memo_service_next();

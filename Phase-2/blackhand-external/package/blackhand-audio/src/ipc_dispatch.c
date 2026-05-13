@@ -6,13 +6,15 @@
  * service and includes audio_alsa.h so handlers can call the ALSA layer.
  *
  * JSON-RPC methods exposed by this service:
- *   ping    — returns "pong", used to check the service is alive
- *   echo    — returns a test string, used during development
- *   play    — starts playing a WAV file (params: { "file": "/path/to.wav" })
- *   pause   — pauses current playback (can resume with play)
- *   stop    — stops current playback and clears state
- *   volume  — sets master volume (params: { "volume": 0-100 })
- *   status  — returns { "playing": bool, "volume": int }
+ *   ping         — returns "pong"
+ *   echo         — returns a test string
+ *   play         — starts playing a file (params: { "file": "/path/to.wav" })
+ *   pause        — stops current playback
+ *   stop         — stops current playback
+ *   volume       — sets master volume (params: { "volume": 0-100 })
+ *   status       — returns { "playing": bool, "recording": bool, "volume": int }
+ *   record_start — starts recording (params: { "file": "/path/to/out.wav" })
+ *   record_stop  — stops recording and finalises the WAV file
  */
 
 #include <stdio.h>
@@ -31,6 +33,8 @@ static void handle_pause(int fd, cJSON *req);
 static void handle_stop(int fd, cJSON *req);
 static void handle_volume(int fd, cJSON *req);
 static void handle_status(int fd, cJSON *req);
+static void handle_record_start(int fd, cJSON *req);
+static void handle_record_stop(int fd, cJSON *req);
 
 /* ── dispatch table ── */
 struct handler {
@@ -39,13 +43,15 @@ struct handler {
 };
 
 static struct handler table[] = {
-    {"ping",   handle_ping},
-    {"echo",   handle_echo},
-    {"play",   handle_play},
-    {"pause",  handle_pause},
-    {"stop",   handle_stop},
-    {"volume", handle_volume},
-    {"status", handle_status},
+    {"ping",         handle_ping},
+    {"echo",         handle_echo},
+    {"play",         handle_play},
+    {"pause",        handle_pause},
+    {"stop",         handle_stop},
+    {"volume",       handle_volume},
+    {"status",       handle_status},
+    {"record_start", handle_record_start},
+    {"record_stop",  handle_record_stop},
     {NULL, NULL}
 };
 
@@ -217,7 +223,33 @@ static void handle_volume(int fd, cJSON *req)
 static void handle_status(int fd, cJSON *req)
 {
     cJSON *status_obj = cJSON_CreateObject();
-    cJSON_AddBoolToObject(status_obj, "playing", audio_is_playing());
+    cJSON_AddBoolToObject(status_obj, "playing",   audio_is_playing());
+    cJSON_AddBoolToObject(status_obj, "recording", audio_is_recording());
     cJSON_AddNumberToObject(status_obj, "volume",  audio_get_volume());
-    send_result_json(fd, req, status_obj); /* ownership transferred */
+    send_result_json(fd, req, status_obj);
+}
+
+static void handle_record_start(int fd, cJSON *req)
+{
+    cJSON *params = cJSON_GetObjectItem(req, "params");
+    if (!params || !cJSON_IsObject(params)) {
+        send_error(fd, "missing or invalid params");
+        return;
+    }
+    cJSON *file_item = cJSON_GetObjectItem(params, "file");
+    if (!file_item || !cJSON_IsString(file_item)) {
+        send_error(fd, "missing or invalid 'file' field");
+        return;
+    }
+    if (audio_record_start(file_item->valuestring) < 0) {
+        send_error(fd, "record_start failed — already recording or device unavailable");
+        return;
+    }
+    send_result(fd, req, "ok");
+}
+
+static void handle_record_stop(int fd, cJSON *req)
+{
+    audio_record_stop();
+    send_result(fd, req, "ok");
 }

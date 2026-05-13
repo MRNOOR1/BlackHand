@@ -104,7 +104,7 @@ static void start_alarm_sound(void) {
     if (s_sound_pid > 0) return;
     pid_t pid = fork();
     if (pid == 0) {
-        /* Loop alarm.mp3 until killed */
+        /* Loop alarm.mp3 until killed — 'default' device routed by /etc/asound.conf */
         execlp("mpg123", "mpg123", "-q", "--loop", "-1", ALARM_SOUND_PATH, (char *)NULL);
         _exit(127);
     }
