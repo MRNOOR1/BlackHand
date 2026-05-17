@@ -11,6 +11,8 @@ BR2_cortex_a72=y
 # Toolchain
 BR2_TOOLCHAIN_BUILDROOT_GLIBC=y
 BR2_KERNEL_HEADERS_6_6=y
+BR2_GCC_VERSION_14_X=y
+BR2_BINUTILS_VERSION_2_45_X=y
 
 # System
 BR2_TARGET_GENERIC_HOSTNAME="blackhand"
@@ -44,7 +46,6 @@ BR2_PACKAGE_RPI_FIRMWARE_VARIANT_PI4=y
 # Packages
 BR2_PACKAGE_BUSYBOX=y
 BR2_PACKAGE_DROPBEAR=y
-BR2_PACKAGE_FBV=y
 BR2_PACKAGE_KMOD=y
 
 # Notcurses TUI dependencies (auto-selected, but explicit for clarity)
@@ -72,22 +73,37 @@ BR2_PACKAGE_BLACKHAND_AUDIO=y
 BR2_PACKAGE_BLACKHAND_STORAGE=y
 BR2_PACKAGE_BLACKHAND_MODEM=y
 
+# ── Bluetooth firmware ───────────────────────────────────────────────────
+# BCM4345C0.hcd and BCM4345C0.raspberrypi,4-model-b.hcd are included via
+# board/blackhand/overlay/lib/firmware/brcm/ and fetched by post-build.sh.
+# BR2_PACKAGE_BRCMFMAC_SDIO_FIRMWARE_RPI* are NOT used — they are
+# deprecated in current Buildroot and trigger BR2_LEGACY=y, aborting
+# the build with "error: you have legacy config options set".
+z
 # ── Bluetooth ────────────────────────────────────────────────────────────
 # D-Bus is a prerequisite for BlueZ — the daemon talks to bluetoothd
 # entirely over D-Bus. Without it bluetoothd refuses to start.
 BR2_PACKAGE_DBUS=y
 
 # BlueZ 5 — the standard Linux BT stack
-# CLIENT    = bluetoothctl CLI tool (used by bluetooth_service.c)
+# CLIENT        = bluetoothctl CLI tool (used by bluetooth_service.c)
+# DEPRECATED    = hciconfig, hcitool, hcidump — essential for debugging
 # PLUGINS_AUDIO = A2DP and HFP/HSP profile plugins inside bluetoothd
 BR2_PACKAGE_BLUEZ5_UTILS=y
 BR2_PACKAGE_BLUEZ5_UTILS_CLIENT=y
+BR2_PACKAGE_BLUEZ5_UTILS_DEPRECATED=y
 BR2_PACKAGE_BLUEZ5_UTILS_PLUGINS_AUDIO=y
 
 # bluez-alsa — bridges BT audio to ALSA without PulseAudio.
 # Runs as "bluealsa" daemon. When a BT device is connected with A2DP,
 # it appears as an ALSA PCM device you can put in asound.conf.
 BR2_PACKAGE_BLUEZ_ALSA=y
+
+# bluez-tools — provides bt-agent for headless BT pairing.
+# bt-agent -c NoInputNoOutput registers a "Just Works" pairing agent
+# with bluetoothd. Without a registered agent, ALL pairing attempts
+# are rejected with "No agent is registered".
+BR2_PACKAGE_BLUEZ_TOOLS=y
 
 # Black Hand UI (notcurses TUI app)
 BR2_PACKAGE_BLACKHAND_UI=y
@@ -104,6 +120,7 @@ BR2_PACKAGE_HYPERPIXEL4_INIT=y
 
 # Debug tools (remove before final image)
 BR2_PACKAGE_EVTEST=y
+BR2_PACKAGE_RFKILL=y
 
 # Filesystem
 BR2_TARGET_ROOTFS_EXT2=y

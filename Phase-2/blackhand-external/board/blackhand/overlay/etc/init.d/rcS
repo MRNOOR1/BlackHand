@@ -89,49 +89,120 @@ amixer -q -c "$USB_CARD" sset Speaker 100% 2>/dev/null || true
 
 # ── Bluetooth ────────────────────────────────────────────────────────────
 
-# D-Bus system bus — bluetoothd won't start without it.
-mkdir -p /run/dbus
+# Required directories:
+#   /run/dbus          — D-Bus system bus socket (created by dbus-daemon)
+#   /var/lib/dbus      — machine-id storage
+#   /var/lib/bluetooth — paired device keys + link keys. MUST persist across
+#                        reboots — without it pairing is lost every boot and
+#                        previously bonded devices refuse to auto-reconnect.
+#   /var/run           — parent for /var/run/sdp socket (bluetoothd --compat)
+mkdir -p /run/dbus /var/lib/dbus /var/lib/bluetooth /var/run
+
+# D-Bus requires a stable machine-id. Generate once and persist to /etc.
+# Without /etc/machine-id, dbus-daemon starts but bluetoothd cannot
+# register on the system bus: "Failed to read machine uuid".
+dbus-uuidgen --ensure /etc/machine-id 2>/dev/null || true
+# Some dbus versions look in /var/lib/dbus/ instead.
+[ -f /var/lib/dbus/machine-id ] || cp /etc/machine-id /var/lib/dbus/machine-id 2>/dev/null || true
+
+# Start the D-Bus system bus.
 dbus-daemon --system --fork 2>/dev/null || true
-sleep 0.5
+sleep 0.3
 
-# The Pi 4 Device Tree auto-attaches the onboard BCM43455 to hci0 at kernel
-# boot — btattach is NOT needed and must NOT be run (it would try to attach
-# an already-registered adapter and interfere).
-# Just unblock the radio so the kernel driver can use it.
-rfkill unblock bluetooth 2>/dev/null || true
-
-# hci0 is created by the kernel DT node at ~1.2s, well before rcS runs.
-# Confirm it's there before starting bluetoothd.
-if [ -e /sys/class/bluetooth/hci0 ]; then
-    echo "bluetooth: hci0 ready"
+# Attach the BCM43455 Bluetooth chip via userspace btattach.
+#
+# WHY NOT krnbt=on:
+# krnbt=on makes the kernel serdev driver probe BCM43455 at ~1.2s into boot,
+# BEFORE the ext4 rootfs is mounted and accessible to the firmware loader.
+# The driver calls request_firmware_direct() — one shot, no retry. It fails
+# with "firmware Patch file not found" even though the file is on disk.
+#
+# WHY btattach works:
+# rcS only runs after the rootfs is fully mounted, so /lib/firmware/brcm/
+# is always readable when btattach sends the firmware to the chip.
+#
+# -B /dev/ttyAMA0 : PL011 UART wired internally to BCM43455 on Pi 4
+# -P bcm          : Broadcom H4 protocol (handles firmware upload sequence)
+# -S 3000000      : renegotiate to 3 Mbps after firmware loads (BCM default)
+if [ -c /dev/ttyAMA0 ]; then
+    btattach -B /dev/ttyAMA0 -P bcm -S 3000000 &
+    echo "bluetooth: btattach started on /dev/ttyAMA0"
 else
-    echo "bluetooth: WARNING — hci0 not found, BT disabled"
+    echo "bluetooth: WARNING — /dev/ttyAMA0 not found, BT attach skipped"
 fi
 
-# Start the BlueZ daemon.
-# Buildroot installs bluetoothd to /usr/libexec/bluetooth/ (not /usr/sbin/).
-# --compat keeps the legacy interface alive.
-# --noplugin=sap avoids a plugin that requires extra setup.
+# Unblock the BT radio in case it is soft-blocked via rfkill.
+echo 0 > /sys/class/rfkill/rfkill0/soft 2>/dev/null || true
+rfkill unblock bluetooth 2>/dev/null || true
+
+# Wait for hci0. btattach uploads firmware then registers hci0 — this
+# takes about 2-3 seconds. Poll up to 8 seconds before giving up.
+HCI_WAIT=0
+until [ -e /sys/class/bluetooth/hci0 ] || [ $HCI_WAIT -ge 16 ]; do
+    sleep 0.5
+    HCI_WAIT=$((HCI_WAIT + 1))
+done
+
+if [ -e /sys/class/bluetooth/hci0 ]; then
+    echo "bluetooth: hci0 ready (waited ${HCI_WAIT}x0.5s)"
+else
+    echo "bluetooth: WARNING — hci0 not found after 8s, BT disabled"
+fi
+
+# Locate bluetoothd. Buildroot installs to /usr/libexec/bluetooth/,
+# not /usr/sbin/ — check both for portability.
 BT_DAEMON=""
 for p in /usr/libexec/bluetooth/bluetoothd /usr/sbin/bluetoothd; do
     [ -x "$p" ] && BT_DAEMON="$p" && break
 done
 
-if [ -n "$BT_DAEMON" ]; then
+if [ -n "$BT_DAEMON" ] && [ -e /sys/class/bluetooth/hci0 ]; then
+    # --compat  : enables legacy SDP socket at /var/run/sdp. Required for
+    #             bluez-alsa HFP profile — RFCOMM channel negotiation uses
+    #             the SDP socket. Without it HFP audio never connects.
+    # --noplugin=sap : suppresses "sap-server: Operation not permitted"
+    #             log spam (SAP = SIM Access Profile, needs SIM hardware).
     "$BT_DAEMON" --compat --noplugin=sap &
-    sleep 1
     echo "bluetooth: bluetoothd started ($BT_DAEMON)"
-else
-    echo "bluetooth: ERROR — bluetoothd not found, BT disabled"
-fi
 
-# Start the bluez-alsa bridge only if bluetoothd came up.
-# -p a2dp-sink  = stream audio from connected device to ALSA
-# -p hfp-hf     = HFP hands-free (mic + earpiece for calls)
-if [ -n "$BT_DAEMON" ]; then
-    bluealsa -p a2dp-sink -p hfp-hf &
-    sleep 0.5
+    # Wait for bluetoothd to fully register on D-Bus BEFORE starting
+    # bluealsa. bluealsa calls into org.bluez at startup — if bluetoothd
+    # isn't registered yet, bluealsa exits silently and BT audio never works.
+    # Poll up to 5 seconds.
+    BT_DBUS_WAIT=0
+    until dbus-send --system --print-reply \
+              --dest=org.freedesktop.DBus \
+              /org/freedesktop/DBus \
+              org.freedesktop.DBus.ListNames 2>/dev/null | grep -q org.bluez \
+          || [ $BT_DBUS_WAIT -ge 10 ]; do
+        sleep 0.5
+        BT_DBUS_WAIT=$((BT_DBUS_WAIT + 1))
+    done
+    echo "bluetooth: org.bluez on D-Bus (waited ${BT_DBUS_WAIT}x0.5s)"
+
+    # Start bluez-alsa bridge.
+    # Profile flags for a phone-style device:
+    #   a2dp-source — Pi streams audio OUT to a BT speaker or headset
+    #   a2dp-sink   — Pi receives audio IN from another device
+    #   hfp-ag      — Pi is the Audio Gateway (= the phone side of a call).
+    #                 NOTE: use hfp-ag NOT hfp-hf. hfp-hf is the headset /
+    #                 car-kit role. This device IS the phone, so it's the AG.
+    bluealsa -p a2dp-source -p a2dp-sink -p hfp-ag &
+    sleep 0.3
     echo "bluetooth: bluealsa started"
+
+    # Register a headless pairing agent ("Just Works" / NoInputNoOutput).
+    # Without an agent, bluetoothd rejects ALL pairing attempts with
+    # "No agent is registered". bt-agent is from the bluez-tools package.
+    if command -v bt-agent >/dev/null 2>&1; then
+        bt-agent -c NoInputNoOutput &
+        echo "bluetooth: bt-agent started (Just Works pairing enabled)"
+    else
+        echo "bluetooth: WARNING — bt-agent not found (install bluez-tools)"
+        echo "           Pairing will fail until an agent is registered."
+    fi
+else
+    echo "bluetooth: ERROR — bluetoothd not found or hci0 missing, BT disabled"
 fi
 
 echo ">>> Black Hand OS ready"

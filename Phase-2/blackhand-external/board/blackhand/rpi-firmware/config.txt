@@ -43,3 +43,10 @@ dtparam=audio=on
 
 disable_splash=1
 boot_delay=0
+
+# ── Bluetooth ────────────────────────────────────────────────────────────────
+# krnbt=on is NOT used here.
+# With krnbt=on the kernel serdev driver probes BCM43455 at ~1.2s into boot,
+# before the ext4 rootfs is mounted. The firmware loader fires once and fails
+# ("Patch file not found") because /lib/firmware/brcm/ isn't accessible yet.
+# Instead we use btattach from rcS, which runs after rootfs is fully mounted.

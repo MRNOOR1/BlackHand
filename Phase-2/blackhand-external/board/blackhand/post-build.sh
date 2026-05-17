@@ -101,4 +101,14 @@ else
     echo ">>> BCM4345C0.hcd already present, skipping download"
 fi
 
+# Create the device-specific symlink the kernel searches for first.
+# Without it the kernel falls back to BCM4345C0.hcd (which works), but
+# creating the symlink makes the lookup deterministic and matches how
+# Raspberry Pi OS ships the firmware.
+BT_FW_SYMLINK="${BT_FW_DIR}/BCM4345C0.raspberrypi,4-model-b.hcd"
+if [ -f "${BT_FW_FILE}" ] && [ ! -e "${BT_FW_SYMLINK}" ]; then
+    ln -sf BCM4345C0.hcd "${BT_FW_SYMLINK}"
+    echo ">>> Created BT firmware symlink (device-specific name → BCM4345C0.hcd)"
+fi
+
 echo ">>> Post-build complete"

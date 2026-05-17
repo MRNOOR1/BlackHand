@@ -256,7 +256,7 @@ static void *scan_thread_fn(void *arg)
     sleep(6);
     btctl("scan off", NULL, 0);
 
-    FILE *fp = popen("bluetoothctl devices 2>/dev/null", "r");
+    FILE *fp = popen("timeout 3 bluetoothctl devices 2>/dev/null", "r");
     if (fp)
     {
         g_device_count = 0;
