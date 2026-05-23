@@ -12,6 +12,7 @@ mkdir -p "${TARGET_DIR}/data/notes"
 mkdir -p "${TARGET_DIR}/data/music"
 mkdir -p "${TARGET_DIR}/data/voice-memos"
 mkdir -p "${TARGET_DIR}/data/alarms"
+mkdir -p "${TARGET_DIR}/data/contacts"
 
 # Build stamp for SSH verification
 mkdir -p "${TARGET_DIR}/etc/blackhand"
@@ -23,25 +24,37 @@ fi
 printf "build_time_utc=%s\nbuild_commit=%s\n" "${BUILD_TIME_UTC}" "${BUILD_COMMIT}" \
   > "${TARGET_DIR}/etc/blackhand/build-id"
 
-# Compile and install custom device tree overlay for HyperPixel touch
-OVERLAY_SRC="${BR2_EXTERNAL_BLACKHAND_PATH}/board/blackhand/dt-overlays/hyperpixel4-touch-overlay.dts"
+# Compile and install custom device tree overlays
 OVERLAY_DIR="${TARGET_DIR}/boot/overlays"
-if [ -f "${OVERLAY_SRC}" ]; then
-    mkdir -p "${OVERLAY_DIR}"
-    DTC="${HOST_DIR}/bin/dtc"
-    if [ ! -x "${DTC}" ]; then
-        DTC="$(command -v dtc 2>/dev/null || true)"
-    fi
-    if [ -n "${DTC}" ] && [ -x "${DTC}" ]; then
-        echo ">>> Compiling hyperpixel4-touch overlay"
-        "${DTC}" -@ -I dts -O dtb \
-            -o "${OVERLAY_DIR}/hyperpixel4-touch.dtbo" \
-            "${OVERLAY_SRC}" 2>/dev/null || \
-            echo "WARNING: dtc overlay compile failed (will retry at boot if overlay exists)"
-    else
-        echo "WARNING: dtc not found, cannot compile touch overlay"
-    fi
+mkdir -p "${OVERLAY_DIR}"
+
+DTC="${HOST_DIR}/bin/dtc"
+if [ ! -x "${DTC}" ]; then
+    DTC="$(command -v dtc 2>/dev/null || true)"
 fi
+
+compile_overlay() {
+    local src="$1" out="$2" name="$3"
+    if [ -f "${src}" ]; then
+        if [ -n "${DTC}" ] && [ -x "${DTC}" ]; then
+            echo ">>> Compiling ${name} overlay"
+            "${DTC}" -@ -I dts -O dtb -o "${out}" "${src}" 2>/dev/null || \
+                echo "WARNING: dtc failed for ${name} overlay"
+        else
+            echo "WARNING: dtc not found, cannot compile ${name} overlay"
+        fi
+    fi
+}
+
+compile_overlay \
+    "${BR2_EXTERNAL_BLACKHAND_PATH}/board/blackhand/dt-overlays/hyperpixel4-touch-overlay.dts" \
+    "${OVERLAY_DIR}/hyperpixel4-touch.dtbo" \
+    "hyperpixel4-touch"
+
+compile_overlay \
+    "${BR2_EXTERNAL_BLACKHAND_PATH}/board/blackhand/dt-overlays/blackhand-fixes-overlay.dts" \
+    "${OVERLAY_DIR}/blackhand-fixes.dtbo" \
+    "blackhand-fixes"
 
 # Generate dropbear SSH host key if it doesn't exist.
 # Dropbear needs this to complete the SSH handshake. Without it the
@@ -89,13 +102,16 @@ BT_FW_FILE="${BT_FW_DIR}/BCM4345C0.hcd"
 if [ ! -f "${BT_FW_FILE}" ]; then
     echo ">>> Fetching BCM4345C0 Bluetooth firmware..."
     mkdir -p "${BT_FW_DIR}"
-    if command -v wget >/dev/null 2>&1; then
-        wget -q -O "${BT_FW_FILE}" \
-            "https://github.com/RPi-Distro/pi-bluetooth/raw/master/usr/lib/firmware/brcm/BCM4345C0.hcd" \
-            && echo ">>> BCM4345C0.hcd installed" \
+    # Use curl --fail so a GitHub HTML error page doesn't silently replace the
+    # binary. wget -q accepts any 200 response, including redirect HTML pages.
+    if command -v curl >/dev/null 2>&1; then
+        curl -L --fail --silent --show-error \
+            -o "${BT_FW_FILE}" \
+            "https://github.com/RPi-Distro/bluez-firmware/raw/master/broadcom/BCM4345C0.hcd" \
+            && echo ">>> BCM4345C0.hcd installed ($(wc -c < "${BT_FW_FILE}") bytes)" \
             || { echo "WARNING: Could not fetch BT firmware — Bluetooth will be unreliable"; rm -f "${BT_FW_FILE}"; }
     else
-        echo "WARNING: wget not found — place BCM4345C0.hcd in board/blackhand/overlay/lib/firmware/brcm/ manually"
+        echo "WARNING: curl not found — place BCM4345C0.hcd in board/blackhand/overlay/lib/firmware/brcm/ manually"
     fi
 else
     echo ">>> BCM4345C0.hcd already present, skipping download"

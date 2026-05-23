@@ -1,59 +1,114 @@
 #!/bin/sh
-echo ">>> Black Hand OS starting..."
 
-# Essential pseudo-filesystems — must be mounted before SSH, PTY, or anything
-# that needs a terminal. blackhand-init mounts proc/sys/dev/run/tmp but NOT
-# devpts (required for SSH PTY allocation) or devshm.
+# ── Logging ───────────────────────────────────────────────────────────────────
+mkdir -p /data
+exec > /data/boot.log 2>&1
+# say: write to boot.log AND tty1 so progress is visible on-screen without SSH
+say() { echo "$@"; printf '%s\n' "$@" > /dev/tty1 2>/dev/null || true; }
+say ">>> Black Hand OS starting..."
+
+# ── Essential pseudo-filesystems ──────────────────────────────────────────────
+mountpoint -q /proc || mount -t proc     proc     /proc
+mountpoint -q /sys  || mount -t sysfs   sysfs    /sys
+mountpoint -q /dev  || mount -t devtmpfs devtmpfs /dev
+mountpoint -q /run  || mount -t tmpfs   tmpfs    /run
+mountpoint -q /tmp  || mount -t tmpfs   tmpfs    /tmp
+
 mkdir -p /dev/pts /dev/shm
 mount -t devpts devpts /dev/pts -o gid=5,mode=620 2>/dev/null || true
-mount -t tmpfs tmpfs /dev/shm 2>/dev/null || true
+mount -t tmpfs  tmpfs  /dev/shm 2>/dev/null || true
 
-# Display init FIRST — before anything that can block (networking, udhcpc)
+# ── Display init ──────────────────────────────────────────────────────────────
+# Run before anything that can block.
 if [ -x /usr/bin/hyperpixel4-init ]; then
     /usr/bin/hyperpixel4-init
 fi
 
-# Disable console blanking on tty1 so the screen stays lit without keyboard input
+# Disable console blanking so the screen stays lit.
 printf "\033[9;0]" > /dev/tty1 2>/dev/null || true
 
-# Network — foreground udhcpc so SSH always starts with a valid IP.
-# hyperpixel4-init already ran above, so display is up during this wait.
-# -b combined with & causes double-backgrounding (two competing udhcpc
-# processes) which breaks reliable IP assignment.
+# ── Networking ────────────────────────────────────────────────────────────────
+# Only run DHCP when a cable is physically present — boot must never block
+# on ethernet. Poll carrier for up to 1 s after bringing the interface up,
+# then skip DHCP if no link is detected.
 /sbin/ifconfig lo 127.0.0.1 up
 /sbin/ifconfig eth0 up 2>/dev/null
 if [ -x /sbin/udhcpc ]; then
-    /sbin/udhcpc -i eth0 -t 5 -A 3 -q
+    # Wait up to 5 s for carrier — macOS Internet Sharing bridge takes a moment
+    # to come up after the cable is plugged in.
+    LINK_WAIT=0
+    until [ "$(cat /sys/class/net/eth0/carrier 2>/dev/null)" = "1" ] \
+       || [ $LINK_WAIT -ge 20 ]; do
+        sleep 0.25
+        LINK_WAIT=$((LINK_WAIT + 1))
+    done
+    if [ "$(cat /sys/class/net/eth0/carrier 2>/dev/null)" = "1" ]; then
+        say "net: ethernet carrier up (waited ${LINK_WAIT}x0.25s), requesting DHCP"
+        # -t 8: up to 8 discover packets
+        # -A 3: 3 s between packets → up to ~24 s total
+        # macOS Internet Sharing DHCP can be slow to respond after bridge init
+        /sbin/udhcpc -i eth0 -t 8 -A 3 -q 2>/dev/null || true
+        say "net: DHCP done"
+    else
+        say "net: no ethernet cable after 5s, DHCP skipped"
+    fi
 fi
 
-# SSH (start immediately)
+# ── SSH ───────────────────────────────────────────────────────────────────────
+# Log the acquired IP — the only way to find the device address without a
+# serial console (ttyAMA0 is occupied by Bluetooth).
+ETH0_IP=$(/sbin/ifconfig eth0 2>/dev/null | grep 'inet ' | awk '{print $2}' | sed 's/addr://')
+if [ -n "$ETH0_IP" ]; then
+    say "ssh: eth0 = $ETH0_IP  →  ssh root@$ETH0_IP   (password: blackhand)"
+else
+    say "ssh: eth0 has no IP yet — SSH unavailable until ethernet is connected"
+fi
+
 if [ -x /usr/sbin/dropbear ]; then
     mkdir -p /etc/dropbear
-    /usr/sbin/dropbear -R
+
+    # -R: generate host keys at runtime if absent (keys are normally baked in
+    # by post-build.sh, but -R is a safety net for dev builds where HOST_DROPBEAR
+    # was not yet enabled).
+    /usr/sbin/dropbear -R 2>&1
+
+    # Give the daemon a moment to bind port 22 then confirm it is running.
+    sleep 0.3
+    if kill -0 "$(cat /var/run/dropbear.pid 2>/dev/null)" 2>/dev/null; then
+        say "ssh: dropbear running on port 22 (PID $(cat /var/run/dropbear.pid 2>/dev/null))"
+        # Print the host fingerprint — helps diagnose "REMOTE HOST IDENTIFICATION
+        # HAS CHANGED" on the dev machine.  Run 'ssh-keygen -R <ip>' there to fix.
+        for _kf in /etc/dropbear/dropbear_ed25519_host_key \
+                   /etc/dropbear/dropbear_rsa_host_key; do
+            if [ -f "$_kf" ] && command -v dropbearkey >/dev/null 2>&1; then
+                _fp=$(dropbearkey -y -f "$_kf" 2>/dev/null | grep 'Fingerprint:')
+                say "ssh: $(basename $_kf .host_key): $_fp"
+            fi
+        done
+        if [ -n "$ETH0_IP" ]; then
+            say "ssh: if refused with key-changed warning: ssh-keygen -R $ETH0_IP"
+        fi
+    else
+        say "ssh: WARNING — dropbear did not start (port 22 may be in use, check boot.log)"
+    fi
+else
+    say "ssh: WARNING — /usr/sbin/dropbear not found — check BR2_PACKAGE_DROPBEAR=y"
 fi
 
-# Now do slower things...
+# ── Data directories ──────────────────────────────────────────────────────────
 mkdir -p /data /boot
-mkdir -p /data/voice-memos
-mkdir -p /data/notes
-mkdir -p /data/alarms
-mkdir -p /data/contacts
-mkdir -p /data/music
+mkdir -p /data/voice-memos /data/notes /data/alarms /data/contacts /data/music
 chmod -R 755 /data
 
-# Mount boot partition
+# ── Boot partition ────────────────────────────────────────────────────────────
 mount -t vfat /dev/mmcblk0p1 /boot 2>/dev/null || true
 
-# Load audio drivers
-modprobe snd_bcm2835 2>/dev/null || true
-modprobe snd_usb_audio 2>/dev/null || true   # USB-C earphones / BT USB dongle
+# ── Audio ─────────────────────────────────────────────────────────────────────
+modprobe snd_bcm2835   2>/dev/null || true
+modprobe snd_usb_audio 2>/dev/null || true
 
-# Route BCM2835 audio to headphone jack (1=headphone, 2=HDMI, 0=auto)
-amixer -q cset numid=3 1 2>/dev/null || true
-
-# ── Detect USB audio card ────────────────────────────────────────────────
+# Detect USB audio card.
 # /proc/asound/cardN/usbbus only exists for USB audio devices.
-# Iterate cards 1-7; use the first USB one we find.
 USB_CARD=""
 for n in 1 2 3 4 5 6 7; do
     if [ -f "/proc/asound/card${n}/usbbus" ]; then
@@ -61,16 +116,12 @@ for n in 1 2 3 4 5 6 7; do
         break
     fi
 done
-[ -z "$USB_CARD" ] && USB_CARD=1   # fallback: assume card 1
 
-echo "audio: USB audio card = $USB_CARD"
-echo "$USB_CARD" > /tmp/bh-audio-card
+if [ -n "$USB_CARD" ]; then
+    echo "audio: USB audio card = $USB_CARD"
+    echo "$USB_CARD" > /tmp/bh-audio-card
 
-# ── Write /etc/asound.conf — route 'default' to the USB audio card ──────
-# All apps (mpg123, out123, arecord, aplay) that use 'default' will
-# automatically land on the right device regardless of card number.
-# The plug layer handles sample-rate and channel conversion.
-cat > /etc/asound.conf << AEOF
+    cat > /etc/asound.conf << AEOF
 # Generated by rcS — USB audio card ${USB_CARD}
 pcm.!default {
     type plug
@@ -82,61 +133,62 @@ ctl.!default {
 }
 AEOF
 
-# Set USB audio card volume to 100% (both Master and PCM controls)
-amixer -q -c "$USB_CARD" sset Master 100% 2>/dev/null || true
-amixer -q -c "$USB_CARD" sset PCM    100% 2>/dev/null || true
-amixer -q -c "$USB_CARD" sset Speaker 100% 2>/dev/null || true
+    amixer -q -c "$USB_CARD" sset Master  100% 2>/dev/null || true
+    amixer -q -c "$USB_CARD" sset PCM     100% 2>/dev/null || true
+    amixer -q -c "$USB_CARD" sset Speaker 100% 2>/dev/null || true
+else
+    echo "audio: no USB audio card found — falling back to onboard (card 0)"
+    echo "0" > /tmp/bh-audio-card
 
-# ── Bluetooth ────────────────────────────────────────────────────────────
+    cat > /etc/asound.conf << AEOF
+# Generated by rcS — onboard bcm2835 (card 0, no USB audio present)
+pcm.!default {
+    type plug
+    slave.pcm "hw:0,0"
+}
+ctl.!default {
+    type hw
+    card 0
+}
+AEOF
 
-# Required directories:
-#   /run/dbus          — D-Bus system bus socket (created by dbus-daemon)
-#   /var/lib/dbus      — machine-id storage
-#   /var/lib/bluetooth — paired device keys + link keys. MUST persist across
-#                        reboots — without it pairing is lost every boot and
-#                        previously bonded devices refuse to auto-reconnect.
-#   /var/run           — parent for /var/run/sdp socket (bluetoothd --compat)
-mkdir -p /run/dbus /var/lib/dbus /var/lib/bluetooth /var/run
+    # Route bcm2835 output to headphone jack (1=headphones, 2=HDMI, 0=auto)
+    amixer -q cset numid=3 1 2>/dev/null || true
+fi
+
+# ── Bluetooth ─────────────────────────────────────────────────────────────────
+say "bt: starting..."
+
+# Required directories.
+# /run is a tmpfs mounted above; creating /run/dbus here is safe on every boot.
+# /var/lib/bluetooth MUST persist across reboots — paired device keys live here.
+mkdir -p /run/dbus
+mkdir -p /tmp/dbus
+mkdir -p /var/lib/dbus /var/lib/bluetooth /var/run
 
 # D-Bus requires a stable machine-id. Generate once and persist to /etc.
-# Without /etc/machine-id, dbus-daemon starts but bluetoothd cannot
-# register on the system bus: "Failed to read machine uuid".
 dbus-uuidgen --ensure /etc/machine-id 2>/dev/null || true
-# Some dbus versions look in /var/lib/dbus/ instead.
 [ -f /var/lib/dbus/machine-id ] || cp /etc/machine-id /var/lib/dbus/machine-id 2>/dev/null || true
 
 # Start the D-Bus system bus.
+say "bt: starting D-Bus..."
 dbus-daemon --system --fork 2>/dev/null || true
-sleep 0.3
+DBUS_WAIT=0
+until [ -S /run/dbus/system_bus_socket ] || [ $DBUS_WAIT -ge 20 ]; do
+    sleep 0.3
+    DBUS_WAIT=$((DBUS_WAIT + 1))
+done
+say "bt: D-Bus ready (waited ${DBUS_WAIT}x0.3s)"
 
-# Attach the BCM43455 Bluetooth chip via userspace btattach.
-#
-# WHY NOT krnbt=on:
-# krnbt=on makes the kernel serdev driver probe BCM43455 at ~1.2s into boot,
-# BEFORE the ext4 rootfs is mounted and accessible to the firmware loader.
-# The driver calls request_firmware_direct() — one shot, no retry. It fails
-# with "firmware Patch file not found" even though the file is on disk.
-#
-# WHY btattach works:
-# rcS only runs after the rootfs is fully mounted, so /lib/firmware/brcm/
-# is always readable when btattach sends the firmware to the chip.
-#
-# -B /dev/ttyAMA0 : PL011 UART wired internally to BCM43455 on Pi 4
-# -P bcm          : Broadcom H4 protocol (handles firmware upload sequence)
-# -S 3000000      : renegotiate to 3 Mbps after firmware loads (BCM default)
-if [ -c /dev/ttyAMA0 ]; then
-    btattach -B /dev/ttyAMA0 -P bcm -S 3000000 &
-    echo "bluetooth: btattach started on /dev/ttyAMA0"
-else
-    echo "bluetooth: WARNING — /dev/ttyAMA0 not found, BT attach skipped"
-fi
-
-# Unblock the BT radio in case it is soft-blocked via rfkill.
-echo 0 > /sys/class/rfkill/rfkill0/soft 2>/dev/null || true
+# Unblock the BT radio.
+# Iterate by type — rfkill0 is not guaranteed to be the Bluetooth rfkill.
+for r in /sys/class/rfkill/rfkill*; do
+    [ "$(cat "$r/type" 2>/dev/null)" = "bluetooth" ] && echo 0 > "$r/soft" 2>/dev/null || true
+done
 rfkill unblock bluetooth 2>/dev/null || true
 
-# Wait for hci0. btattach uploads firmware then registers hci0 — this
-# takes about 2-3 seconds. Poll up to 8 seconds before giving up.
+# Wait for hci0 — serdev driver registers it after firmware loads.
+say "bt: waiting for hci0..."
 HCI_WAIT=0
 until [ -e /sys/class/bluetooth/hci0 ] || [ $HCI_WAIT -ge 16 ]; do
     sleep 0.5
@@ -144,33 +196,28 @@ until [ -e /sys/class/bluetooth/hci0 ] || [ $HCI_WAIT -ge 16 ]; do
 done
 
 if [ -e /sys/class/bluetooth/hci0 ]; then
-    echo "bluetooth: hci0 ready (waited ${HCI_WAIT}x0.5s)"
+    say "bt: hci0 ready (waited ${HCI_WAIT}x0.5s)"
 else
-    echo "bluetooth: WARNING — hci0 not found after 8s, BT disabled"
+    say "bt: WARNING — hci0 not found after 8s, BT disabled"
 fi
 
-# Locate bluetoothd. Buildroot installs to /usr/libexec/bluetooth/,
-# not /usr/sbin/ — check both for portability.
+# Locate bluetoothd — Buildroot installs to /usr/libexec/bluetooth/.
 BT_DAEMON=""
 for p in /usr/libexec/bluetooth/bluetoothd /usr/sbin/bluetoothd; do
     [ -x "$p" ] && BT_DAEMON="$p" && break
 done
 
 if [ -n "$BT_DAEMON" ] && [ -e /sys/class/bluetooth/hci0 ]; then
-    # --compat  : enables legacy SDP socket at /var/run/sdp. Required for
-    #             bluez-alsa HFP profile — RFCOMM channel negotiation uses
-    #             the SDP socket. Without it HFP audio never connects.
-    # --noplugin=sap : suppresses "sap-server: Operation not permitted"
-    #             log spam (SAP = SIM Access Profile, needs SIM hardware).
-    "$BT_DAEMON" --compat --noplugin=sap &
-    echo "bluetooth: bluetoothd started ($BT_DAEMON)"
+    # --compat  : legacy SDP socket at /var/run/sdp (required for HFP)
+    # --noplugin=sap : suppress SAP log spam (no SIM hardware)
+    setsid "$BT_DAEMON" --compat --noplugin=sap &
+    say "bt: bluetoothd started ($BT_DAEMON)"
 
-    # Wait for bluetoothd to fully register on D-Bus BEFORE starting
-    # bluealsa. bluealsa calls into org.bluez at startup — if bluetoothd
-    # isn't registered yet, bluealsa exits silently and BT audio never works.
-    # Poll up to 5 seconds.
+    # Wait for bluetoothd on D-Bus.
+    # --reply-timeout caps each dbus-send call to 3 s so a hung D-Bus can't
+    # stall one iteration indefinitely.
     BT_DBUS_WAIT=0
-    until dbus-send --system --print-reply \
+    until dbus-send --system --print-reply --reply-timeout=3000 \
               --dest=org.freedesktop.DBus \
               /org/freedesktop/DBus \
               org.freedesktop.DBus.ListNames 2>/dev/null | grep -q org.bluez \
@@ -178,34 +225,42 @@ if [ -n "$BT_DAEMON" ] && [ -e /sys/class/bluetooth/hci0 ]; then
         sleep 0.5
         BT_DBUS_WAIT=$((BT_DBUS_WAIT + 1))
     done
-    echo "bluetooth: org.bluez on D-Bus (waited ${BT_DBUS_WAIT}x0.5s)"
+    say "bt: org.bluez on D-Bus (waited ${BT_DBUS_WAIT}x0.5s)"
+
+    # Brief pause before powering on — the controller may not have finished
+    # its internal init even after D-Bus registration.
+    sleep 0.5
+    bluetoothctl --timeout 5 power on        2>/dev/null || true
+    bluetoothctl --timeout 5 discoverable on 2>/dev/null || true
+    bluetoothctl --timeout 5 pairable on     2>/dev/null || true
+    say "bt: adapter powered on, discoverable, pairable"
 
     # Start bluez-alsa bridge.
-    # Profile flags for a phone-style device:
-    #   a2dp-source — Pi streams audio OUT to a BT speaker or headset
-    #   a2dp-sink   — Pi receives audio IN from another device
-    #   hfp-ag      — Pi is the Audio Gateway (= the phone side of a call).
-    #                 NOTE: use hfp-ag NOT hfp-hf. hfp-hf is the headset /
-    #                 car-kit role. This device IS the phone, so it's the AG.
-    bluealsa -p a2dp-source -p a2dp-sink -p hfp-ag &
-    sleep 0.3
-    echo "bluetooth: bluealsa started"
+    # hfp-ag: Pi is the Audio Gateway (the phone side), NOT the headset side.
+    setsid bluealsa -p a2dp-source -p a2dp-sink -p hfp-ag &
+
+    # Wait for bluealsa on D-Bus.
+    BA_WAIT=0
+    until dbus-send --system --print-reply --reply-timeout=3000 \
+              --dest=org.freedesktop.DBus \
+              /org/freedesktop/DBus \
+              org.freedesktop.DBus.ListNames 2>/dev/null | grep -q org.bluealsa \
+          || [ $BA_WAIT -ge 10 ]; do
+        sleep 0.5
+        BA_WAIT=$((BA_WAIT + 1))
+    done
+    say "bt: bluealsa on D-Bus (waited ${BA_WAIT}x0.5s)"
 
     # Register a headless pairing agent ("Just Works" / NoInputNoOutput).
-    # Without an agent, bluetoothd rejects ALL pairing attempts with
-    # "No agent is registered". bt-agent is from the bluez-tools package.
     if command -v bt-agent >/dev/null 2>&1; then
-        bt-agent -c NoInputNoOutput &
-        echo "bluetooth: bt-agent started (Just Works pairing enabled)"
+        setsid bt-agent -c NoInputNoOutput &
+        say "bt: bt-agent started (Just Works pairing enabled)"
     else
-        echo "bluetooth: WARNING — bt-agent not found (install bluez-tools)"
-        echo "           Pairing will fail until an agent is registered."
+        say "bt: WARNING — bt-agent not found (install bluez-tools)"
     fi
 else
-    echo "bluetooth: ERROR — bluetoothd not found or hci0 missing, BT disabled"
+    say "bt: ERROR — bluetoothd not found or hci0 missing, BT disabled"
 fi
 
-echo ">>> Black Hand OS ready"
+say ">>> Black Hand OS ready"
 echo "fb0: $(cat /sys/class/graphics/fb0/virtual_size 2>/dev/null || echo 'not found')"
-
-

@@ -85,9 +85,11 @@ static void draw_categories(struct ncplane *phone, unsigned rows, unsigned cols)
 
     if (count == 0) {
         int mid = (CONTENT_START_ROW + 2 + footer) / 2;
+        char music_hint[96];
+        snprintf(music_hint, sizeof(music_hint), "Place files in %s/", APP_PATH_MUSIC_DIR);
         ghost_text(phone, mid - 1, CONTENT_COL, theme_text_muted(), "\u266B  \u266A  \u266B");
         ghost_text(phone, mid + 1, CONTENT_COL, theme_text_muted(), "No music found");
-        ghost_text(phone, mid + 2, CONTENT_COL, theme_text_muted(), "Place files in /data/music/");
+        ghost_text(phone, mid + 2, CONTENT_COL, theme_text_muted(), music_hint);
         ghost_softkeys(phone, "[Back]", "[Menu]");
         return;
     }
@@ -127,7 +129,7 @@ static void draw_categories(struct ncplane *phone, unsigned rows, unsigned cols)
         ncplane_set_fg_rgb(phone, sel ? theme_text_primary() : theme_text_muted());
         ncplane_set_bg_rgb(phone, theme_bg());
         ncplane_putstr_yx(phone, row, CONTENT_COL, sel ? MENU_CURSOR : MENU_CURSOR_BLANK);
-        put_clipped(phone, row, CONTENT_COL + 2, width - 2, cat->name ? cat->name : "?");
+        put_clipped(phone, row, CONTENT_COL + 1, width - 2, cat->name ? cat->name : "?");
     }
 
     ghost_softkeys(phone, "[Back]", "[Menu]");
@@ -190,14 +192,14 @@ static void draw_collections(struct ncplane *phone, unsigned rows, unsigned cols
             char line[256];
             snprintf(line, sizeof(line), "\u25B7 %s (%zu)",
                      c->name ? c->name : "?", c->track_count);
-            put_clipped(phone, row, CONTENT_COL + 2, width - 2, line);
+            put_clipped(phone, row, CONTENT_COL + 1, width - 2, line);
         } else {
             /* Direct track */
             size_t tidx = (size_t)(idx - (int)col_count);
             const Mp3Track *t = &cat->direct_tracks[tidx];
             char line[256];
             snprintf(line, sizeof(line), "\u266A %s", t->title ? t->title : "?");
-            put_clipped(phone, row, CONTENT_COL + 2, width - 2, line);
+            put_clipped(phone, row, CONTENT_COL + 1, width - 2, line);
         }
     }
 
@@ -256,111 +258,113 @@ static void draw_tracks(struct ncplane *phone, unsigned rows, unsigned cols) {
         snprintf(line, sizeof(line), "%s%s",
                  sel ? "\u266A " : "",
                  t->title ? t->title : "?");
-        put_clipped(phone, row, CONTENT_COL + 2, width - 2, line);
+        put_clipped(phone, row, CONTENT_COL + 1, width - 2, line);
     }
 
     ghost_softkeys(phone, "[Back]", "[Menu]");
 }
 
+/* ── Draw: Now Playing ───────────────────────────────────────────────── */
 static void draw_now_playing(struct ncplane *phone, unsigned rows, unsigned cols) {
     mp3_playback_state st = mp3_service_get_state();
     if (st == MP3_STOPPED) {
-        mode = playing_direct ? MP3_MODE_COLLECTIONS : MP3_MODE_TRACKS;
+        /* If playback stopped, return to track list */
+        if (playing_direct)
+            mode = MP3_MODE_COLLECTIONS;
+        else
+            mode = MP3_MODE_TRACKS;
         return;
     }
 
     unsigned elapsed = mp3_service_get_elapsed();
-    unsigned total   = mp3_service_get_total_duration();
+    unsigned total = mp3_service_get_total_duration();
     int footer = (int)rows - FOOTER_ROW_OFFSET;
-    int width  = INNER_WIDTH(cols);
+    int width = INNER_WIDTH(cols);
 
     /* Header */
     ncplane_set_fg_rgb(phone, theme_text_primary());
     ncplane_set_bg_rgb(phone, theme_bg());
     ncplane_putstr_yx(phone, CONTENT_START_ROW, CONTENT_COL, "NOW PLAYING");
 
-    ncplane_set_fg_rgb(phone, theme_border());
+    ncplane_set_fg_rgb(phone, theme_text_muted());
     const char *rule = theme_rule_glyph();
     for (int x = 0; x < width && CONTENT_COL + x < (int)cols - 1; x++)
-        ncplane_putstr_yx(phone, CONTENT_START_ROW + 1, CONTENT_COL + x,
-                          (rule && rule[0]) ? rule : "-");
+        ncplane_putstr_yx(phone, CONTENT_START_ROW + 1, CONTENT_COL + x, (rule && rule[0]) ? rule : "-");
 
-    /* Info block — each item increments r */
-    int r = CONTENT_START_ROW + 2;
+    int info_row = CONTENT_START_ROW + 3;
 
-    /* State icon + elapsed / total time */
-    const char *icon = (st == MP3_PLAYING) ? "▶" : "▌▌";
-    char time_str[32];
-    snprintf(time_str, sizeof(time_str), "%s  %02u:%02u / %02u:%02u",
-             icon, elapsed / 60, elapsed % 60, total / 60, total % 60);
-    ghost_text(phone, r++, CONTENT_COL, theme_text_primary(), time_str);
-
-    /* Track position in playlist */
-    {
-        size_t track_total = playing_direct
-            ? mp3_service_category_count()
-            : mp3_service_track_count((size_t)sel_cat, (size_t)sel_col);
-        if (track_total > 0 && r < footer - 5) {
-            char pos_str[24];
-            snprintf(pos_str, sizeof(pos_str), "Track %d / %zu",
-                     sel_track + 1, track_total);
-            ghost_text(phone, r, CONTENT_COL, theme_text_muted(), pos_str);
-        }
-        r++;
-    }
+    /* Play/pause icon + state */
+    const char *state_str = (st == MP3_PLAYING) ? "PLAYING" : "PAUSED";
+    const char *icon = (st == MP3_PLAYING) ? "\u25B6" : "\u258C\u258C";
+    char status_line[128];
+    unsigned mins = elapsed / 60;
+    unsigned secs = elapsed % 60;
+    unsigned tmins = total / 60;
+    unsigned tsecs = total % 60;
+    snprintf(status_line, sizeof(status_line), "%s  %s  %02u:%02u / %02u:%02u",
+             icon, state_str, mins, secs, tmins, tsecs);
+    ghost_text(phone, info_row, CONTENT_COL, theme_text_primary(), status_line);
 
     /* Track name */
-    const char *track_name = mp3_service_current_track_name();
-    if (r < footer - 4) {
-        ncplane_set_fg_rgb(phone, theme_text_primary());
-        ncplane_set_bg_rgb(phone, theme_bg());
-        put_clipped(phone, r++, CONTENT_COL, width, track_name ? track_name : "Unknown");
+    const char *track = mp3_service_current_track_name();
+    ncplane_set_fg_rgb(phone, theme_text_primary());
+    put_clipped(phone, info_row + 2, CONTENT_COL, width, track ? track : "Unknown");
+
+    /* Collection name */
+    const char *collection = mp3_service_current_collection_name();
+    if (collection && collection[0] != '\0') {
+        ncplane_set_fg_rgb(phone, theme_text_muted());
+        put_clipped(phone, info_row + 3, CONTENT_COL, width, collection);
     }
 
-    /* Collection / category */
-    const char *collection = mp3_service_current_collection_name();
-    if (collection && collection[0] != '\0' && r < footer - 3)
-        ghost_text(phone, r++, CONTENT_COL, theme_text_muted(), collection);
-
+    /* Category name */
     const char *category = mp3_service_current_category_name();
-    if (category && category[0] != '\0' && r < footer - 3)
-        ghost_text(phone, r++, CONTENT_COL, theme_text_muted(), category);
+    ncplane_set_fg_rgb(phone, theme_text_muted());
+    put_clipped(phone, info_row + 4, CONTENT_COL, width, category ? category : "");
 
     /* Progress bar */
-    int bar_row = r + 1;
-    if (bar_row < footer - 2) {
-        int bar_w = width;
-        if (bar_w < 4) bar_w = 4;
-        int fill = (total > 0)
-            ? (int)((unsigned long)elapsed * (unsigned)bar_w / total) : 0;
-        if (fill > bar_w) fill = bar_w;
-        if (fill < 0)     fill = 0;
+    int bar_row = info_row + 6;
+    if (bar_row < footer - 3) {
+        int bar_width = width - 2;
+        if (bar_width > 0) {
+            int meter_width = bar_width;
+            if (meter_width < 1) meter_width = 1;
+            int fill = (total > 0) ? (int)((elapsed * meter_width) / total) : 0;
+            if (fill > meter_width) fill = meter_width;
 
-        ncplane_set_fg_rgb(phone, theme_border());
-        ncplane_set_bg_rgb(phone, theme_bg());
-        for (int x = 0; x < bar_w; x++)
-            ncplane_putstr_yx(phone, bar_row, CONTENT_COL + x,
-                              (x < fill) ? "█" : "░");
+            ncplane_set_fg_rgb(phone, theme_text_primary());
+            ncplane_set_bg_rgb(phone, theme_bg());
+            for (int x = 0; x < meter_width; x++)
+                ncplane_putstr_yx(phone, bar_row, CONTENT_COL + x,
+                                  (x < fill) ? "\u2588" : "\u2591");
+        }
     }
 
-    /* Volume bar */
-    int vol_row = bar_row + 1;
+    /* Volume */
+    int vol_row = bar_row + 2;
     if (vol_row < footer - 1) {
         int vol = mp3_service_get_volume();
-        int vol_bar_w = 10;
-        int vol_fill = vol * vol_bar_w / 100;
-        if (vol_fill > vol_bar_w) vol_fill = vol_bar_w;
-        char vol_buf[48];
-        int p = 0;
-        for (int i = 0; i < vol_bar_w; i++)
-            vol_buf[p++] = (i < vol_fill) ? '#' : '.';
-        snprintf(vol_buf + p, sizeof(vol_buf) - (size_t)p, " %d%%", vol);
-        ghost_text(phone, vol_row, CONTENT_COL, theme_text_muted(), vol_buf);
+        char vol_str[32];
+        snprintf(vol_str, sizeof(vol_str), "VOL: %d%%", vol);
+        ghost_text(phone, vol_row, CONTENT_COL, theme_text_muted(), vol_str);
     }
 
-    /* Controls hint — visible now (ghost_softkeys no longer overwrites row footer-1) */
+    /* Visualizer */
+    int viz_row = vol_row + 1;
+    if (viz_row < footer - 1) {
+        unsigned char levels[16] = {0};
+        size_t bins = mp3_service_get_visualizer(levels, 16);
+        if (bins == 0) bins = 16;
+        char meter[64];
+        int p = 0;
+        for (int i = 0; i < 10 && p < (int)sizeof(meter) - 2; i++)
+            meter[p++] = (levels[i % bins] >= 4) ? '|' : '.';
+        meter[p] = '\0';
+        ghost_text(phone, viz_row, CONTENT_COL, theme_text_muted(), meter);
+    }
+
     ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(),
-               "◄ Prev  ► Next  ▲▼ Vol");
+               "\u25C0:Prev \u25B6:Next \u25B2\u25BC:Vol");
     ghost_softkeys(phone, "[Back]", "[Stop]");
 }
 
@@ -417,16 +421,14 @@ screen_id screen_mp3_input(uint32_t key) {
                 mp3_service_set_volume(vol - 5);
                 return SCREEN_MP3;
             }
-            case 'q':
-            case 'Q':
+            case KEY_SOFT_LEFT_ACTION:
                 /* Back to track list (music continues) */
                 if (playing_direct)
                     mode = MP3_MODE_COLLECTIONS;
                 else
                     mode = MP3_MODE_TRACKS;
                 return SCREEN_MP3;
-            case 'e':
-            case 'E':
+            case KEY_SOFT_RIGHT_ACTION:
                 /* Stop playback */
                 mp3_service_stop();
                 if (playing_direct)
@@ -458,15 +460,13 @@ screen_id screen_mp3_input(uint32_t key) {
                     mode = MP3_MODE_NOW_PLAYING;
                 }
                 return SCREEN_MP3;
-            case 'q':
-            case 'Q':
+            case KEY_SOFT_LEFT_ACTION:
                 /* Back to collections */
                 mode = MP3_MODE_COLLECTIONS;
                 sel_track = 0;
                 scroll_track = 0;
                 return SCREEN_MP3;
-            case 'e':
-            case 'E':
+            case KEY_SOFT_RIGHT_ACTION:
                 /* RSK = back to main menu */
                 return SCREEN_HOME;
             default:
@@ -507,15 +507,13 @@ screen_id screen_mp3_input(uint32_t key) {
                     }
                 }
                 return SCREEN_MP3;
-            case 'q':
-            case 'Q':
+            case KEY_SOFT_LEFT_ACTION:
                 /* Back to categories */
                 mode = MP3_MODE_CATEGORIES;
                 sel_col = 0;
                 scroll_col = 0;
                 return SCREEN_MP3;
-            case 'e':
-            case 'E':
+            case KEY_SOFT_RIGHT_ACTION:
                 /* RSK = back to main menu */
                 return SCREEN_HOME;
             default:
@@ -542,12 +540,10 @@ screen_id screen_mp3_input(uint32_t key) {
                     mode = MP3_MODE_COLLECTIONS;
                 }
                 return SCREEN_MP3;
-            case 'q':
-            case 'Q':
+            case KEY_SOFT_LEFT_ACTION:
                 /* LSK = back to main menu */
                 return SCREEN_HOME;
-            case 'e':
-            case 'E':
+            case KEY_SOFT_RIGHT_ACTION:
                 /* RSK = back to main menu */
                 return SCREEN_HOME;
             default:

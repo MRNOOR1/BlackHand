@@ -7,7 +7,7 @@
  *
  * Hierarchical music library service.
  *
- * Structure: ./data/music/<category>/<collection>/<track.mp3>
+ * Structure: ./Music/<category>/<collection>/<track.mp3>
  *
  * - Categories are top-level folders (genres, moods, etc.)
  * - Collections are folders inside categories (artists, albums, etc.)

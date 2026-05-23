@@ -191,38 +191,26 @@ void ghost_softkeys(struct ncplane *n, const char *left_label, const char *right
     ncplane_dim_yx(n, &rows, &cols);
     if (rows < 3 || cols < 6) return;
 
-    /*
-     * Layout (bottom two rows):
-     *   rows - 2  →  separator rule   (above the soft keys)
-     *   rows - 1  →  [Left]  [Right]  (key labels)
-     *
-     * Previously the rule was at rows-3 and labels at rows-2, which meant
-     * it silently overwrote any hint text that screens drew at rows-3.
-     * Moving both down by one row fixes that: hint text at rows-3 is now
-     * always visible.
-     */
-    int sep_row   = (int)rows - FOOTER_ROW_OFFSET;       /* rows - 2 */
-    int label_row = (int)rows - FOOTER_ROW_OFFSET + 1;   /* rows - 1 */
-
-    if (sep_row < 1 || label_row >= (int)rows) return;
+    int row = (int)rows - FOOTER_ROW_OFFSET;
+    if (row < 1 || row >= (int)rows - 1) return;
 
     ghost_set(n, theme_border());
     const char *rule = theme_rule_glyph();
-    for (int x = 0; x < (int)cols; x++) {
-        ncplane_putstr_yx(n, sep_row, x, (rule && rule[0]) ? rule : "-");
+    for (int x = CONTENT_COL; x < (int)cols - CONTENT_COL; x++) {
+        ncplane_putstr_yx(n, row - 1, x, (rule && rule[0]) ? rule : "-");
     }
 
     ghost_set(n, theme_text_muted());
 
     if (left_label && left_label[0] != '\0') {
-        ncplane_putstr_yx(n, label_row, CONTENT_COL, left_label);
+        ncplane_putstr_yx(n, row, CONTENT_COL, left_label);
     }
 
     if (right_label && right_label[0] != '\0') {
         int right_len = (int)strlen(right_label);
         int right_col = (int)cols - 1 - CONTENT_COL - right_len;
         if (right_col < CONTENT_COL) right_col = CONTENT_COL;
-        ncplane_putstr_yx(n, label_row, right_col, right_label);
+        ncplane_putstr_yx(n, row, right_col, right_label);
     }
 }
 
@@ -233,14 +221,12 @@ void ghost_confirm_popup(struct ncplane *n, const char *question, int yes_select
     int h = 5;
     int top = ((int)rows - h) / 2;
     int left = ((int)cols - w) / 2;
-    if (top < CONTENT_START_ROW) top = CONTENT_START_ROW;
+    if (top < 3) top = 3;
     if (left < 2) left = 2;
 
     ghost_fill_rect(n, top, left, h, w, ' ', theme_text_primary(), theme_bg());
     ghost_text(n, top + 1, left + 2, theme_text_primary(), question ? question : "Are you sure?");
-    ghost_text(n, top + 3, left + 2, (yes_selected == 0) ? theme_selection_text() : theme_text_muted(),
-               yes_selected ? "  NO" : "> NO");
-    ghost_text(n, top + 3, left + 12, (yes_selected == 1) ? theme_selection_text() : theme_text_muted(),
-               yes_selected ? "> YES" : "  YES");
+    ghost_text(n, top + 3, left + 2, theme_text_muted(), yes_selected ? "  NO" : "> NO");
+    ghost_text(n, top + 3, left + 12, theme_text_muted(), yes_selected ? "> YES" : "  YES");
     ghost_softkeys(n, "[NO]", "[YES]");
 }

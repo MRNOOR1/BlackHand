@@ -25,8 +25,19 @@ display_rotate=2
 
 # NO vc4 overlay — let firmware own the display entirely.
 
-# HyperPixel uses GPIO pins that conflict with UART
-enable_uart=0
+# enable_uart=1 fixes the VPU core_freq to 250 MHz so the mini-UART baud
+# rate is stable. It does NOT swap the UARTs on Pi 4 — PL011 (ttyAMA0)
+# stays on Bluetooth. Without this, mini-UART baud drifts at load.
+#
+# krnbt=on is intentionally ABSENT. With krnbt=on the VideoCore firmware
+# skips its own UART initialisation and hands the BCM43455 directly to
+# the Linux serdev driver. That changes the UART clock-switch sequence and
+# causes "command 0x0a0a tx timeout" (-110 ETIMEDOUT) during firmware
+# patch upload — the chip never gets its UART reconfigured to 3 Mbaud.
+# Without krnbt, the VC firmware does the UART setup correctly first.
+# The RPi downstream DT already has the bcm43438-bt serdev node built in,
+# so hci0 still appears automatically without the krnbt flag.
+enable_uart=1
 
 # ── I2C-GPIO bus for touchscreen ──
 # The Goodix GT911 touch controller sits on GPIO 10 (SDA) / GPIO 11 (SCL).
@@ -41,12 +52,11 @@ dtoverlay=hyperpixel4-touch
 # Enable onboard audio (headphone jack / HDMI)
 dtparam=audio=on
 
+# ── Silence cosmetic dmesg warnings (UART pinctrl + BT regulator) ──
+# Declares what the Pi firmware already configured at power-on so Linux
+# stops logging "no valid maps for state default" and "supply not found".
+dtoverlay=blackhand-fixes
+
 disable_splash=1
 boot_delay=0
 
-# ── Bluetooth ────────────────────────────────────────────────────────────────
-# krnbt=on is NOT used here.
-# With krnbt=on the kernel serdev driver probes BCM43455 at ~1.2s into boot,
-# before the ext4 rootfs is mounted. The firmware loader fires once and fails
-# ("Patch file not found") because /lib/firmware/brcm/ isn't accessible yet.
-# Instead we use btattach from rcS, which runs after rootfs is fully mounted.

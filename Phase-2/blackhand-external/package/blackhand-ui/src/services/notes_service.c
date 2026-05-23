@@ -1,4 +1,5 @@
 #include "notes_service.h"
+#include "../config.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -13,7 +14,7 @@
 static Note **notes_index = NULL;
 static size_t notes_count = 0;
 static size_t notes_capacity = 0;
-static const char *NOTES_PATH = "./Notes";
+static const char *NOTES_PATH = APP_PATH_NOTES_DIR;
 
 static int ensure_capacity(void)
 {

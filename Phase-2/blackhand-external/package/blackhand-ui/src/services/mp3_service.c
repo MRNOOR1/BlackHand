@@ -1,5 +1,4 @@
 #include "mp3_service.h"
-#include "../ui-ipcs/audio_ipc.h"
 
 #include <dirent.h>
 #include <math.h>
@@ -292,9 +291,7 @@ static void *player_thread_fn(void *arg) {
 
     ao = out123_new();
     if (!ao) goto cleanup;
-    /* Use ALSA 'default' device — routed to the USB audio card via /etc/asound.conf
-       which rcS generates at boot based on which card is USB (handles wired vs BT USB). */
-    if (out123_open(ao, "alsa", "default") != 0) goto cleanup;
+    if (out123_open(ao, NULL, NULL) != 0) goto cleanup;
     if (out123_start(ao, rate, channels, encoding) != 0) goto cleanup;
 
     outblock = mpg123_outblock(mh);
@@ -302,12 +299,22 @@ static void *player_thread_fn(void *arg) {
     buffer = malloc(outblock);
     if (!buffer) goto cleanup;
 
+    /* Apply initial volume */
+    mpg123_volume(mh, (double)volume_percent / 100.0);
+
     int paused_locally = 0;
+    int last_vol = volume_percent;
     while (1) {
         pthread_mutex_lock(&mp3_lock);
         int should_stop = stop_requested;
         mp3_playback_state st = state;
+        int cur_vol = volume_percent;
         pthread_mutex_unlock(&mp3_lock);
+
+        if (cur_vol != last_vol) {
+            mpg123_volume(mh, (double)cur_vol / 100.0);
+            last_vol = cur_vol;
+        }
 
         if (should_stop) break;
 
@@ -599,8 +606,10 @@ int mp3_service_next(void) {
 }
 
 int mp3_service_prev(void) {
-    if (cur_track == 0) {
-        /* First track: restart it */
+    unsigned elapsed = mp3_service_get_elapsed();
+
+    if (cur_track == 0 || elapsed > 3) {
+        /* Restart current track: either first in queue or > 3 s played */
         stop_thread();
         const char *path = get_current_track_path();
         if (!path) return -1;
@@ -698,24 +707,15 @@ const char *mp3_service_current_category_name(void) {
 }
 
 int mp3_service_get_volume(void) {
-    /* Always read from the audio service — the single source of truth.
-     * This ensures the displayed value stays in sync no matter what changed
-     * the volume (UI keypad, wired headphone buttons, future BT controls, etc.)
-     * Fall back to our last-known value only if the IPC call fails. */
-    int live = audio_ipc_get_volume();
-    if (live >= 0)
-        volume_percent = live;
     return volume_percent;
 }
 
 void mp3_service_set_volume(int percent) {
     if (percent < 0) percent = 0;
     if (percent > 100) percent = 100;
+    pthread_mutex_lock(&mp3_lock);
     volume_percent = percent;
-    /* Push to the audio service — the single source of truth for volume.
-     * All other sources (headphone buttons, future BT) also go through
-     * audio_ipc_volume(), so everyone stays in sync automatically. */
-    audio_ipc_volume(percent);
+    pthread_mutex_unlock(&mp3_lock);
 }
 
 /* Backward compat: total flat track count */

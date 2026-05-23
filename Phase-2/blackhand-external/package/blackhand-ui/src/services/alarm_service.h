@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include "../config.h"
 
 /* Repeat modes */
 typedef enum {
@@ -19,9 +20,6 @@ typedef struct {
     char *label;
     alarm_repeat_t repeat;
 } Alarm;
-
-#define ALARM_MAX_COUNT   20
-#define ALARM_SNOOZE_MIN  5
 
 void alarm_service_init(void);
 const Alarm **alarm_service_list_all(size_t *count);

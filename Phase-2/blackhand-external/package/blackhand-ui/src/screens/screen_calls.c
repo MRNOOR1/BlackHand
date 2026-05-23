@@ -82,7 +82,7 @@ void screen_calls_draw(struct ncplane *phone) {
         ncplane_set_bg_rgb(phone, theme_bg());
 
         char line[256];
-        snprintf(line, sizeof(line), "%s %-10s %-8s %s",
+        snprintf(line, sizeof(line), "%s%-10s %-8s %s",
                  selected ? MENU_CURSOR : MENU_CURSOR_BLANK,
                  call->name,
                  call->type,
@@ -109,8 +109,7 @@ screen_id screen_calls_input(uint32_t key) {
                 return SCREEN_CALLS;
             case NCKEY_ENTER:
             case '\n':
-            case 'e':
-            case 'E':
+            case KEY_SOFT_RIGHT_ACTION:
                 if (s_delete_yes && comm_service_call_count() > 0) {
                     comm_service_call_delete((size_t)s_selected);
                     if (s_selected >= (int)comm_service_call_count() && s_selected > 0) s_selected--;
@@ -118,8 +117,7 @@ screen_id screen_calls_input(uint32_t key) {
                 s_delete_prompt = 0;
                 s_delete_yes = 0;
                 return SCREEN_CALLS;
-            case 'q':
-            case 'Q':
+            case KEY_SOFT_LEFT_ACTION:
                 s_delete_prompt = 0;
                 s_delete_yes = 0;
                 return SCREEN_CALLS;
@@ -136,8 +134,7 @@ screen_id screen_calls_input(uint32_t key) {
             if (s_selected < (int)comm_service_call_count() - 1) s_selected++;
             return SCREEN_CALLS;
         case NCKEY_RIGHT:
-        case 'e':
-        case 'E':
+        case KEY_SOFT_RIGHT_ACTION:
             {
             char who[32];
             snprintf(who, sizeof(who), "Call %d", s_seed++);
@@ -155,8 +152,7 @@ screen_id screen_calls_input(uint32_t key) {
                 s_delete_yes = 0;
             }
             return SCREEN_CALLS;
-        case 'q':
-        case 'Q':
+        case KEY_SOFT_LEFT_ACTION:
             return SCREEN_HOME;
         default:
             return SCREEN_CALLS;

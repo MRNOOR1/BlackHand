@@ -77,7 +77,7 @@ void screen_messages_draw(struct ncplane *phone) {
 
             int selected = (idx == s_selected);
             char line[256];
-            snprintf(line, sizeof(line), "%s %-10s %s",
+            snprintf(line, sizeof(line), "%s%-10s %s",
                      selected ? MENU_CURSOR : MENU_CURSOR_BLANK,
                      msg->sender,
                      msg->body);
@@ -106,8 +106,7 @@ screen_id screen_messages_input(uint32_t key) {
                 return SCREEN_MESSAGES;
             case NCKEY_ENTER:
             case '\n':
-            case 'e':
-            case 'E':
+            case KEY_SOFT_RIGHT_ACTION:
                 if (s_delete_yes && comm_service_message_count() > 0) {
                     comm_service_message_delete((size_t)s_selected);
                     if (s_selected >= (int)comm_service_message_count() && s_selected > 0) s_selected--;
@@ -115,8 +114,7 @@ screen_id screen_messages_input(uint32_t key) {
                 s_delete_prompt = 0;
                 s_delete_yes = 0;
                 return SCREEN_MESSAGES;
-            case 'q':
-            case 'Q':
+            case KEY_SOFT_LEFT_ACTION:
                 s_delete_prompt = 0;
                 s_delete_yes = 0;
                 return SCREEN_MESSAGES;
@@ -133,8 +131,7 @@ screen_id screen_messages_input(uint32_t key) {
             if (s_selected < (int)comm_service_message_count() - 1) s_selected++;
             return SCREEN_MESSAGES;
         case NCKEY_RIGHT:
-        case 'e':
-        case 'E':
+        case KEY_SOFT_RIGHT_ACTION:
             {
             char sender[32];
             char body[64];
@@ -155,8 +152,7 @@ screen_id screen_messages_input(uint32_t key) {
                 s_delete_yes = 0;
             }
             return SCREEN_MESSAGES;
-        case 'q':
-        case 'Q':
+        case KEY_SOFT_LEFT_ACTION:
             return SCREEN_HOME;
         default:
             return SCREEN_MESSAGES;

@@ -65,183 +65,88 @@
 #ifndef BLACKHAND_CONFIG_H
 #define BLACKHAND_CONFIG_H
 
+#include <notcurses/notcurses.h>
+
 /*
 Nav bar
 */
 
-#define COL_GHOST_ON 0xE0E0E0
-#define COL_GHOST_OFF 0x1E1E1E
-#define COL_GHOST_PCT 0x2C2C2C
 #define COL_GHOST_LOW 0x7F1D1D
-
 /* ═══════════════════════════════════════════════════════════════════════════
- *  PHONE DIMENSIONS  (HyperPixel 4.0: 480×800 portrait)
+ *  PHONE DIMENSIONS
  * ═══════════════════════════════════════════════════════════════════════════
  *
- *  The TUI fills the full terminal (full-bleed, no border).
- *  Physical screen: ~35 mm wide × ~45 mm tall.
- *  At Iosevka 10pt (~8×16 px/cell): ≈60 cols × 50 rows.
+ *  These define the size of the "phone" display in terminal characters.
  *
- *  PHONE_COLS / PHONE_SCREEN_ROWS are kept as soft defaults for reference.
- *  All draw code reads actual plane dimensions at runtime.
+ *  TERMINAL CHARACTER SIZES:
+ *    - Most terminals use characters about twice as tall as wide
+ *    - A 50x15 phone is roughly square visually
+ *    - Increase for more content area, decrease for smaller footprint
+ *
+ *  MINIMUM SIZES:
+ *    - PHONE_COLS should be at least 30 for menu items + border
+ *    - PHONE_ROWS should be at least 10 for status bar + content + footer
  */
-#define PHONE_COLS        40
-#define PHONE_SCREEN_ROWS 40
+
+/* ─── HyperPixel 4.0 Display: 400×800 pixels ──────────────────────────── */
+/*
+ * At a monospace font of ~10×20 pixels per cell (e.g. Iosevka 10pt):
+ *   400 / 10 = 40 columns
+ *   800 / 20 = 40 rows
+ *
+ * The display is split into two zones:
+ *   PHONE_SCREEN_ROWS  — the "display" (status, content, softkey footer)
+ *   KEYPAD_ROWS         — visual on-screen keypad below the screen
+ *
+ * Total plane height = PHONE_SCREEN_ROWS + KEYPAD_ROWS
+ */
+
+/* Width of the phone plane in terminal columns */
+#define PHONE_COLS 200
+
+/* Height of the screen portion (border + status + content + footer) */
+#define PHONE_SCREEN_ROWS 200
+
+/* Keypad has been removed from the UI-focused layout */
+#define KEYPAD_ROWS 0
+
+/* Total height of the combined phone plane */
+#define PHONE_ROWS PHONE_SCREEN_ROWS
+
+/* ─── Keypad Layout Constants ──────────────────────────────────────────── */
+/*
+ *  Keypad region spans rows PHONE_SCREEN_ROWS .. PHONE_ROWS-1 on the plane.
+ *
+ *  Visual layout (row offsets relative to PHONE_SCREEN_ROWS):
+ *
+ *    +0   ┌─ separator ─────────────────────────────────┐
+ *    +1   │  [LSK]                            [RSK]     │
+ *    +2   │                                             │
+ *    +3   │              ▲                              │
+ *    +4   │          ◀  [OK]  ▶                         │
+ *    +5   │              ▼                              │
+ *    +6   │                                             │
+ *    +7   │         [ 1 ] [ 2 ] [ 3 ]                   │
+ *    +8   │                                             │
+ *    +9   │         [ 4 ] [ 5 ] [ 6 ]                   │
+ *    +10  │                                             │
+ *    +11  │         [ 7 ] [ 8 ] [ 9 ]                   │
+ *    +12  │                                             │
+ *    +13  │         [ * ] [ 0 ] [ # ]                   │
+ *    +14  │                                             │
+ *    +15  └─────────────────────────────────────────────┘
+ */
+#define KEYPAD_START_ROW PHONE_SCREEN_ROWS
+#define KEYPAD_SOFTKEY_ROW (KEYPAD_START_ROW + 1)
+#define KEYPAD_DPAD_ROW (KEYPAD_START_ROW + 3)
+#define KEYPAD_NUM_ROW (KEYPAD_START_ROW + 7)
 
 /* ═══════════════════════════════════════════════════════════════════════════
- *  COLOR PALETTE
- * ═══════════════════════════════════════════════════════════════════════════
- *
- *  All colors are 24-bit RGB values in hexadecimal format: 0xRRGGBB
- *
- *  C CONCEPT: HEXADECIMAL NUMBERS
- *  ------------------------------
- *  Hexadecimal (base 16) uses digits 0-9 and letters A-F.
- *  Each hex digit represents 4 bits (0-15).
- *
- *  COLOR FORMAT: 0xRRGGBB
- *    - RR = Red component (00-FF, which is 0-255 in decimal)
- *    - GG = Green component (00-FF)
- *    - BB = Blue component (00-FF)
- *
- *  EXAMPLES:
- *    0xFF0000 = Red   (full red, no green, no blue)
- *    0x00FF00 = Green (no red, full green, no blue)
- *    0x0000FF = Blue  (no red, no green, full blue)
- *    0xFFFFFF = White (all colors at maximum)
- *    0x000000 = Black (all colors at zero)
- *    0x808080 = Grey  (all colors at middle)
- *
- *  TIPS FOR CHOOSING COLORS:
- *    - Use a color picker tool (many available online)
- *    - Keep contrast in mind (text vs background)
- *    - Consider color-blind users
- *    - Test on different terminals (colors may vary)
- */
+ *  APPEARANCE CONSTANTS IN ACTIVE USE
+ * ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ─── Background ───────────────────────────────────────────────────────── */
-
-/*
- * COL_BG - Main Background Color
- *
- * Used for: Phone interior, behind all content
- * Current: Very dark grey (almost black)
- * Try: 0x000000 (pure black), 0x1a1a2e (dark blue), 0x0d1117 (GitHub dark)
- */
-#define COL_BG 0x1a1a2e
-
-/* ─── Border / Frame ───────────────────────────────────────────────────── */
-
-/*
- * COL_BORDER - Box Border Color
- *
- * Used for: The heavy box-drawing characters around the phone edge
- * Current: Muted sage green
- * Try: 0x5c6370 (grey), 0x61afef (blue), 0x98c379 (green)
- */
-#define COL_BORDER 0xE0E0E0
-
-/*
- * COL_SEPARATOR - Internal Separator Lines
- *
- * Used for: Horizontal lines below status bar and above footer
- * Current: Medium grey (subtle)
- * Try: 0x333333 (darker), 0x777777 (lighter)
- */
-#define COL_SEPARATOR 0xE0E0E0
-
-/* ─── Status Bar (Battery & Signal) ────────────────────────────────────── */
-
-/*
- * COL_STATUS_TEXT - General Status Bar Text
- *
- * Used for: Any non-colored text in the status bar
- * Current: Light grey
- */
-#define COL_STATUS_TEXT 0x888888
-
-/*
- * Battery Colors - Change based on charge level
- *
- * COL_BATTERY_GOOD - Above 50%
- * COL_BATTERY_MED  - 20% to 50%
- * COL_BATTERY_LOW  - Below 20%
- *
- * The draw_battery() function in main.c uses these thresholds.
- */
-#define COL_BATTERY_GOOD 0x7ec850 /* Green - healthy */
-#define COL_BATTERY_MED 0xf0c040  /* Yellow/orange - warning */
-#define COL_BATTERY_LOW 0xe05040  /* Red - critical */
-
-/*
- * Signal Colors
- *
- * COL_SIGNAL_ON  - Bars that represent actual signal
- * COL_SIGNAL_OFF - Bars above the signal level (empty)
- */
-#define COL_SIGNAL_ON 0x7ec850  /* Green - has signal */
-#define COL_SIGNAL_OFF 0x555555 /* Grey - no signal */
-
-/* ─── Header ───────────────────────────────────────────────────────────── */
-
-/*
- * COL_HEADER_TEXT - Header Text Color
- *
- * Used for: Title text, brand text in the header area
- * Current: Warm off-white
- */
-#define COL_HEADER_TEXT 0xd8dad3
-
-/* ─── Footer ───────────────────────────────────────────────────────────── */
-
-/*
- * COL_FOOTER_TEXT - Footer Hint Text
- *
- * Used for: "[q]Quit" and other footer hints
- * Current: Warm tan/beige
- */
-#define COL_FOOTER_TEXT 0xa5a58d
-
-/* ─── Menu (Home Screen) ───────────────────────────────────────────────── */
-
-/*
- * COL_MENU_NORMAL - Unselected Menu Items
- *
- * Current: Soft pink/mauve
- * Try: 0xabb2bf (grey), 0xe5c07b (gold)
- */
-#define COL_MENU_NORMAL 0xc9ada7
-
-/*
- * COL_MENU_SELECTED - Currently Selected Menu Item
- *
- * Current: Bright white (stands out from normal items)
- * Try: 0x61afef (blue), 0x98c379 (green), 0xe06c75 (red)
- */
-#define COL_MENU_SELECTED 0xffffff
-
-/* ─── Placeholder Screens ──────────────────────────────────────────────── */
-
-/*
- * Colors for unimplemented screens showing "Coming soon..."
- */
 #define COL_PLACEHOLDER 0x555555 /* "Coming soon..." text */
 #define COL_HINT 0xa5a58d        /* "[h] go Home" hint */
-
-/* ─── Settings Screen ──────────────────────────────────────────────────── */
-
-#define COL_SETTINGS_HEADER 0xf2e9e4 /* "Settings" heading */
-#define COL_SETTINGS_TEXT 0xc9ada7   /* Setting item text */
-
-/* ─── Dev Mode Label ───────────────────────────────────────────────────── */
-
-/*
- * COL_DEV_LABEL - Development Mode Indicator
- *
- * Used for: "[ Dev — 50x15 phone screen ]" text outside the phone
- * Current: Very dim grey (barely visible)
- */
-#define COL_DEV_LABEL 0x444444
 
 /* ═══════════════════════════════════════════════════════════════════════════
  *  LAYOUT CONSTANTS
@@ -264,74 +169,97 @@ Nav bar
  *
  * If the plane is smaller than this, we skip drawing to avoid garbled output.
  */
-#define FRAME_MIN_ROWS 5
-#define FRAME_MIN_COLS 20
+#define FRAME_MIN_ROWS 3
+#define FRAME_MIN_COLS 10
 
 /* ─── Status Bar Layout ────────────────────────────────────────────────── */
 
 /*
- * STATUS_ROW - Row where battery, clock, and signal are drawn.
- * Row 0 = first row — the TUI is borderless, content fills top-to-bottom.
+ * STATUS_ROW - Row where battery and signal are drawn
+ *
+ * Row 0 is the top border, so row 1 is the first interior row.
+ * The status bar is drawn here, with a separator line at row 2.
  */
-#define STATUS_ROW 0
+#define STATUS_ROW 1
 
 /*
- * STATUS_BATTERY_COL - Column where battery indicator starts (left side).
+ * STATUS_BATTERY_COL - Column where battery icon starts
+ * STATUS_SIGNAL_COL  - Column where signal icon starts
+ *
+ * Battery is on the left (col 2, leaving room for border).
+ * Signal is right-anchored dynamically in draw_signal() (cols - 6).
  */
-#define STATUS_BATTERY_COL 1
-
-/* ─── Unified Layout Constants ─────────────────────────────────────────── */
-
-/*
- * CONTENT_START_ROW - First row of screen content (title, list items, etc.)
- * Row 0 = status bar
- * Row 1 = separator line
- * Row 2 = first content row
- */
-#define CONTENT_START_ROW 2
-
-/*
- * CONTENT_COL - Left margin column for all content.
- */
-#define CONTENT_COL 2
-
-/*
- * FOOTER_ROW_OFFSET - Distance from bottom for the soft-key area.
- * ghost_softkeys() draws:
- *   separator at  rows - FOOTER_ROW_OFFSET        (= rows - 2)
- *   key labels at rows - FOOTER_ROW_OFFSET + 1    (= rows - 1)
- * Screens must keep content above rows - FOOTER_ROW_OFFSET - 1 (= rows - 3).
- */
-#define FOOTER_ROW_OFFSET 2
-
-/*
- * INNER_WIDTH(cols) - Usable column count inside the left/right margins.
- */
-#define INNER_WIDTH(cols) ((int)(cols) - 2 * CONTENT_COL)
+#define STATUS_BATTERY_COL 2
 
 /* ─── Home Screen Layout ───────────────────────────────────────────────── */
 
 /*
- * HOME_CONTENT_START_ROW - Row of the content-rule under the home title.
- * Items start at HOME_CONTENT_START_ROW + 1.
+ * HOME_CONTENT_START_ROW - First row of menu items
+ *
+ * Row 0 = border
+ * Row 1 = status bar
+ * Row 2 = separator
+ * Row 3 = first menu item (START_ROW = 3)
  */
 #define HOME_CONTENT_START_ROW 3
 
 /*
- * HOME_CONTENT_COL - Left column for menu items.
+ * HOME_CONTENT_COL - Left column for menu items
+ *
+ * Column 0 is the border, so content starts at column 2.
  */
-#define HOME_CONTENT_COL CONTENT_COL
+#define HOME_CONTENT_COL 2
 
 /*
- * HOME_ROW_SPACING - Rows between menu items (1 = dense, 2 = spacious).
+ * HOME_ROW_SPACING - Rows between menu items
+ *
+ * 1 = items on consecutive rows (dense)
+ * 2 = one empty row between items (spacious)
  */
 #define HOME_ROW_SPACING 1
 
 /*
- * HOME_MIN_* - Minimum plane size to attempt drawing the menu.
+ * HOME_MIN_* - Minimum size to draw the menu
+ *
+ * Below this, we show "Too small" message instead.
  */
-#define HOME_MIN_ROWS 8
+#define HOME_MIN_ROWS 6
 #define HOME_MIN_COLS 20
+
+/* ─── Settings Screen Layout ───────────────────────────────────────────── */
+
+#define SETTINGS_HEADER_ROW 3  /* "Settings" heading row */
+#define SETTINGS_CONTENT_COL 3 /* Left column for content */
+#define SETTINGS_FIRST_ROW 5   /* First setting item row */
+#define SETTINGS_MIN_ROWS 6
+#define SETTINGS_MIN_COLS 20
+
+/* ─── Unified Layout Constants ─────────────────────────────────────────── */
+#define CONTENT_START_ROW 3 /* first row below separator */
+#define CONTENT_COL 3       /* left margin for content */
+#define FOOTER_ROW_OFFSET 2 /* footer is rows - this */
+#define INNER_WIDTH(cols) ((int)(cols) - 2 * CONTENT_COL)
+
+/* Shared popup layout styling */
+#define UI_POPUP_MIN_TOP 3
+#define UI_POPUP_MIN_LEFT 1
+#define UI_POPUP_TEXT_INSET_X 2
+#define UI_POPUP_TITLE_ROW_OFFSET 1
+#define UI_POPUP_INPUT_ROW_OFFSET 3
+#define UI_POPUP_HINT_ROW_OFFSET 5
+
+/* Screen-specific popup dimensions */
+#define SETTINGS_PIN_POPUP_WIDTH 28
+#define SETTINGS_PIN_POPUP_HEIGHT 7
+#define HOME_PIN_POPUP_WIDTH 26
+#define HOME_PIN_POPUP_HEIGHT 6
+#define NOTES_SAVE_POPUP_HEIGHT 7
+#define VOICE_MEMO_NAME_POPUP_HEIGHT 7
+#define ALARM_TIME_POPUP_WIDTH 32
+#define ALARM_TIME_POPUP_HEIGHT 7
+#define ALARM_TIME_POPUP_MIN_LEFT 2
+#define ALARM_RING_POPUP_WIDTH 34
+#define ALARM_RING_POPUP_HEIGHT 8
 
 /* ═══════════════════════════════════════════════════════════════════════════
  *  TEXT LABELS
@@ -403,14 +331,203 @@ Nav bar
  *   "● "        - Bullet point (U+25CF)
  *   "\u25b6 "   - Larger triangle (U+25B6)
  */
-#define MENU_CURSOR "▶ "
+#define MENU_CURSOR "\xc2\xb7"  /* · U+00B7 middle dot — Nothing OS dot indicator */
 
 /*
- * MENU_CURSOR_BLANK - Spaces to align unselected items
- *
- * Must be the same visual width as MENU_CURSOR.
- * Two spaces = same width as "▸ "
+ * MENU_CURSOR_BLANK - Space to align unselected items (same width as cursor)
  */
-#define MENU_CURSOR_BLANK "  "
+#define MENU_CURSOR_BLANK " "
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ *  CONTROL BINDINGS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Canonical logical softkey actions used across screens. */
+#define KEY_SOFT_LEFT_ACTION '7'
+#define KEY_SOFT_RIGHT_ACTION '9'
+
+/* Physical key bindings (requested: F1/F2 soft keys). */
+#define KEY_BIND_SOFT_LEFT '7'
+#define KEY_BIND_SOFT_RIGHT '9'
+
+/* Optional alternate softkey bindings for terminals/keypads. */
+#define KEY_BIND_SOFT_LEFT_ALT_1 NCKEY_HOME
+#define KEY_BIND_SOFT_LEFT_ALT_2 NCKEY_F07
+#define KEY_BIND_SOFT_RIGHT_ALT_1 NCKEY_PGUP
+#define KEY_BIND_SOFT_RIGHT_ALT_2 NCKEY_F09
+
+/* Navigation/action bindings. */
+#define KEY_BIND_UP NCKEY_UP
+#define KEY_BIND_DOWN NCKEY_DOWN
+#define KEY_BIND_LEFT NCKEY_LEFT
+#define KEY_BIND_RIGHT NCKEY_RIGHT
+#define KEY_BIND_SELECT NCKEY_ENTER
+
+/* Optional numeric keypad fallback bindings. */
+#define KEY_BIND_NUMPAD_UP '2'
+#define KEY_BIND_NUMPAD_DOWN '8'
+#define KEY_BIND_NUMPAD_LEFT '4'
+#define KEY_BIND_NUMPAD_RIGHT '6'
+#define KEY_BIND_NUMPAD_SELECT '5'
+
+/* App-level quit binding (kept separate from softkeys). */
+#define KEY_BIND_APP_QUIT 'x'
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ *  STORAGE PATHS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+#define APP_PATH_SETTINGS_FILE "/data/settings.conf"
+#define APP_PATH_NOTES_DIR "/data/notes"
+#define APP_PATH_CONTACTS_DIR "/data/contacts"
+#define APP_PATH_ALARMS_DIR "/data/alarms"
+#define APP_PATH_VOICE_MEMOS_DIR "/data/voice-memos"
+#define APP_PATH_MUSIC_DIR "/data/music"
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ *  SETTINGS OPTIONS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+#define SETTINGS_KEY_NIGHT_MODE "night_mode"
+#define SETTINGS_KEY_BLUETOOTH "bluetooth"
+#define SETTINGS_KEY_HAND_WHITE "hand_white"
+#define SETTINGS_KEY_AUX_INPUT "aux_input"
+#define SETTINGS_KEY_LIGHT_THEME "light_theme"
+#define SETTINGS_KEY_VOLUME "volume"
+#define SETTINGS_KEY_BRIGHTNESS "brightness"
+#define SETTINGS_KEY_TIMEOUT_SEC "timeout_sec"
+
+#define SETTINGS_LABEL_NIGHT_MODE "Night Mode"
+#define SETTINGS_LABEL_BLUETOOTH "Bluetooth"
+#define SETTINGS_LABEL_HAND_WHITE "Hand White"
+#define SETTINGS_LABEL_AUX_INPUT "Aux Input"
+
+#define SETTINGS_DEFAULT_NIGHT_MODE 0
+#define SETTINGS_DEFAULT_BLUETOOTH 0
+#define SETTINGS_DEFAULT_HAND_WHITE 0
+#define SETTINGS_DEFAULT_AUX_INPUT 1
+
+#define SETTINGS_DEFAULT_THEME_INDEX UI_DEFAULT_THEME_INDEX
+#define SETTINGS_DEFAULT_VOLUME 7
+#define SETTINGS_MIN_VOLUME 0
+#define SETTINGS_MAX_VOLUME 10
+
+#define SETTINGS_DEFAULT_BRIGHTNESS 8
+#define SETTINGS_MIN_BRIGHTNESS 1
+#define SETTINGS_MAX_BRIGHTNESS 10
+
+#define SETTINGS_DEFAULT_TIMEOUT_SEC 60
+#define SETTINGS_MIN_TIMEOUT_SEC 15
+#define SETTINGS_MAX_TIMEOUT_SEC 600
+
+/* Settings screen labels */
+#define SETTINGS_MAIN_ITEM_APPEARANCE "APPEARANCE"
+#define SETTINGS_MAIN_ITEM_SECURITY "SECURITY"
+#define SETTINGS_MAIN_ITEM_CONNECTIVITY "CONNECTIVITY"
+#define SETTINGS_MAIN_ITEM_SYSTEM_INFO "SYSTEM INFO"
+#define SETTINGS_MAIN_ITEM_COUNT 4
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ *  ALARM OPTIONS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+#define ALARM_MAX_COUNT 20
+#define ALARM_SNOOZE_MIN 5
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ *  APPEARANCE SYSTEM (THEMES)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+#define UI_THEME_COUNT 5
+#define UI_DEFAULT_THEME_INDEX 0
+
+/* Theme labels shown in Settings -> Appearance */
+#define UI_THEME_LABEL_0 "Black & White"
+#define UI_THEME_LABEL_1 "Neon Grid"
+#define UI_THEME_LABEL_2 "Ocean Steel"
+#define UI_THEME_LABEL_3 "Solar Ember"
+#define UI_THEME_LABEL_4 "Monochrome Ops"
+
+/* Light mode palettes */
+#define UI_THEME_LIGHT_0_BG 0xffffff
+#define UI_THEME_LIGHT_0_TEXT_PRIMARY 0x000000
+#define UI_THEME_LIGHT_0_TEXT_MUTED 0x444444
+#define UI_THEME_LIGHT_0_BORDER 0x000000
+#define UI_THEME_LIGHT_0_SELECTION_BG 0x000000
+#define UI_THEME_LIGHT_0_SELECTION_TEXT 0xffffff
+#define UI_THEME_LIGHT_0_RULE "\xc2\xb7"
+
+#define UI_THEME_LIGHT_1_BG 0xe8f4fa
+#define UI_THEME_LIGHT_1_TEXT_PRIMARY 0x0a1e2e
+#define UI_THEME_LIGHT_1_TEXT_MUTED 0x3d6b82
+#define UI_THEME_LIGHT_1_BORDER 0x00b4d8
+#define UI_THEME_LIGHT_1_SELECTION_BG 0x0096c7
+#define UI_THEME_LIGHT_1_SELECTION_TEXT 0xffffff
+#define UI_THEME_LIGHT_1_RULE "~"
+
+#define UI_THEME_LIGHT_2_BG 0xeaeff5
+#define UI_THEME_LIGHT_2_TEXT_PRIMARY 0x151d2b
+#define UI_THEME_LIGHT_2_TEXT_MUTED 0x546a87
+#define UI_THEME_LIGHT_2_BORDER 0x3a6ea5
+#define UI_THEME_LIGHT_2_SELECTION_BG 0x2c5f8a
+#define UI_THEME_LIGHT_2_SELECTION_TEXT 0xf0f5ff
+#define UI_THEME_LIGHT_2_RULE "-"
+
+#define UI_THEME_LIGHT_3_BG 0xfff0e0
+#define UI_THEME_LIGHT_3_TEXT_PRIMARY 0x2d1a08
+#define UI_THEME_LIGHT_3_TEXT_MUTED 0x8f5c2a
+#define UI_THEME_LIGHT_3_BORDER 0xd4700a
+#define UI_THEME_LIGHT_3_SELECTION_BG 0xe87a12
+#define UI_THEME_LIGHT_3_SELECTION_TEXT 0xfff8f0
+#define UI_THEME_LIGHT_3_RULE "#"
+
+#define UI_THEME_LIGHT_4_BG 0xf0f0f0
+#define UI_THEME_LIGHT_4_TEXT_PRIMARY 0x121212
+#define UI_THEME_LIGHT_4_TEXT_MUTED 0x606060
+#define UI_THEME_LIGHT_4_BORDER 0x404040
+#define UI_THEME_LIGHT_4_SELECTION_BG 0x2a2a2a
+#define UI_THEME_LIGHT_4_SELECTION_TEXT 0xf0f0f0
+#define UI_THEME_LIGHT_4_RULE "."
+
+/* Dark mode palettes */
+#define UI_THEME_DARK_0_BG 0x000000
+#define UI_THEME_DARK_0_TEXT_PRIMARY 0xffffff
+#define UI_THEME_DARK_0_TEXT_MUTED 0xb0b0b0
+#define UI_THEME_DARK_0_BORDER 0xffffff
+#define UI_THEME_DARK_0_SELECTION_BG 0xffffff
+#define UI_THEME_DARK_0_SELECTION_TEXT 0x000000
+#define UI_THEME_DARK_0_RULE "\xc2\xb7"
+
+#define UI_THEME_DARK_1_BG 0x060e18
+#define UI_THEME_DARK_1_TEXT_PRIMARY 0xc8f0ff
+#define UI_THEME_DARK_1_TEXT_MUTED 0x4da8c4
+#define UI_THEME_DARK_1_BORDER 0x00a0c4
+#define UI_THEME_DARK_1_SELECTION_BG 0x0d5a78
+#define UI_THEME_DARK_1_SELECTION_TEXT 0xe0faff
+#define UI_THEME_DARK_1_RULE "~"
+
+#define UI_THEME_DARK_2_BG 0x0a1020
+#define UI_THEME_DARK_2_TEXT_PRIMARY 0xd0dae8
+#define UI_THEME_DARK_2_TEXT_MUTED 0x7090b0
+#define UI_THEME_DARK_2_BORDER 0x3870a0
+#define UI_THEME_DARK_2_SELECTION_BG 0x1e3f60
+#define UI_THEME_DARK_2_SELECTION_TEXT 0xe0ebf5
+#define UI_THEME_DARK_2_RULE "-"
+
+#define UI_THEME_DARK_3_BG 0x160e04
+#define UI_THEME_DARK_3_TEXT_PRIMARY 0xffd8a8
+#define UI_THEME_DARK_3_TEXT_MUTED 0xc08040
+#define UI_THEME_DARK_3_BORDER 0xb85e10
+#define UI_THEME_DARK_3_SELECTION_BG 0x6b3810
+#define UI_THEME_DARK_3_SELECTION_TEXT 0xffecd0
+#define UI_THEME_DARK_3_RULE "#"
+
+#define UI_THEME_DARK_4_BG 0x0c0c0c
+#define UI_THEME_DARK_4_TEXT_PRIMARY 0xd8d8d8
+#define UI_THEME_DARK_4_TEXT_MUTED 0x787878
+#define UI_THEME_DARK_4_BORDER 0x505050
+#define UI_THEME_DARK_4_SELECTION_BG 0x333333
+#define UI_THEME_DARK_4_SELECTION_TEXT 0xe8e8e8
+#define UI_THEME_DARK_4_RULE "."
 
 #endif /* BLACKHAND_CONFIG_H */

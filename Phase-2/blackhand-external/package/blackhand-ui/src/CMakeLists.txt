@@ -4,6 +4,9 @@ project(blackhand_ui C)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(DBUS REQUIRED dbus-1)
+
 add_executable(blackhand-ui
   main.c
   draw_utils.c
@@ -33,6 +36,7 @@ add_executable(blackhand-ui
   services/multitap_service.c
   services/pin_service.c
   services/bluetooth_service.c
+  services/avrcp_service.c
   ui-ipcs/audio_ipc.c
 )
 
@@ -42,6 +46,7 @@ target_include_directories(blackhand-ui PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/screens
   ${CMAKE_CURRENT_SOURCE_DIR}/services
   ${CMAKE_CURRENT_SOURCE_DIR}/ui-ipcs
+  ${DBUS_INCLUDE_DIRS}
 )
 
 target_compile_definitions(blackhand-ui PRIVATE
@@ -126,6 +131,7 @@ set(BLACKHAND_UI_LINK_LIBS
   "${BLACKHAND_IPC_LIBRARY}"
   "${MPG123_LIBRARY}"
   "${OUT123_LIBRARY}"
+  ${DBUS_LIBRARIES}
   Threads::Threads
   m
 )

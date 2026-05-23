@@ -217,6 +217,7 @@ screen_id screen_mp3_input(uint32_t key);
 
 void screen_voice_memo_draw(struct ncplane *phone);
 screen_id screen_voice_memo_input(uint32_t key);
+int screen_voice_memo_is_text_entry_mode(void);
 
 void screen_notes_draw(struct ncplane *phone);
 screen_id screen_notes_input(uint32_t key);
@@ -224,12 +225,15 @@ int screen_notes_is_edit_mode(void);
 
 void screen_alarm_draw(struct ncplane *phone);
 screen_id screen_alarm_input(uint32_t key);
+int screen_alarm_is_time_entry_mode(void);
 
 void screen_theme_draw(struct ncplane *phone);
 screen_id screen_theme_input(uint32_t key);
 
 void screen_bluetooth_draw(struct ncplane *phone);
 screen_id screen_bluetooth_input(uint32_t key);
+
+int screen_settings_is_pin_entry_mode(void);
 
 /* ─── Screen Input Handlers ────────────────────────────────────────────── */
 

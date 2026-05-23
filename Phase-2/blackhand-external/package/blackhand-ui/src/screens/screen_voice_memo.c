@@ -82,6 +82,18 @@ static void put_clipped(struct ncplane *p, int row, int col, int max_w, const ch
     ncplane_putstr_yx(p, row, col, buf);
 }
 
+static void memo_display_name(const char *filename, char *out, size_t out_size) {
+    if (!out || out_size == 0) return;
+    out[0] = '\0';
+    if (!filename) return;
+    snprintf(out, out_size, "%s", filename);
+    char *dot = strrchr(out, '.');
+    if (dot && strcmp(dot, ".wav") == 0) *dot = '\0';
+    for (char *p = out; *p; p++) {
+        if (*p == '_') *p = ' ';
+    }
+}
+
 static void format_time_ms(int ms, char *buf, size_t buf_size) {
     int sec = ms / 1000;
     int min = sec / 60;
@@ -129,22 +141,24 @@ static void draw_recording(struct ncplane *phone, unsigned rows, unsigned cols) 
 static void draw_name_prompt(struct ncplane *phone, unsigned rows, unsigned cols, int is_rename) {
     int width = INNER_WIDTH(cols);
     int w = width + 2;
-    int h = 7;
+    int h = VOICE_MEMO_NAME_POPUP_HEIGHT;
     int top = ((int)rows - h) / 2;
     int left = ((int)cols - w) / 2;
-    if (top < CONTENT_START_ROW) top = CONTENT_START_ROW;
-    if (left < 1) left = 1;
+    if (top < UI_POPUP_MIN_TOP) top = UI_POPUP_MIN_TOP;
+    if (left < UI_POPUP_MIN_LEFT) left = UI_POPUP_MIN_LEFT;
 
     ghost_fill_rect(phone, top, left, h, w, ' ', theme_text_primary(), theme_bg());
-    ghost_text(phone, top + 1, left + 2, theme_text_primary(),
+    ghost_text(phone, top + UI_POPUP_TITLE_ROW_OFFSET, left + UI_POPUP_TEXT_INSET_X, theme_text_primary(),
                is_rename ? "RENAME MEMO:" : "NAME MEMO:");
-    ghost_text(phone, top + 3, left + 2, theme_text_primary(), name_buf);
+    ghost_text(phone, top + UI_POPUP_INPUT_ROW_OFFSET, left + UI_POPUP_TEXT_INSET_X,
+               theme_text_primary(), name_buf);
 
-    int cursor_col = left + 2 + name_cursor;
+    int cursor_col = left + UI_POPUP_TEXT_INSET_X + name_cursor;
     if (cursor_col < left + w - 1)
-        ghost_text(phone, top + 3, cursor_col, theme_border(), "_");
+        ghost_text(phone, top + UI_POPUP_INPUT_ROW_OFFSET, cursor_col, theme_border(), "_");
 
-    ghost_text(phone, top + 5, left + 2, theme_text_muted(), "2-9:ABC #:Case *:Punct");
+    ghost_text(phone, top + UI_POPUP_HINT_ROW_OFFSET, left + UI_POPUP_TEXT_INSET_X,
+               theme_text_muted(), "2-9:ABC #:Case *:Punct");
     ghost_softkeys(phone, "[Skip]", "[Save]");
 }
 
@@ -173,9 +187,10 @@ static void draw_playback(struct ncplane *phone, unsigned rows, unsigned cols) {
 
     /* Track name */
     if (cur) {
+        char dname[256];
+        memo_display_name(cur->filename, dname, sizeof(dname));
         ncplane_set_fg_rgb(phone, theme_text_primary());
-        put_clipped(phone, CONTENT_START_ROW + 3, CONTENT_COL, width,
-                    cur->filename ? cur->filename : "Unknown");
+        put_clipped(phone, CONTENT_START_ROW + 3, CONTENT_COL, width, dname[0] ? dname : "Unknown");
     }
 
     /* Time display */
@@ -259,9 +274,12 @@ static void draw_list(struct ncplane *phone, unsigned rows, unsigned cols) {
         char dbuf[16];
         format_time_ms(m->duration_ms, dbuf, sizeof(dbuf));
 
+        char dname[256];
+        memo_display_name(m->filename, dname, sizeof(dname));
+
         char line[256];
-        snprintf(line, sizeof(line), "%s  %s", m->filename ? m->filename : "?", dbuf);
-        put_clipped(phone, row, CONTENT_COL + 2, width - 2, line);
+        snprintf(line, sizeof(line), "%s  %s", dname[0] ? dname : "?", dbuf);
+        put_clipped(phone, row, CONTENT_COL + 1, width - 2, line);
     }
 
     ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(),
@@ -317,9 +335,7 @@ static void start_rename_prompt(void) {
 
     /* Strip .wav extension for display */
     const char *fn = list[selected]->filename;
-    snprintf(name_buf, sizeof(name_buf), "%s", fn ? fn : "");
-    char *dot = strrchr(name_buf, '.');
-    if (dot && strcmp(dot, ".wav") == 0) *dot = '\0';
+    memo_display_name(fn, name_buf, sizeof(name_buf));
 
     name_cursor = (int)strlen(name_buf);
     name_pristine = 0;
@@ -327,13 +343,16 @@ static void start_rename_prompt(void) {
     ui_mode = VM_MODE_RENAME_PROMPT;
 }
 
+int screen_voice_memo_is_text_entry_mode(void) {
+    return (ui_mode == VM_MODE_NAME_PROMPT || ui_mode == VM_MODE_RENAME_PROMPT) ? 1 : 0;
+}
+
 /* Handle name/rename prompt input */
 static screen_id handle_name_input(uint32_t key, int is_rename) {
     ensure_multitap();
 
     switch (key) {
-        case 'e':
-        case 'E':
+        case KEY_SOFT_RIGHT_ACTION:
         case NCKEY_ENTER:
         case '\n': {
             multitap_reset(&s_name_multitap);
@@ -358,8 +377,7 @@ static screen_id handle_name_input(uint32_t key, int is_rename) {
             }
             return SCREEN_VOICE_MEMO;
         }
-        case 'q':
-        case 'Q':
+        case KEY_SOFT_LEFT_ACTION:
             multitap_reset(&s_name_multitap);
             ui_mode = VM_MODE_LIST;
             if (!is_rename) { selected = 0; list_scroll = 0; }
@@ -447,14 +465,12 @@ screen_id screen_voice_memo_input(uint32_t key) {
                 if (st == VM_PLAYING) voice_memo_service_play_pause();
                 else if (st == VM_PAUSED) voice_memo_service_play_resume();
                 return SCREEN_VOICE_MEMO;
-            case 'q':
-            case 'Q':
+            case KEY_SOFT_LEFT_ACTION:
                 /* Back from playback */
                 voice_memo_service_play_stop();
                 ui_mode = VM_MODE_LIST;
                 return SCREEN_VOICE_MEMO;
-            case 'e':
-            case 'E':
+            case KEY_SOFT_RIGHT_ACTION:
                 /* Delete while playing */
                 voice_memo_service_play_stop();
                 if (count > 0 && list && selected < (int)count) {
@@ -472,16 +488,14 @@ screen_id screen_voice_memo_input(uint32_t key) {
     /* ── RECORDING mode ───────────────────────────────────────────── */
     if (ui_mode == VM_MODE_RECORDING || st == VM_RECORDING) {
         switch (key) {
-            case 'e':
-            case 'E':
+            case KEY_SOFT_RIGHT_ACTION:
             case NCKEY_ENTER:
             case '\n':
                 /* Stop recording -> name prompt */
                 voice_memo_service_record_stop(NULL);
                 start_name_prompt();
                 return SCREEN_VOICE_MEMO;
-            case 'q':
-            case 'Q':
+            case KEY_SOFT_LEFT_ACTION:
                 /* Back (discard recording) */
                 voice_memo_service_record_stop(NULL);
                 ui_mode = VM_MODE_LIST;
@@ -506,8 +520,7 @@ screen_id screen_voice_memo_input(uint32_t key) {
                 return SCREEN_VOICE_MEMO;
             case NCKEY_ENTER:
             case '\n':
-            case 'e':
-            case 'E':
+            case KEY_SOFT_RIGHT_ACTION:
                 if (delete_yes && count > 0 && list && selected < (int)count) {
                     voice_memo_service_delete(list[selected]->filename);
                     voice_memo_service_list_all(&count);
@@ -516,8 +529,7 @@ screen_id screen_voice_memo_input(uint32_t key) {
                 delete_prompt = 0;
                 delete_yes = 0;
                 return SCREEN_VOICE_MEMO;
-            case 'q':
-            case 'Q':
+            case KEY_SOFT_LEFT_ACTION:
                 delete_prompt = 0;
                 delete_yes = 0;
                 return SCREEN_VOICE_MEMO;
@@ -554,14 +566,12 @@ screen_id screen_voice_memo_input(uint32_t key) {
                 start_rename_prompt();
             }
             return SCREEN_VOICE_MEMO;
-        case 'e':
-        case 'E':
+        case KEY_SOFT_RIGHT_ACTION:
             /* RSK = record new */
             voice_memo_service_record_start();
             ui_mode = VM_MODE_RECORDING;
             return SCREEN_VOICE_MEMO;
-        case 'q':
-        case 'Q':
+        case KEY_SOFT_LEFT_ACTION:
             /* LSK = back to menu */
             delete_prompt = 0;
             delete_yes = 0;

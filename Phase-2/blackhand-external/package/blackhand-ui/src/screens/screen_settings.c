@@ -41,12 +41,12 @@ typedef enum {
 } settings_mode_t;
 
 /* Main menu items */
-#define MAIN_ITEM_COUNT 4
+#define MAIN_ITEM_COUNT SETTINGS_MAIN_ITEM_COUNT
 static const char *main_items[] = {
-    "APPEARANCE",
-    "SECURITY",
-    "CONNECTIVITY",
-    "SYSTEM INFO",
+    SETTINGS_MAIN_ITEM_APPEARANCE,
+    SETTINGS_MAIN_ITEM_SECURITY,
+    SETTINGS_MAIN_ITEM_CONNECTIVITY,
+    SETTINGS_MAIN_ITEM_SYSTEM_INFO,
 };
 
 /* Appearance sub-menu items */
@@ -143,7 +143,7 @@ static void draw_main(struct ncplane *phone) {
         ncplane_putstr_yx(phone, CONTENT_START_ROW + 1, CONTENT_COL + x, (rule && rule[0]) ? rule : "-");
 
     ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL, theme_text_muted(),
-               settings_service_get_bool("night_mode") ? "Mode: Dark" : "Mode: Light");
+               settings_service_get_bool(SETTINGS_KEY_NIGHT_MODE) ? "Mode: Dark" : "Mode: Light");
 
     if (s_selected < 0) s_selected = 0;
     if (s_selected >= MAIN_ITEM_COUNT) s_selected = MAIN_ITEM_COUNT - 1;
@@ -156,7 +156,7 @@ static void draw_main(struct ncplane *phone) {
         ncplane_set_fg_rgb(phone, (i == s_selected) ? theme_selection_text() : theme_text_muted());
         ncplane_set_bg_rgb(phone, (i == s_selected) ? theme_selection_bg() : theme_bg());
         ncplane_putstr_yx(phone, row, CONTENT_COL, cursor);
-        ncplane_putstr_yx(phone, row, CONTENT_COL + 2, main_items[i]);
+        ncplane_putstr_yx(phone, row, CONTENT_COL + 1, main_items[i]);
     }
 
     ghost_softkeys(phone, "[Back]", "[Open]");
@@ -189,8 +189,8 @@ static void draw_appearance(struct ncplane *phone) {
         ncplane_set_bg_rgb(phone, (s_sub_selected == 0) ? theme_selection_bg() : theme_bg());
         ncplane_putstr_yx(phone, row, CONTENT_COL,
                           (s_sub_selected == 0) ? MENU_CURSOR : MENU_CURSOR_BLANK);
-        ncplane_putstr_yx(phone, row, CONTENT_COL + 2,
-                          settings_service_get_bool("night_mode") ?
+        ncplane_putstr_yx(phone, row, CONTENT_COL + 1,
+                          settings_service_get_bool(SETTINGS_KEY_NIGHT_MODE) ?
                           "[ON]  DARK MODE" : "[OFF] DARK MODE");
     }
 
@@ -201,7 +201,7 @@ static void draw_appearance(struct ncplane *phone) {
         ncplane_set_bg_rgb(phone, (s_sub_selected == 1) ? theme_selection_bg() : theme_bg());
         ncplane_putstr_yx(phone, row, CONTENT_COL,
                           (s_sub_selected == 1) ? MENU_CURSOR : MENU_CURSOR_BLANK);
-        ncplane_putstr_yx(phone, row, CONTENT_COL + 2, "[OPEN] THEMES");
+        ncplane_putstr_yx(phone, row, CONTENT_COL + 1, "[OPEN] THEMES");
     }
 
     ghost_softkeys(phone, "[Back]", "[Select]");
@@ -228,7 +228,7 @@ static void draw_security(struct ncplane *phone) {
     if (s_sub_selected < 0) s_sub_selected = 0;
 
     const char *sec_items[] = {
-        settings_service_get_bool("hand_white") ? "[ON]  HAND WHITE" : "[OFF] HAND WHITE",
+        settings_service_get_bool(SETTINGS_KEY_HAND_WHITE) ? "[ON]  HAND WHITE" : "[OFF] HAND WHITE",
         "[RUN] WHITE WIPE",
         "[OPEN] UPDATE PIN",
     };
@@ -241,7 +241,7 @@ static void draw_security(struct ncplane *phone) {
         ncplane_set_bg_rgb(phone, (i == s_sub_selected) ? theme_selection_bg() : theme_bg());
         ncplane_putstr_yx(phone, row, CONTENT_COL,
                           (i == s_sub_selected) ? MENU_CURSOR : MENU_CURSOR_BLANK);
-        ncplane_putstr_yx(phone, row, CONTENT_COL + 2, sec_items[i]);
+        ncplane_putstr_yx(phone, row, CONTENT_COL + 1, sec_items[i]);
     }
 
     ghost_softkeys(phone, "[Back]", "[Select]");
@@ -264,12 +264,10 @@ static void draw_connectivity(struct ncplane *phone) {
 
     s_sub_selected = 0;
     int row = CONTENT_START_ROW + 3;
-    ncplane_set_fg_rgb(phone, theme_text_primary());
-    ncplane_set_bg_rgb(phone, theme_bg());
+    ncplane_set_fg_rgb(phone, theme_selection_text());
+    ncplane_set_bg_rgb(phone, theme_selection_bg());
     ncplane_putstr_yx(phone, row, CONTENT_COL, MENU_CURSOR);
-    ncplane_putstr_yx(phone, row, CONTENT_COL + 2,
-                      settings_service_get_bool("bluetooth") ?
-                      "[ON]  BLUETOOTH" : "[OFF] BLUETOOTH");
+    ncplane_putstr_yx(phone, row, CONTENT_COL + 1, "BLUETOOTH");
 
     ghost_softkeys(phone, "[Back]", "[Open]");
 }
@@ -293,7 +291,7 @@ static void draw_info(struct ncplane *phone) {
     int row = CONTENT_START_ROW + 3;
     ghost_label_value(phone, row,     CONTENT_COL, CONTENT_COL + 12, "MODEL", "BlackHand OS");
     ghost_label_value(phone, row + 1, CONTENT_COL, CONTENT_COL + 12, "VERSION", "Phase 2.0");
-    ghost_label_value(phone, row + 2, CONTENT_COL, CONTENT_COL + 12, "PLATFORM", "RPi4");
+    ghost_label_value(phone, row + 2, CONTENT_COL, CONTENT_COL + 12, "PLATFORM", "RPi5");
     ghost_label_value(phone, row + 3, CONTENT_COL, CONTENT_COL + 12, "DISPLAY", "HyperPixel 4");
 
     ghost_softkeys(phone, "[Back]", "");
@@ -304,12 +302,12 @@ static void draw_pin_entry(struct ncplane *phone) {
     unsigned rows, cols;
     ncplane_dim_yx(phone, &rows, &cols);
 
-    int w = 28;
-    int h = 7;
+    int w = SETTINGS_PIN_POPUP_WIDTH;
+    int h = SETTINGS_PIN_POPUP_HEIGHT;
     int top = ((int)rows - h) / 2;
     int left = ((int)cols - w) / 2;
-    if (top < CONTENT_START_ROW) top = CONTENT_START_ROW;
-    if (left < 1) left = 1;
+    if (top < UI_POPUP_MIN_TOP) top = UI_POPUP_MIN_TOP;
+    if (left < UI_POPUP_MIN_LEFT) left = UI_POPUP_MIN_LEFT;
 
     ghost_fill_rect(phone, top, left, h, w, ' ', theme_text_primary(), theme_bg());
 
@@ -318,15 +316,15 @@ static void draw_pin_entry(struct ncplane *phone) {
     else if (pin_purpose == 2) title = "NEW PIN";
     else if (pin_purpose == 3) title = "CONFIRM PIN";
 
-    ghost_text(phone, top + 1, left + 2, theme_text_primary(), title);
+    ghost_text(phone, top + UI_POPUP_TITLE_ROW_OFFSET, left + UI_POPUP_TEXT_INSET_X, theme_text_primary(), title);
 
     /* Show dots for entered digits */
     char dots[8] = "    ";
     for (int i = 0; i < pin_len && i < 4; i++) dots[i] = '*';
-    ghost_text(phone, top + 3, left + 10, theme_text_primary(), dots);
+    ghost_text(phone, top + UI_POPUP_INPUT_ROW_OFFSET, left + 10, theme_text_primary(), dots);
 
     if (pin_error[0] != '\0') {
-        ghost_text(phone, top + 5, left + 2, theme_border(), pin_error);
+        ghost_text(phone, top + UI_POPUP_HINT_ROW_OFFSET, left + UI_POPUP_TEXT_INSET_X, theme_border(), pin_error);
     }
 
     ghost_softkeys(phone, "[Cancel]", "[OK]");
@@ -362,8 +360,7 @@ void screen_settings_draw(struct ncplane *phone) {
 /* ── Handle PIN digit entry ──────────────────────────────────────────── */
 static screen_id handle_pin_input(uint32_t key) {
     switch (key) {
-        case 'q':
-        case 'Q':
+        case KEY_SOFT_LEFT_ACTION:
             reset_pin_entry();
             mode = SETT_MODE_SECURITY;
             return SCREEN_SETTINGS;
@@ -448,8 +445,7 @@ screen_id screen_settings_input(uint32_t key) {
                 return SCREEN_SETTINGS;
             case NCKEY_ENTER:
             case '\n':
-            case 'e':
-            case 'E':
+            case KEY_SOFT_RIGHT_ACTION:
                 if (s_wipe_yes) {
                     wipe_phone_data();
                     mode = SETT_MODE_MAIN;
@@ -458,8 +454,7 @@ screen_id screen_settings_input(uint32_t key) {
                 }
                 mode = SETT_MODE_SECURITY;
                 return SCREEN_SETTINGS;
-            case 'q':
-            case 'Q':
+            case KEY_SOFT_LEFT_ACTION:
                 mode = SETT_MODE_SECURITY;
                 return SCREEN_SETTINGS;
             default:
@@ -480,17 +475,15 @@ screen_id screen_settings_input(uint32_t key) {
             case NCKEY_ENTER:
             case '\n':
                 if (s_sub_selected == APP_NIGHT_MODE) {
-                    settings_service_toggle_by_key("night_mode");
+                    settings_service_toggle_by_key(SETTINGS_KEY_NIGHT_MODE);
                     theme_service_sync_from_settings();
                 } else if (s_sub_selected == APP_THEME) {
                     return SCREEN_THEME;
                 }
                 return SCREEN_SETTINGS;
-            case 'e':
-            case 'E':
+            case KEY_SOFT_RIGHT_ACTION:
                 return SCREEN_HOME;
-            case 'q':
-            case 'Q':
+            case KEY_SOFT_LEFT_ACTION:
                 mode = SETT_MODE_MAIN;
                 s_sub_selected = 0;
                 return SCREEN_SETTINGS;
@@ -511,7 +504,7 @@ screen_id screen_settings_input(uint32_t key) {
             case NCKEY_ENTER:
             case '\n':
                 if (s_sub_selected == SEC_HAND_WHITE) {
-                    settings_service_toggle_by_key("hand_white");
+                    settings_service_toggle_by_key(SETTINGS_KEY_HAND_WHITE);
                     theme_service_sync_from_settings();
                 } else if (s_sub_selected == SEC_WHITE_WIPE) {
                     reset_pin_entry();
@@ -523,11 +516,9 @@ screen_id screen_settings_input(uint32_t key) {
                     mode = SETT_MODE_PIN_CHANGE;
                 }
                 return SCREEN_SETTINGS;
-            case 'e':
-            case 'E':
+            case KEY_SOFT_RIGHT_ACTION:
                 return SCREEN_HOME;
-            case 'q':
-            case 'Q':
+            case KEY_SOFT_LEFT_ACTION:
                 mode = SETT_MODE_MAIN;
                 s_sub_selected = 0;
                 return SCREEN_SETTINGS;
@@ -542,11 +533,9 @@ screen_id screen_settings_input(uint32_t key) {
             case NCKEY_ENTER:
             case '\n':
                 return SCREEN_BLUETOOTH;
-            case 'e':
-            case 'E':
+            case KEY_SOFT_RIGHT_ACTION:
                 return SCREEN_HOME;
-            case 'q':
-            case 'Q':
+            case KEY_SOFT_LEFT_ACTION:
                 mode = SETT_MODE_MAIN;
                 return SCREEN_SETTINGS;
             default:
@@ -557,12 +546,10 @@ screen_id screen_settings_input(uint32_t key) {
     /* ── System Info ──────────────────────────────────────────────── */
     if (mode == SETT_MODE_INFO) {
         switch (key) {
-            case 'q':
-            case 'Q':
+            case KEY_SOFT_LEFT_ACTION:
                 mode = SETT_MODE_MAIN;
                 return SCREEN_SETTINGS;
-            case 'e':
-            case 'E':
+            case KEY_SOFT_RIGHT_ACTION:
                 return SCREEN_HOME;
             default:
                 return SCREEN_SETTINGS;
@@ -587,13 +574,15 @@ screen_id screen_settings_input(uint32_t key) {
                 case 3: mode = SETT_MODE_INFO; break;
             }
             return SCREEN_SETTINGS;
-        case 'e':
-        case 'E':
+        case KEY_SOFT_RIGHT_ACTION:
             return SCREEN_HOME;
-        case 'q':
-        case 'Q':
+        case KEY_SOFT_LEFT_ACTION:
             return SCREEN_HOME;
         default:
             return SCREEN_SETTINGS;
     }
+}
+
+int screen_settings_is_pin_entry_mode(void) {
+    return (mode == SETT_MODE_PIN_ENTRY || mode == SETT_MODE_PIN_CHANGE) ? 1 : 0;
 }

@@ -1,4 +1,5 @@
 #include "settings_service.h"
+#include "../config.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -11,27 +12,27 @@ typedef struct {
 } setting_item_t;
 
 static setting_item_t g_items[] = {
-    { "night_mode", "Night Mode", false, false },
-    { "bluetooth",  "Bluetooth",  false, false },
-    { "hand_white", "Hand White", false, false },
-    { "aux_input",  "Aux Input",  true,  true  },
+    { SETTINGS_KEY_NIGHT_MODE, SETTINGS_LABEL_NIGHT_MODE, SETTINGS_DEFAULT_NIGHT_MODE, SETTINGS_DEFAULT_NIGHT_MODE },
+    { SETTINGS_KEY_BLUETOOTH,  SETTINGS_LABEL_BLUETOOTH,  SETTINGS_DEFAULT_BLUETOOTH,  SETTINGS_DEFAULT_BLUETOOTH  },
+    { SETTINGS_KEY_HAND_WHITE, SETTINGS_LABEL_HAND_WHITE, SETTINGS_DEFAULT_HAND_WHITE, SETTINGS_DEFAULT_HAND_WHITE },
+    { SETTINGS_KEY_AUX_INPUT,  SETTINGS_LABEL_AUX_INPUT,  SETTINGS_DEFAULT_AUX_INPUT,  SETTINGS_DEFAULT_AUX_INPUT  },
 };
 
 static const char *g_themes[] = {
-    "Desert Storm",
-    "Neon Grid",
-    "Ocean Steel",
-    "Solar Ember",
-    "Monochrome Ops",
+    UI_THEME_LABEL_0,
+    UI_THEME_LABEL_1,
+    UI_THEME_LABEL_2,
+    UI_THEME_LABEL_3,
+    UI_THEME_LABEL_4,
 };
 
 static const int g_item_count = (int)(sizeof(g_items) / sizeof(g_items[0]));
 static const int g_theme_count = (int)(sizeof(g_themes) / sizeof(g_themes[0]));
-static const char *SETTINGS_FILE = "/data/settings.conf";
-static int g_light_theme = 0;
-static int g_volume = 7;
-static int g_brightness = 8;
-static int g_timeout_sec = 60;
+static const char *SETTINGS_FILE = APP_PATH_SETTINGS_FILE;
+static int g_light_theme = SETTINGS_DEFAULT_THEME_INDEX;
+static int g_volume = SETTINGS_DEFAULT_VOLUME;
+static int g_brightness = SETTINGS_DEFAULT_BRIGHTNESS;
+static int g_timeout_sec = SETTINGS_DEFAULT_TIMEOUT_SEC;
 
 static int find_index_by_key(const char *key) {
     for (int i = 0; i < g_item_count; i++) {
@@ -50,27 +51,27 @@ static void settings_service_load(void) {
         int enabled;
         if (sscanf(line, "%63[^=]=%d", key, &enabled) != 2) continue;
 
-        if (strcmp(key, "light_theme") == 0) {
+        if (strcmp(key, SETTINGS_KEY_LIGHT_THEME) == 0) {
             if (enabled >= 0 && enabled < g_theme_count) {
                 g_light_theme = enabled;
             }
             continue;
         }
-        if (strcmp(key, "volume") == 0) {
-            if (enabled < 0) enabled = 0;
-            if (enabled > 10) enabled = 10;
+        if (strcmp(key, SETTINGS_KEY_VOLUME) == 0) {
+            if (enabled < SETTINGS_MIN_VOLUME) enabled = SETTINGS_MIN_VOLUME;
+            if (enabled > SETTINGS_MAX_VOLUME) enabled = SETTINGS_MAX_VOLUME;
             g_volume = enabled;
             continue;
         }
-        if (strcmp(key, "brightness") == 0) {
-            if (enabled < 1) enabled = 1;
-            if (enabled > 10) enabled = 10;
+        if (strcmp(key, SETTINGS_KEY_BRIGHTNESS) == 0) {
+            if (enabled < SETTINGS_MIN_BRIGHTNESS) enabled = SETTINGS_MIN_BRIGHTNESS;
+            if (enabled > SETTINGS_MAX_BRIGHTNESS) enabled = SETTINGS_MAX_BRIGHTNESS;
             g_brightness = enabled;
             continue;
         }
-        if (strcmp(key, "timeout_sec") == 0) {
-            if (enabled < 15) enabled = 15;
-            if (enabled > 600) enabled = 600;
+        if (strcmp(key, SETTINGS_KEY_TIMEOUT_SEC) == 0) {
+            if (enabled < SETTINGS_MIN_TIMEOUT_SEC) enabled = SETTINGS_MIN_TIMEOUT_SEC;
+            if (enabled > SETTINGS_MAX_TIMEOUT_SEC) enabled = SETTINGS_MAX_TIMEOUT_SEC;
             g_timeout_sec = enabled;
             continue;
         }
@@ -89,10 +90,10 @@ static void settings_service_save(void) {
     for (int i = 0; i < g_item_count; i++) {
         fprintf(f, "%s=%d\n", g_items[i].key, g_items[i].enabled ? 1 : 0);
     }
-    fprintf(f, "light_theme=%d\n", g_light_theme);
-    fprintf(f, "volume=%d\n", g_volume);
-    fprintf(f, "brightness=%d\n", g_brightness);
-    fprintf(f, "timeout_sec=%d\n", g_timeout_sec);
+    fprintf(f, "%s=%d\n", SETTINGS_KEY_LIGHT_THEME, g_light_theme);
+    fprintf(f, "%s=%d\n", SETTINGS_KEY_VOLUME, g_volume);
+    fprintf(f, "%s=%d\n", SETTINGS_KEY_BRIGHTNESS, g_brightness);
+    fprintf(f, "%s=%d\n", SETTINGS_KEY_TIMEOUT_SEC, g_timeout_sec);
 
     fclose(f);
 }
@@ -167,33 +168,33 @@ void settings_service_reset_defaults(void) {
     for (int i = 0; i < g_item_count; i++) {
         g_items[i].enabled = g_items[i].default_enabled;
     }
-    g_light_theme = 0;
-    g_volume = 7;
-    g_brightness = 8;
-    g_timeout_sec = 60;
+    g_light_theme = SETTINGS_DEFAULT_THEME_INDEX;
+    g_volume = SETTINGS_DEFAULT_VOLUME;
+    g_brightness = SETTINGS_DEFAULT_BRIGHTNESS;
+    g_timeout_sec = SETTINGS_DEFAULT_TIMEOUT_SEC;
     settings_service_save();
 }
 
 int settings_service_get_volume(void) { return g_volume; }
 void settings_service_set_volume(int value) {
-    if (value < 0) value = 0;
-    if (value > 10) value = 10;
+    if (value < SETTINGS_MIN_VOLUME) value = SETTINGS_MIN_VOLUME;
+    if (value > SETTINGS_MAX_VOLUME) value = SETTINGS_MAX_VOLUME;
     g_volume = value;
     settings_service_save();
 }
 
 int settings_service_get_brightness(void) { return g_brightness; }
 void settings_service_set_brightness(int value) {
-    if (value < 1) value = 1;
-    if (value > 10) value = 10;
+    if (value < SETTINGS_MIN_BRIGHTNESS) value = SETTINGS_MIN_BRIGHTNESS;
+    if (value > SETTINGS_MAX_BRIGHTNESS) value = SETTINGS_MAX_BRIGHTNESS;
     g_brightness = value;
     settings_service_save();
 }
 
 int settings_service_get_timeout_sec(void) { return g_timeout_sec; }
 void settings_service_set_timeout_sec(int sec) {
-    if (sec < 15) sec = 15;
-    if (sec > 600) sec = 600;
+    if (sec < SETTINGS_MIN_TIMEOUT_SEC) sec = SETTINGS_MIN_TIMEOUT_SEC;
+    if (sec > SETTINGS_MAX_TIMEOUT_SEC) sec = SETTINGS_MAX_TIMEOUT_SEC;
     g_timeout_sec = sec;
     settings_service_save();
 }

@@ -129,12 +129,12 @@ void screen_contacts_draw(struct ncplane *phone) {
         ncplane_set_fg_rgb(phone, (s_edit_field == 0) ? theme_selection_text() : theme_text_muted());
         ncplane_set_bg_rgb(phone, (s_edit_field == 0) ? theme_selection_bg() : theme_bg());
         ncplane_putstr_yx(phone, top + 2, CONTENT_COL, (s_edit_field == 0) ? MENU_CURSOR : MENU_CURSOR_BLANK);
-        put_clipped(phone, top + 2, CONTENT_COL + 2, width - 2, s_name[0] ? s_name : "(name)");
+        put_clipped(phone, top + 2, CONTENT_COL + 1, width - 2, s_name[0] ? s_name : "(name)");
 
         ncplane_set_fg_rgb(phone, (s_edit_field == 1) ? theme_selection_text() : theme_text_muted());
         ncplane_set_bg_rgb(phone, (s_edit_field == 1) ? theme_selection_bg() : theme_bg());
         ncplane_putstr_yx(phone, top + 4, CONTENT_COL, (s_edit_field == 1) ? MENU_CURSOR : MENU_CURSOR_BLANK);
-        put_clipped(phone, top + 4, CONTENT_COL + 2, width - 2, s_number[0] ? s_number : "(number)");
+        put_clipped(phone, top + 4, CONTENT_COL + 1, width - 2, s_number[0] ? s_number : "(number)");
 
         ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(), "2-9:ABC  #:Case  *:Punct");
         ghost_softkeys(phone, "[Cancel]", "[Save]");
@@ -172,11 +172,9 @@ void screen_contacts_draw(struct ncplane *phone) {
         put_clipped(phone, card_top + 3, CONTENT_COL + 2, width - 4, "Phone:");
         put_clipped(phone, card_top + 3, CONTENT_COL + 9, width - 11, number);
 
-        ghost_text(phone, card_top + 4, CONTENT_COL + 2,
-                   s_action == 0 ? theme_text_primary() : theme_text_muted(),
+        ghost_text(phone, card_top + 4, CONTENT_COL + 2, theme_text_muted(),
                    s_action == 0 ? "> CALL" : "  CALL");
-        ghost_text(phone, card_top + 5, CONTENT_COL + 2,
-                   s_action == 1 ? theme_text_primary() : theme_text_muted(),
+        ghost_text(phone, card_top + 5, CONTENT_COL + 2, theme_text_muted(),
                    s_action == 1 ? "> MESSAGE" : "  MESSAGE");
 
         ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(), "Up/Down:Action  Enter:Send");
@@ -225,10 +223,10 @@ void screen_contacts_draw(struct ncplane *phone) {
             }
 
             ncplane_putstr_yx(phone, top, CONTENT_COL, sel ? MENU_CURSOR : MENU_CURSOR_BLANK);
-            put_clipped(phone, top, CONTENT_COL + 2, width - 2, c->name ? c->name : "");
+            put_clipped(phone, top, CONTENT_COL + 1, width - 2, c->name ? c->name : "");
 
             ncplane_set_fg_rgb(phone, sel ? theme_selection_text() : theme_text_muted());
-            put_clipped(phone, top + 1, CONTENT_COL + 2, width - 2, c->phone_number ? c->phone_number : "");
+            put_clipped(phone, top + 1, CONTENT_COL + 1, width - 2, c->phone_number ? c->phone_number : "");
         }
     }
 
@@ -255,13 +253,11 @@ screen_id screen_contacts_input(uint32_t key) {
                 s_edit_field = 1;
                 multitap_set_field(&s_mt, s_edit_field);
                 return SCREEN_CONTACTS;
-            case 'q':
-            case 'Q':
+            case KEY_SOFT_LEFT_ACTION:
                 multitap_reset(&s_mt);
                 s_mode = CONTACTS_MODE_LIST;
                 return SCREEN_CONTACTS;
-            case 'e':
-            case 'E':
+            case KEY_SOFT_RIGHT_ACTION:
                 multitap_reset(&s_mt);
                 save_contact();
                 return SCREEN_CONTACTS;
@@ -307,8 +303,7 @@ screen_id screen_contacts_input(uint32_t key) {
                 return SCREEN_CONTACTS;
             case NCKEY_ENTER:
             case '\n':
-            case 'e':
-            case 'E':
+            case KEY_SOFT_RIGHT_ACTION:
                 if (s_delete_yes && count > 0) {
                     if (contacts && s_selected < (int)count && contacts[s_selected] && contacts[s_selected]->id) {
                         contact_service_delete(contacts[s_selected]->id);
@@ -319,8 +314,7 @@ screen_id screen_contacts_input(uint32_t key) {
                 s_delete_prompt = 0;
                 s_delete_yes = 0;
                 return SCREEN_CONTACTS;
-            case 'q':
-            case 'Q':
+            case KEY_SOFT_LEFT_ACTION:
                 s_delete_prompt = 0;
                 s_delete_yes = 0;
                 return SCREEN_CONTACTS;
@@ -345,8 +339,7 @@ screen_id screen_contacts_input(uint32_t key) {
             }
             return SCREEN_CONTACTS;
         case NCKEY_RIGHT:
-        case 'e':
-        case 'E': {
+        case KEY_SOFT_RIGHT_ACTION: {
             if (s_mode == CONTACTS_MODE_PROFILE) {
                 if (count > 0 && contacts && contacts[s_selected]) {
                     begin_edit_contact(contacts[s_selected]);
@@ -387,8 +380,7 @@ screen_id screen_contacts_input(uint32_t key) {
             s_delete_prompt = 1;
             s_delete_yes = 0;
             return SCREEN_CONTACTS;
-        case 'q':
-        case 'Q':
+        case KEY_SOFT_LEFT_ACTION:
             if (s_mode == CONTACTS_MODE_PROFILE) {
                 s_mode = CONTACTS_MODE_LIST;
                 s_action = 0;

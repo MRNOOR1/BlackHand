@@ -157,6 +157,7 @@
  *    snprintf(buffer, size, fmt, ...)   format a string into a char array   */
 
 #include <string.h>
+#include <ctype.h>
 /*  String functions.  Used here:
  *    strlen(str)          count bytes in str (not counting '\0')
  *    strcat(dest, src)    append src to dest (dest must have room!)          */
@@ -213,7 +214,7 @@
 #include "services/comm_service.h"
 #include "services/pin_service.h"
 #include "services/bluetooth_service.h"
-
+#include "services/avrcp_service.h"
 
 
 
@@ -222,20 +223,73 @@
  * ══════════════════════════════════════════════════════════════════════════ */
 
 /* ──────────────────────────────────────────────────────────────────────────
- *  create_phone_plane()  —  Full-bleed canvas covering the whole terminal.
+ *  create_phone_plane()  —  Create the centred phone canvas
  *
- *  The TUI fills the terminal completely (no border, no keypad zone below).
- *  All screen draw functions receive this single plane.
+ *  RETURNS: pointer to the new plane, or NULL on failure.
+ *  Always check for NULL — using a NULL pointer crashes the program.
+ *
+ *  NOTCURSES: plane hierarchy
+ *  ───────────────────────────
+ *  Planes form a tree.  Each child plane is positioned RELATIVE to its
+ *  parent.  Moving the parent moves all children with it.  Destroying
+ *  the parent destroys all children too.
+ *
+ *  stdplane (full terminal)
+ *    └── phone plane (centred child)
+ *
+ *  NOTCURSES: struct ncplane_options
+ *  ────────────────────────────────────
+ *  Configuration for ncplane_create():
+ *    .y     top-left row, relative to parent
+ *    .x     top-left column, relative to parent
+ *    .rows  height in terminal rows
+ *    .cols  width in terminal columns
+ *    .name  debug name (appears in notcurses diagnostics, not on screen)
+ *
+ *  NOTCURSES: ncplane_dim_yx(plane, *rows, *cols)
+ *  ─────────────────────────────────────────────────
+ *  Reads the plane dimensions into variables via pointers.  '&' gets the
+ *  address of a variable:
+ *    &term_rows  is the memory address where term_rows lives
+ *  The function writes the dimensions to those addresses.  After the call,
+ *  term_rows and term_cols hold the terminal's current dimensions.
+ *  This is "pass by pointer" — C's way for a function to "return" multiple
+ *  values (since a function has only one actual return slot).
+ *
+ *  C CONCEPT: struct designated initializers
+ *  ───────────────────────────────────────────
+ *  { .field = value }  syntax sets only the named fields.
+ *  All other fields are zero-initialised.  This is safer than positional
+ *  initializers because adding a new field to the struct later won't
+ *  silently shift your values.
+ * ────────────────────────────────────────────────────────────────────────── */
+/* ──────────────────────────────────────────────────────────────────────────
+ *  create_phone_plane()  —  Create the full phone plane (screen + keypad)
+ *
+ *  The plane covers the full PHONE_ROWS height.  The top PHONE_SCREEN_ROWS
+ *  hold the display (status bar, content, softkey footer).  The bottom
+ *  KEYPAD_ROWS hold the visual on-screen keypad.
  * ────────────────────────────────────────────────────────────────────────── */
 static struct ncplane *create_phone_plane(struct ncplane *std) {
     unsigned term_rows, term_cols;
     ncplane_dim_yx(std, &term_rows, &term_cols);
 
+    int target_rows = PHONE_ROWS;
+    int target_cols = PHONE_COLS;
+
+    if (target_rows > (int)term_rows) target_rows = (int)term_rows;
+    if (target_cols > (int)term_cols) target_cols = (int)term_cols;
+
+    int origin_y = ((int)term_rows - target_rows) / 2;
+    int origin_x = ((int)term_cols - target_cols) / 2;
+    if (origin_y < 0) origin_y = 0;
+    if (origin_x < 0) origin_x = 0;
+
     struct ncplane_options opts = {
-        .y    = 0,
-        .x    = 0,
-        .rows = (int)term_rows,
-        .cols = (int)term_cols,
+        .y    = origin_y,
+        .x    = origin_x,
+        .rows = target_rows,
+        .cols = target_cols,
         .name = "phone",
     };
 
@@ -243,39 +297,58 @@ static struct ncplane *create_phone_plane(struct ncplane *std) {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
- *  screen_zone_touch_key — map a screen tap position to a navigation key.
+ *  create_screen_plane()  —  Create the screen sub-plane (child of phone)
  *
- *  With no visual keypad, the whole screen is the interaction surface.
- *  Zones (relative to total screen area):
- *    Left 20%        → 'q'  (back / LSK)
- *    Right 20%       → 'e'  (open / RSK)
- *    Top 30% center  → UP
- *    Bottom 30% ctr  → DOWN
- *    Middle center   → ENTER
- *
- *  The status bar area (rows 0-1) is excluded from tap handling.
+ *  This child plane occupies only the top PHONE_SCREEN_ROWS of the phone
+ *  plane.  All screen draw/input functions receive this plane so they see
+ *  only the screen area (PHONE_SCREEN_ROWS × PHONE_COLS) and never draw into
+ *  the keypad.
  * ────────────────────────────────────────────────────────────────────────── */
-static uint32_t screen_zone_touch_key(int y, int x, int rows, int cols) {
-    /* Ignore taps on the status bar */
-    if (y <= STATUS_ROW + 1) return 0;
+static struct ncplane *create_screen_plane(struct ncplane *phone) {
+    unsigned rows, cols;
+    ncplane_dim_yx(phone, &rows, &cols);
 
-    int content_rows = rows - (STATUS_ROW + 2);
-    int rel_y = y - (STATUS_ROW + 2);
-    if (content_rows <= 0) return 0;
+    struct ncplane_options opts = {
+        .y    = 0,
+        .x    = 0,
+        .rows = (int)rows,
+        .cols = (int)cols,
+        .name = "screen",
+    };
+    return ncplane_create(phone, &opts);
+}
 
-    /* Left / right edge zones */
-    int edge_w = cols / 5;
-    if (edge_w < 2) edge_w = 2;
-    if (x < edge_w)          return 'q';
-    if (x >= cols - edge_w)  return 'e';
+static int key_matches_binding(uint32_t key, uint32_t binding) {
+    if (key == binding) {
+        return 1;
+    }
 
-    /* Top / bottom / center zones in the middle strip */
-    int top_band    = content_rows * 3 / 10;
-    int bottom_band = content_rows * 7 / 10;
+    if (key <= 0x7f && binding <= 0x7f) {
+        unsigned char key_ch = (unsigned char)key;
+        unsigned char bind_ch = (unsigned char)binding;
+        if (isalpha(key_ch) && isalpha(bind_ch) &&
+            tolower(key_ch) == tolower(bind_ch)) {
+            return 1;
+        }
+    }
 
-    if (rel_y < top_band)    return NCKEY_UP;
-    if (rel_y >= bottom_band) return NCKEY_DOWN;
-    return NCKEY_ENTER;
+    return 0;
+}
+
+static uint32_t normalize_control_key(uint32_t key) {
+
+    if (key_matches_binding(key, KEY_BIND_UP)) return NCKEY_UP;
+    if (key_matches_binding(key, KEY_BIND_DOWN)) return NCKEY_DOWN;
+    if (key_matches_binding(key, KEY_BIND_LEFT)) return NCKEY_LEFT;
+    if (key_matches_binding(key, KEY_BIND_RIGHT)) return NCKEY_RIGHT;
+    if (key_matches_binding(key, KEY_BIND_SELECT)) return NCKEY_ENTER;
+    if (key_matches_binding(key, KEY_BIND_SOFT_LEFT)) return KEY_SOFT_LEFT_ACTION;
+    if (key_matches_binding(key, KEY_BIND_SOFT_RIGHT)) return KEY_SOFT_RIGHT_ACTION;
+    if (key_matches_binding(key, KEY_BIND_SOFT_LEFT_ALT_1)) return KEY_SOFT_LEFT_ACTION;
+    if (key_matches_binding(key, KEY_BIND_SOFT_LEFT_ALT_2)) return KEY_SOFT_LEFT_ACTION;
+    if (key_matches_binding(key, KEY_BIND_SOFT_RIGHT_ALT_1)) return KEY_SOFT_RIGHT_ACTION;
+    if (key_matches_binding(key, KEY_BIND_SOFT_RIGHT_ALT_2)) return KEY_SOFT_RIGHT_ACTION;
+    return key;
 }
 
 
@@ -316,6 +389,11 @@ int main(void) {
      * terminal type for the kernel framebuffer console (fbcon).
      */
     setenv("TERM", "linux", 0);
+    /* Tell notcurses the framebuffer supports 24-bit direct colour.
+     * TERM=linux terminfo only advertises 8 colours; without this flag
+     * notcurses falls back to ANSI palette approximation and muted grays
+     * collapse to the same index as the background, making text invisible. */
+    setenv("COLORTERM", "truecolor", 0);
 
     /* ── Locale — MUST be first, before any Unicode output ─────────────── */
     /*
@@ -334,13 +412,14 @@ int main(void) {
     pin_service_init();
     theme_service_init();
     notes_service_init();
-    mp3_service_init("/data/music");
+    mp3_service_init(APP_PATH_MUSIC_DIR);
+    headphone_input_init();
     voice_memo_service_init();
     contact_service_init();
     alarm_service_init();
     comm_service_init();
     bluetooth_service_init();
-    headphone_input_init(); /* inline controls: vol+/-, play/pause, next/prev */
+    avrcp_service_init();
 
     /* ── Notcurses initialisation ───────────────────────────────────────── */
     /*
@@ -398,14 +477,26 @@ int main(void) {
      */
     struct ncplane *std = notcurses_stdplane(nc);
 
-    /* ── Phone plane (full-bleed TUI canvas) ─────────────────────────── */
+    /* ── Phone plane (full height: screen + keypad) ──────────────────── */
     struct ncplane *phone = create_phone_plane(std);
     if (!phone) {
         notcurses_stop(nc);
         return 1;
     }
-    /* 'screen' is an alias — all draw functions use one plane */
-    struct ncplane *screen = phone;
+
+    /* ── Screen plane (child of phone, covers only the screen area) ─── */
+    /*
+     * All screen draw/input functions receive 'screen' instead of 'phone'.
+     * They see a PHONE_SCREEN_ROWS × PHONE_COLS canvas — exactly the
+     * display area above the keypad.  The keypad is drawn directly on the
+     * parent 'phone' plane below the screen area.
+     */
+    struct ncplane *screen = create_screen_plane(phone);
+    if (!screen) {
+        ncplane_destroy(phone);
+        notcurses_stop(nc);
+        return 1;
+    }
 
     /* ── State ──────────────────────────────────────────────────────────── */
     /*
@@ -423,6 +514,11 @@ int main(void) {
      */
     int tick = 0;
 
+    /*
+     * last_key tracks the most recently pressed key for keypad highlight
+     * feedback.  Reset to 0 on each timeout (no key pressed) so the
+     * highlight only flashes for one frame.
+     */
     uint32_t last_dispatch_key = 0;
     struct timespec last_dispatch_ts = {0};
 
@@ -451,7 +547,8 @@ int main(void) {
          * Drawing order:
          *   1. draw_frame() on the screen plane — clears + draws border/status
          *   2. screen_*_draw() on the screen plane — content inside the frame
-         *   3. notcurses_render() — composite everything to terminal
+         *   3. draw_keypad() on the phone plane — visual keypad below screen
+         *   4. notcurses_render() — composite everything to terminal
          *
          * The screen plane is a child of phone, positioned at (0,0) and
          * sized PHONE_SCREEN_ROWS × PHONE_COLS.  All screen functions see
@@ -466,7 +563,6 @@ int main(void) {
             if (mp3_service_get_state() == MP3_PLAYING) {
                 mp3_service_pause();
             }
-            voice_memo_service_play_stop();
             current_screen = SCREEN_ALARM;
         }
 
@@ -483,8 +579,8 @@ int main(void) {
             case SCREEN_THEME:      screen_theme_draw(screen);      break;
             case SCREEN_BLUETOOTH:  screen_bluetooth_draw(screen);  break;
             default:
-                ghost_text(screen, CONTENT_START_ROW + 1, CONTENT_COL, COL_PLACEHOLDER, TEXT_COMING_SOON);
-                ghost_text(screen, CONTENT_START_ROW + 3, CONTENT_COL, COL_HINT,        TEXT_GO_HOME);
+                ghost_text(screen, 4, 3, COL_PLACEHOLDER, TEXT_COMING_SOON);
+                ghost_text(screen, 6, 3, COL_HINT,        TEXT_GO_HOME);
                 break;
         }
 
@@ -504,46 +600,43 @@ int main(void) {
             continue;
         }
 
-        /* ── Touchscreen tap → navigation key ───────────────────────── */
+        /* ── Touchscreen / mouse: map tap position to a key code ─────── */
         /*
-         * The visual keypad is gone.  Map touch taps to screen zones:
-         *   left edge  → back ('q')
-         *   right edge → open ('e')
-         *   top center → UP
-         *   bottom ctr → DOWN
-         *   middle     → ENTER
-         *
-         * We process only RELEASE events to avoid double-dispatch on
-         * drivers that emit both PRESS and RELEASE for one tap.
+         * Accept NCKEY_BUTTON1 on PRESS (mouse click) or RELEASE (touch
+         * lift — Linux evdev touchscreens often only report release).
+         * Also accept any NCKEY_BUTTON* variant since some touch drivers
+         * report different button IDs.
          */
         if (key == NCKEY_BUTTON1 || key == NCKEY_BUTTON2 || key == NCKEY_BUTTON3) {
-            if (ni.evtype != NCTYPE_RELEASE) {
-                continue;
-            }
-            unsigned ph_rows, ph_cols;
-            ncplane_dim_yx(phone, &ph_rows, &ph_cols);
-            uint32_t mapped = screen_zone_touch_key(
-                (int)ni.y, (int)ni.x, (int)ph_rows, (int)ph_cols);
-            if (mapped == 0) continue;
-            key = mapped;
-        } else if (ni.evtype == NCTYPE_RELEASE) {
             continue;
         }
 
-        /* ── Numeric key → arrow key fallback (hardware d-pad) ──────── */
+        key = normalize_control_key(key);
+        if (key == 0) {
+            continue;
+        }
+
+        /* ── Numeric key → arrow key mapping (dumbphone navigation) ── */
         /*
-         * On fbcon without proper terminfo, arrow keys may arrive as
-         * numeric characters.  Map them here so hardware navigation works.
-         * Skip when a text-entry screen needs the numeric keys for multi-tap.
+         * On fbcon, arrow keys may not produce NCKEY_UP/DOWN/LEFT/RIGHT
+         * if the terminal isn't properly configured.  Map numeric keys
+         * as a fallback so the on-screen keypad always works:
+         *   2 = UP,  8 = DOWN,  4 = LEFT,  6 = RIGHT,  5 = ENTER
+         *
+         * This ONLY applies when NOT on a text editing screen (notes edit
+         * mode uses number keys for multi-tap text entry).
          */
         if (!((current_screen == SCREEN_NOTES && screen_notes_is_edit_mode()) ||
-              (current_screen == SCREEN_CONTACTS && screen_contacts_is_edit_mode()))) {
+              (current_screen == SCREEN_CONTACTS && screen_contacts_is_edit_mode()) ||
+              (current_screen == SCREEN_VOICE_MEMO && screen_voice_memo_is_text_entry_mode()) ||
+              (current_screen == SCREEN_SETTINGS && screen_settings_is_pin_entry_mode()) ||
+              (current_screen == SCREEN_ALARM && screen_alarm_is_time_entry_mode()))) {
             switch (key) {
-                case '2': key = NCKEY_UP;    break;
-                case '8': key = NCKEY_DOWN;  break;
-                case '4': key = NCKEY_LEFT;  break;
-                case '6': key = NCKEY_RIGHT; break;
-                case '5': key = NCKEY_ENTER; break;
+                case KEY_BIND_NUMPAD_UP: key = KEY_BIND_UP; break;
+                case KEY_BIND_NUMPAD_DOWN: key = KEY_BIND_DOWN; break;
+                case KEY_BIND_NUMPAD_LEFT: key = KEY_BIND_LEFT; break;
+                case KEY_BIND_NUMPAD_RIGHT: key = KEY_BIND_RIGHT; break;
+                case KEY_BIND_NUMPAD_SELECT: key = KEY_BIND_SELECT; break;
                 default: break;
             }
         }
@@ -552,6 +645,17 @@ int main(void) {
         clock_gettime(CLOCK_MONOTONIC, &now_ts);
         long delta_ms = (now_ts.tv_sec - last_dispatch_ts.tv_sec) * 1000L +
                         (now_ts.tv_nsec - last_dispatch_ts.tv_nsec) / 1000000L;
+
+        /*
+         * Some input stacks emit both PRESS and RELEASE for one physical tap.
+         * Keep RELEASE support (needed on some keypads) but suppress the
+         * immediate duplicate when it follows the same key dispatch.
+         */
+        if (ni.evtype == NCTYPE_RELEASE && key == last_dispatch_key &&
+            delta_ms >= 0 && delta_ms < 250) {
+            continue;
+        }
+
         if (key == last_dispatch_key && delta_ms >= 0 && delta_ms < 45) {
             continue;
         }
@@ -562,11 +666,19 @@ int main(void) {
         if (key == NCKEY_RESIZE) {
             ncplane_destroy(phone);
             phone = create_phone_plane(std);
-            if (!phone) break;
-            screen = phone;
+            if (!phone) {
+                break;
+            }
+
+            screen = create_screen_plane(phone);
+            if (!screen) {
+                ncplane_destroy(phone);
+                break;
+            }
+
             continue;
         }
-        if (current_screen == SCREEN_HOME && (key == 'q' || key == 'Q')) {
+        if (current_screen == SCREEN_HOME && key == KEY_BIND_APP_QUIT) {
             break;
         }
 
@@ -588,7 +700,7 @@ int main(void) {
         }
 
         if (current_screen == SCREEN_MP3 && prev_screen != SCREEN_MP3) {
-            mp3_service_rescan("/data/music");
+            mp3_service_rescan(APP_PATH_MUSIC_DIR);
         }
 
         if (current_screen == SCREEN_CALLS && prev_screen != SCREEN_CALLS) {
@@ -596,7 +708,10 @@ int main(void) {
         }
     }
 
-    /* ── Cleanup ─────────────────────────────────────────────────────────── */
+    /* ── Cleanup — REVERSE order of creation ────────────────────────────── */
+    /*
+     * ncplane_destroy(phone) also destroys its child (screen plane).
+     */
     ncplane_destroy(phone);
     notcurses_stop(nc);
     headphone_input_shutdown();
@@ -605,6 +720,7 @@ int main(void) {
     contact_service_shutdown();
     alarm_service_shutdown();
     comm_service_shutdown();
+    avrcp_service_shutdown();
     bluetooth_service_shutdown();
     notes_service_shutdown();
     settings_service_shutdown();

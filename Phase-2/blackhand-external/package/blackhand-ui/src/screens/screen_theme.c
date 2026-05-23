@@ -39,8 +39,8 @@ void screen_theme_draw(struct ncplane *phone) {
         ncplane_set_fg_rgb(phone, (i == s_selected) ? theme_selection_text() : theme_text_muted());
         ncplane_set_bg_rgb(phone, (i == s_selected) ? theme_selection_bg() : theme_bg());
         ncplane_putstr_yx(phone, row, CONTENT_COL, cursor);
-        ncplane_putstr_yx(phone, row, CONTENT_COL + 2, active ? "[*]" : "[ ]");
-        ncplane_putstr_yx(phone, row, CONTENT_COL + 6, settings_service_theme_label(i));
+        ncplane_putstr_yx(phone, row, CONTENT_COL + 1, active ? "[*]" : "[ ]");
+        ncplane_putstr_yx(phone, row, CONTENT_COL + 5, settings_service_theme_label(i));
     }
 
     ghost_softkeys(phone, "[Back]", "[Apply]");
@@ -63,13 +63,11 @@ screen_id screen_theme_input(uint32_t key) {
             return SCREEN_THEME;     /* Same as RSK — apply */
         case NCKEY_ENTER:
         case '\n':
-        case 'e':
-        case 'E':
+        case KEY_SOFT_RIGHT_ACTION:
             settings_service_set_light_theme(s_selected);
             theme_service_sync_from_settings();
             return SCREEN_THEME;
-        case 'q':
-        case 'Q':
+        case KEY_SOFT_LEFT_ACTION:
             return SCREEN_SETTINGS;
         default:
             return SCREEN_THEME;

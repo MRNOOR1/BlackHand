@@ -20,9 +20,9 @@
  *             [ 7 ] [ 8 ] [ 9 ]
  *             [ * ] [ 0 ] [ # ]
  *
- *  INPUT MAPPING (dev keyboard):
- *    q/Q       = Left Soft Key (LSK)
- *    e/E       = Right Soft Key (RSK)
+ *  INPUT MAPPING (from config.h):
+ *    KEY_BIND_SOFT_LEFT  = Left Soft Key (LSK)
+ *    KEY_BIND_SOFT_RIGHT = Right Soft Key (RSK)
  *    Arrow keys = D-pad directions
  *    Enter     = D-pad center / OK
  *    0-9, *, # = Numeric keypad
@@ -166,8 +166,8 @@ void draw_keypad(struct ncplane *phone, uint32_t active_key) {
     /* ── Soft keys row (ksr + 1) ─────────────────────────────────────── */
     int sk_row = layout.softkey_row;
     if (sk_row >= (int)rows - 1) return;
-    int lsk_active = (active_key == 'q' || active_key == 'Q');
-    int rsk_active = (active_key == 'e' || active_key == 'E');
+    int lsk_active = (active_key == KEY_SOFT_LEFT_ACTION);
+    int rsk_active = (active_key == KEY_SOFT_RIGHT_ACTION);
 
     int side_pad = 2;
     int sk_gap = 2;

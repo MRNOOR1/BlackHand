@@ -46,6 +46,7 @@ BR2_PACKAGE_RPI_FIRMWARE_VARIANT_PI4=y
 # Packages
 BR2_PACKAGE_BUSYBOX=y
 BR2_PACKAGE_DROPBEAR=y
+BR2_PACKAGE_HOST_DROPBEAR=y
 BR2_PACKAGE_KMOD=y
 
 # Notcurses TUI dependencies (auto-selected, but explicit for clarity)
@@ -79,7 +80,7 @@ BR2_PACKAGE_BLACKHAND_MODEM=y
 # BR2_PACKAGE_BRCMFMAC_SDIO_FIRMWARE_RPI* are NOT used — they are
 # deprecated in current Buildroot and trigger BR2_LEGACY=y, aborting
 # the build with "error: you have legacy config options set".
-z
+
 # ── Bluetooth ────────────────────────────────────────────────────────────
 # D-Bus is a prerequisite for BlueZ — the daemon talks to bluetoothd
 # entirely over D-Bus. Without it bluetoothd refuses to start.
@@ -91,7 +92,6 @@ BR2_PACKAGE_DBUS=y
 # PLUGINS_AUDIO = A2DP and HFP/HSP profile plugins inside bluetoothd
 BR2_PACKAGE_BLUEZ5_UTILS=y
 BR2_PACKAGE_BLUEZ5_UTILS_CLIENT=y
-BR2_PACKAGE_BLUEZ5_UTILS_DEPRECATED=y
 BR2_PACKAGE_BLUEZ5_UTILS_PLUGINS_AUDIO=y
 
 # bluez-alsa — bridges BT audio to ALSA without PulseAudio.
@@ -120,7 +120,7 @@ BR2_PACKAGE_HYPERPIXEL4_INIT=y
 
 # Debug tools (remove before final image)
 BR2_PACKAGE_EVTEST=y
-BR2_PACKAGE_RFKILL=y
+
 
 # Filesystem
 BR2_TARGET_ROOTFS_EXT2=y

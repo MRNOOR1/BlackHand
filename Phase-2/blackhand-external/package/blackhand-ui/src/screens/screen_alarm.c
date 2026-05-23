@@ -56,25 +56,27 @@ static void draw_delete_popup(struct ncplane *phone) {
 }
 
 static void draw_time_popup(struct ncplane *phone, unsigned rows, unsigned cols) {
-    int w = 32;
-    int h = 7;
+    int w = ALARM_TIME_POPUP_WIDTH;
+    int h = ALARM_TIME_POPUP_HEIGHT;
     int top = ((int)rows - h) / 2;
     int left = ((int)cols - w) / 2;
-    if (top < CONTENT_START_ROW) top = CONTENT_START_ROW;
-    if (left < 2) left = 2;
+    if (top < UI_POPUP_MIN_TOP) top = UI_POPUP_MIN_TOP;
+    if (left < ALARM_TIME_POPUP_MIN_LEFT) left = ALARM_TIME_POPUP_MIN_LEFT;
 
     ghost_fill_rect(phone, top, left, h, w, ' ', theme_text_primary(), theme_bg());
-    ghost_text(phone, top + 1, left + 2, theme_text_primary(),
+    ghost_text(phone, top + UI_POPUP_TITLE_ROW_OFFSET, left + UI_POPUP_TEXT_INSET_X, theme_text_primary(),
                s_edit_existing ? "EDIT ALARM TIME" : "SET ALARM TIME");
 
     char timebuf[16];
     snprintf(timebuf, sizeof(timebuf), "%02d:%02d", s_time_hour, s_time_minute);
-    ghost_text(phone, top + 3, left + 2, theme_text_primary(), timebuf);
+    ghost_text(phone, top + UI_POPUP_INPUT_ROW_OFFSET, left + UI_POPUP_TEXT_INSET_X,
+               theme_text_primary(), timebuf);
     char repeat_buf[32];
     snprintf(repeat_buf, sizeof(repeat_buf), "Repeat: %s", repeat_label(s_time_repeat));
-    ghost_text(phone, top + 4, left + 2, theme_text_muted(),
+    ghost_text(phone, top + UI_POPUP_INPUT_ROW_OFFSET + 1, left + UI_POPUP_TEXT_INSET_X, theme_text_muted(),
                s_time_field == 0 ? "^^ hour" : "   ^^ minute");
-    ghost_text(phone, top + 5, left + 2, theme_text_muted(), repeat_buf);
+    ghost_text(phone, top + UI_POPUP_HINT_ROW_OFFSET, left + UI_POPUP_TEXT_INSET_X,
+               theme_text_muted(), repeat_buf);
 
     ghost_softkeys(phone, "[Cancel]", "[Save]");
 }
@@ -175,7 +177,7 @@ void screen_alarm_draw(struct ncplane *phone) {
             if (width > 5) { trunc[width-5] = '.'; trunc[width-4] = '.'; trunc[width-3] = '.'; }
             trunc[width-2] = '\0';
         }
-        ncplane_putstr_yx(phone, row, CONTENT_COL + 2, trunc);
+        ncplane_putstr_yx(phone, row, CONTENT_COL + 1, trunc);
     }
 
     ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(),
@@ -184,18 +186,21 @@ void screen_alarm_draw(struct ncplane *phone) {
 
     const Alarm *ringing = alarm_service_current_ringing();
     if (ringing) {
-        int w = 34;
-        int h = 8;
+        int w = ALARM_RING_POPUP_WIDTH;
+        int h = ALARM_RING_POPUP_HEIGHT;
         int top = ((int)rows - h) / 2;
         int left = ((int)cols - w) / 2;
-        if (top < CONTENT_START_ROW) top = CONTENT_START_ROW;
-        if (left < 1) left = 1;
+        if (top < UI_POPUP_MIN_TOP) top = UI_POPUP_MIN_TOP;
+        if (left < UI_POPUP_MIN_LEFT) left = UI_POPUP_MIN_LEFT;
         ghost_fill_rect(phone, top, left, h, w, ' ', theme_text_primary(), theme_bg());
-        ghost_text(phone, top + 1, left + 2, theme_text_primary(), "ALARM RINGING");
+        ghost_text(phone, top + UI_POPUP_TITLE_ROW_OFFSET, left + UI_POPUP_TEXT_INSET_X,
+                   theme_text_primary(), "ALARM RINGING");
         char tbuf[16];
         snprintf(tbuf, sizeof(tbuf), "%02d:%02d", ringing->hour, ringing->minute);
-        ghost_text(phone, top + 3, left + 2, theme_text_primary(), tbuf);
-        ghost_text(phone, top + 4, left + 2, theme_text_muted(), ringing->label ? ringing->label : "Alarm");
+        ghost_text(phone, top + UI_POPUP_INPUT_ROW_OFFSET, left + UI_POPUP_TEXT_INSET_X,
+                   theme_text_primary(), tbuf);
+        ghost_text(phone, top + UI_POPUP_INPUT_ROW_OFFSET + 1, left + UI_POPUP_TEXT_INSET_X,
+                   theme_text_muted(), ringing->label ? ringing->label : "Alarm");
         ghost_softkeys(phone, "[Snooze]", "[Dismiss]");
     }
 
@@ -211,12 +216,10 @@ screen_id screen_alarm_input(uint32_t key) {
             case '\n':
                 alarm_service_stop_ringing();
                 return SCREEN_ALARM;
-            case 'q':
-            case 'Q':
+            case KEY_SOFT_LEFT_ACTION:
                 alarm_service_snooze_current(ALARM_SNOOZE_MIN);
                 return SCREEN_HOME;
-            case 'e':
-            case 'E':
+            case KEY_SOFT_RIGHT_ACTION:
                 alarm_service_dismiss_current();
                 return SCREEN_HOME;
             default:
@@ -250,8 +253,7 @@ screen_id screen_alarm_input(uint32_t key) {
                 return SCREEN_ALARM;
             case NCKEY_ENTER:
             case '\n':
-            case 'e':
-            case 'E':
+            case KEY_SOFT_RIGHT_ACTION:
                 if (s_edit_existing) {
                     alarm_service_set_time(s_edit_id, s_time_hour, s_time_minute);
                     alarm_service_set_repeat(s_edit_id, s_time_repeat);
@@ -267,8 +269,7 @@ screen_id screen_alarm_input(uint32_t key) {
                 s_time_prompt = 0;
                 s_digit_len = 0;
                 return SCREEN_ALARM;
-            case 'q':
-            case 'Q':
+            case KEY_SOFT_LEFT_ACTION:
                 s_time_prompt = 0;
                 s_digit_len = 0;
                 return SCREEN_ALARM;
@@ -317,8 +318,7 @@ screen_id screen_alarm_input(uint32_t key) {
                 return SCREEN_ALARM;
             case NCKEY_ENTER:
             case '\n':
-            case 'e':
-            case 'E':
+            case KEY_SOFT_RIGHT_ACTION:
                 if (s_delete_yes && count > 0 && alarms && alarms[s_selected] && alarms[s_selected]->id) {
                     alarm_service_delete(alarms[s_selected]->id);
                     alarm_service_list_all(&count);
@@ -327,8 +327,7 @@ screen_id screen_alarm_input(uint32_t key) {
                 s_delete_prompt = 0;
                 s_delete_yes = 0;
                 return SCREEN_ALARM;
-            case 'q':
-            case 'Q':
+            case KEY_SOFT_LEFT_ACTION:
                 s_delete_prompt = 0;
                 s_delete_yes = 0;
                 return SCREEN_ALARM;
@@ -364,18 +363,20 @@ screen_id screen_alarm_input(uint32_t key) {
             if (count > 0 && alarms && alarms[s_selected])
                 start_time_prompt_edit(alarms[s_selected]);
             return SCREEN_ALARM;
-        case 'e':
-        case 'E':
+        case KEY_SOFT_RIGHT_ACTION:
             /* RSK = create new alarm */
             if (count < ALARM_MAX_COUNT) {
                 start_time_prompt_new();
             }
             return SCREEN_ALARM;
-        case 'q':
-        case 'Q':
+        case KEY_SOFT_LEFT_ACTION:
             /* LSK = back to menu */
             return SCREEN_HOME;
         default:
             return SCREEN_ALARM;
     }
+}
+
+int screen_alarm_is_time_entry_mode(void) {
+    return s_time_prompt ? 1 : 0;
 }

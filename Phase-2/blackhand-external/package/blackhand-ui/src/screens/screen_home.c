@@ -92,7 +92,6 @@
 #include "services/settings_service.h"
 #include "services/pin_service.h"
 
-
 /* ═══════════════════════════════════════════════════════════════════════════
  *  DATA STRUCTURES
  * ═══════════════════════════════════════════════════════════════════════════
@@ -134,11 +133,11 @@
  * EXAMPLE:
  *   menu_item calls = { .label = "Calls", .target = SCREEN_CALLS };
  */
-typedef struct {
-    const char *label;   /* Text shown in menu (pointer to string literal) */
-    screen_id   target;  /* Screen to go to when selected (enum value) */
+typedef struct
+{
+    const char *label; /* Text shown in menu (pointer to string literal) */
+    screen_id target;  /* Screen to go to when selected (enum value) */
 } menu_item;
-
 
 /* ═══════════════════════════════════════════════════════════════════════════
  *  STATIC DATA (Menu Items and Selection State)
@@ -193,14 +192,14 @@ typedef struct {
  *   4. Add the case to the switch in main.c
  */
 static const menu_item items[] = {
-    { "CONTACTS",      SCREEN_CONTACTS   },
-    { "MESSAGES",      SCREEN_MESSAGES   },
-    { "CALLS",         SCREEN_CALLS      },
-    { "NOTES",         SCREEN_NOTES      },
-    { "VOICE MEMO",    SCREEN_VOICE_MEMO },
-    { "MUSIC",         SCREEN_MP3        },
-    { "ALARM",         SCREEN_ALARM      },
-    { "SETTINGS",      SCREEN_SETTINGS   },
+    {"CALLS",      SCREEN_CALLS},
+    {"MESSAGES",   SCREEN_MESSAGES},
+    {"CONTACTS",   SCREEN_CONTACTS},
+    {"MUSIC",      SCREEN_MP3},
+    {"VOICE MEMO", SCREEN_VOICE_MEMO},
+    {"NOTES",      SCREEN_NOTES},
+    {"ALARM",      SCREEN_ALARM},
+    {"SETTINGS",   SCREEN_SETTINGS},
 };
 
 /*
@@ -241,7 +240,6 @@ static char hw_pin_buf[8] = {0};
 static int hw_pin_len = 0;
 static char hw_pin_error[32] = {0};
 
-
 /* ═══════════════════════════════════════════════════════════════════════════
  *  DRAW FUNCTION
  * ═══════════════════════════════════════════════════════════════════════════
@@ -272,7 +270,8 @@ static char hw_pin_error[32] = {0};
  *   - Change spacing: Edit HOME_ROW_SPACING in config.h
  *   - Change cursor: Edit MENU_CURSOR in config.h
  */
-void screen_home_draw(struct ncplane *phone) {
+void screen_home_draw(struct ncplane *phone)
+{
     /*
      * Get the plane dimensions so we know where to stop drawing.
      * We don't want to draw outside the visible area or into the footer.
@@ -284,16 +283,19 @@ void screen_home_draw(struct ncplane *phone) {
      * Safety check: If the plane is too small, show an error message
      * instead of trying to draw a garbled menu.
      */
-    if (rows < HOME_MIN_ROWS || cols < HOME_MIN_COLS) {
+    if (rows < HOME_MIN_ROWS || cols < HOME_MIN_COLS)
+    {
         ncplane_putstr_yx(phone, 2, 2, TEXT_TOO_SMALL);
-        return;  /* Early return - don't draw anything else */
+        return; /* Early return - don't draw anything else */
     }
 
-    if (settings_service_get_bool("hand_white")) {
+    if (settings_service_get_bool(SETTINGS_KEY_HAND_WHITE))
+    {
         time_t now = time(NULL);
         struct tm tm_now;
         char tbuf[16] = "00:00";
-        if (localtime_r(&now, &tm_now)) {
+        if (localtime_r(&now, &tm_now))
+        {
             snprintf(tbuf, sizeof(tbuf), "%02d:%02d", tm_now.tm_hour, tm_now.tm_min);
         }
 
@@ -301,26 +303,38 @@ void screen_home_draw(struct ncplane *phone) {
         ghost_text(phone, CONTENT_START_ROW + 4, CONTENT_COL, theme_text_primary(), tbuf);
         ghost_text(phone, CONTENT_START_ROW + 6, CONTENT_COL, theme_text_muted(), "LAT: 35.6895 N");
         ghost_text(phone, CONTENT_START_ROW + 7, CONTENT_COL, theme_text_muted(), "LON: 51.3890 E");
-        if (hw_pin_prompt) {
-            int w = 26;
-            int h = 6;
+        if (hw_pin_prompt)
+        {
+            int w = HOME_PIN_POPUP_WIDTH;
+            int h = HOME_PIN_POPUP_HEIGHT;
             int top = ((int)rows - h) / 2;
             int left = ((int)cols - w) / 2;
-            if (top < CONTENT_START_ROW) top = CONTENT_START_ROW;
-            if (left < 1) left = 1;
+            if (top < UI_POPUP_MIN_TOP)
+                top = UI_POPUP_MIN_TOP;
+            if (left < UI_POPUP_MIN_LEFT)
+                left = UI_POPUP_MIN_LEFT;
             ghost_fill_rect(phone, top, left, h, w, ' ', theme_text_primary(), theme_bg());
-            ghost_text(phone, top + 1, left + 2, theme_text_primary(), "ENTER PIN");
+            ghost_text(phone, top + UI_POPUP_TITLE_ROW_OFFSET, left + UI_POPUP_TEXT_INSET_X,
+                       theme_text_primary(), "ENTER PIN");
             char dots[8] = "    ";
-            for (int i = 0; i < hw_pin_len && i < 4; i++) dots[i] = '*';
-            ghost_text(phone, top + 3, left + 2, theme_text_primary(), dots);
-            if (hw_pin_error[0] != '\0') {
-                ghost_text(phone, top + 4, left + 2, theme_border(), hw_pin_error);
+            for (int i = 0; i < hw_pin_len && i < 4; i++)
+                dots[i] = '*';
+            ghost_text(phone, top + UI_POPUP_INPUT_ROW_OFFSET, left + UI_POPUP_TEXT_INSET_X,
+                       theme_text_primary(), dots);
+            if (hw_pin_error[0] != '\0')
+            {
+                ghost_text(phone, top + UI_POPUP_INPUT_ROW_OFFSET + 1,
+                           left + UI_POPUP_TEXT_INSET_X, theme_border(), hw_pin_error);
             }
             ghost_softkeys(phone, "[Cancel]", "[OK]");
-        } else if (hw_exit_armed) {
+        }
+        else if (hw_exit_armed)
+        {
             ghost_text(phone, CONTENT_START_ROW + 9, CONTENT_COL, theme_text_muted(), "PRESS RIGHT SOFT NOW");
             ghost_softkeys(phone, "[Exit 1/2]", "[Exit 2/2]");
-        } else {
+        }
+        else
+        {
             ghost_text(phone, CONTENT_START_ROW + 9, CONTENT_COL, theme_text_muted(), "HOLD BOTH SOFT KEYS TO EXIT");
             ghost_softkeys(phone, "[Exit 1/2]", "[Exit 2/2]");
         }
@@ -343,99 +357,44 @@ void screen_home_draw(struct ncplane *phone) {
      *       printf("%d\n", i);  // Prints 0, 1, 2, ..., 9
      *   }
      */
-    int width = INNER_WIDTH(cols);
 
-    ghost_text(phone, CONTENT_START_ROW, CONTENT_COL, theme_text_primary(), "BH-OPS");
+    int list_width = INNER_WIDTH(cols);
 
-    /* Content rule under title */
-    ncplane_set_fg_rgb(phone, theme_border());
-    ncplane_set_bg_rgb(phone, theme_bg());
-    const char *rule = theme_rule_glyph();
-    for (int x = 0; x < width && CONTENT_COL + x < (int)cols - 1; x++)
-        ncplane_putstr_yx(phone, CONTENT_START_ROW + 1, CONTENT_COL + x, (rule && rule[0]) ? rule : "-");
-
-    for (int i = 0; i < item_count; i++) {
-        /*
-         * Calculate which row to draw this item on.
-         *
-         * HOME_CONTENT_START_ROW = 3 (from config.h)
-         * HOME_ROW_SPACING = 1 (items are 1 row apart)
-         *
-         * Item 0: row = 3 + (0 * 1) = 3
-         * Item 1: row = 3 + (1 * 1) = 4
-         * Item 2: row = 3 + (2 * 1) = 5
-         * ... etc
-         */
+    for (int i = 0; i < item_count; i++)
+    {
         int row = HOME_CONTENT_START_ROW + 1 + (i * HOME_ROW_SPACING);
 
-        /*
-         * Stop if we would draw into the footer area.
-         * rows - 2 is the footer separator row.
-         *
-         * C CONCEPT: TYPE CASTING
-         * -----------------------
-         * (int)rows converts 'rows' from unsigned to signed int.
-         * This is needed because comparing signed and unsigned can
-         * give unexpected results (unsigned is always >= 0).
-         */
-        if (row >= (int)rows - 2) break;
+        if (row >= (int)rows - 3)
+            break;
 
-        /*
-         * Choose colors and cursor based on whether this item is selected.
-         *
-         * C CONCEPT: TERNARY OPERATOR
-         * ---------------------------
-         * condition ? value_if_true : value_if_false
-         *
-         * It's a compact way to choose between two values.
-         *
-         * EQUIVALENT IF/ELSE:
-         *   uint32_t fg;
-         *   if (i == selected) {
-         *       fg = COL_MENU_SELECTED;
-         *   } else {
-         *       fg = COL_MENU_NORMAL;
-         *   }
-         */
-        uint32_t fg = (i == selected) ? theme_selection_text() : theme_text_muted();
-        uint32_t bg = (i == selected) ? theme_selection_bg() : theme_bg();
-        const char *cursor = (i == selected) ? MENU_CURSOR : MENU_CURSOR_BLANK;
+        int is_sel = (i == selected);
+        uint32_t fg = is_sel ? theme_selection_text() : theme_text_muted();
+        uint32_t bg = is_sel ? theme_selection_bg()   : theme_bg();
 
-        /*
-         * Draw the menu item.
-         *
-         * NOTCURSES: ncplane_set_fg_rgb(plane, color)
-         *   Sets the foreground (text) color for subsequent drawing.
-         *   Color is 0xRRGGBB (24-bit RGB).
-         *
-         * NOTCURSES: ncplane_set_bg_rgb(plane, color)
-         *   Sets the background color for subsequent drawing.
-         *
-         * NOTCURSES: ncplane_putstr_yx(plane, row, col, string)
-         *   Draws a string at the specified position.
-         *   Row is the Y coordinate (vertical), Col is X (horizontal).
-         */
+        /* Full-width row fill so the highlight block is solid */
         ncplane_set_fg_rgb(phone, fg);
         ncplane_set_bg_rgb(phone, bg);
+        for (int x = 0; x < list_width && HOME_CONTENT_COL + x < (int)cols - 1; x++)
+            ncplane_putchar_yx(phone, row, HOME_CONTENT_COL + x, ' ');
 
-        /* Draw cursor (▸ if selected, blank spaces if not) */
-        ncplane_putstr_yx(phone, row, HOME_CONTENT_COL, cursor);
-
-        /* Draw the menu label, offset by 2 to leave room for cursor */
+        /* Cursor dot + label */
+        ncplane_putstr_yx(phone, row, HOME_CONTENT_COL,     is_sel ? MENU_CURSOR : MENU_CURSOR_BLANK);
         ncplane_putstr_yx(phone, row, HOME_CONTENT_COL + 2, items[i].label);
     }
 
-    if (mp3_service_get_state() == MP3_PLAYING) {
-        ghost_text(phone, (int)rows - 4, CONTENT_COL, theme_text_muted(), "STATUS: AUDIO PLAYING");
-    } else if (mp3_service_get_state() == MP3_PAUSED) {
-        ghost_text(phone, (int)rows - 4, CONTENT_COL, theme_text_muted(), "STATUS: AUDIO PAUSED");
-    } else {
-        ghost_text(phone, (int)rows - 4, CONTENT_COL, theme_text_muted(), "STATUS: IDLE");
+    /* Minimal music status — only when playing or paused */
+    mp3_playback_state mp3st = mp3_service_get_state();
+    if (mp3st == MP3_PLAYING || mp3st == MP3_PAUSED) {
+        const char *track = mp3_service_current_track_name();
+        char status_line[64];
+        snprintf(status_line, sizeof(status_line), "%s %s",
+                 mp3st == MP3_PLAYING ? "\xe2\x96\xb6" : "\xe2\x96\x8c\xe2\x96\x8c",
+                 track ? track : "");
+        ghost_text(phone, (int)rows - 3, CONTENT_COL, theme_text_muted(), status_line);
     }
 
     ghost_softkeys(phone, "[Quit]", "[Open]");
 }
-
 
 /* ═══════════════════════════════════════════════════════════════════════════
  *  INPUT HANDLER
@@ -485,39 +444,51 @@ void screen_home_draw(struct ncplane *phone) {
  * These special keys have values above 0x100000 to distinguish them
  * from regular Unicode codepoints.
  */
-screen_id screen_home_input(uint32_t key) {
-    if (settings_service_get_bool("hand_white")) {
+screen_id screen_home_input(uint32_t key)
+{
+    if (settings_service_get_bool(SETTINGS_KEY_HAND_WHITE))
+    {
         time_t now = time(NULL);
 
-        if (hw_pin_prompt) {
-            if (key == 'q' || key == 'Q') {
+        if (hw_pin_prompt)
+        {
+            if (key == KEY_SOFT_LEFT_ACTION)
+            {
                 hw_pin_prompt = 0;
                 hw_pin_len = 0;
                 hw_pin_buf[0] = '\0';
                 hw_pin_error[0] = '\0';
                 return SCREEN_HOME;
             }
-            if (key == NCKEY_BACKSPACE || key == 127) {
-                if (hw_pin_len > 0) {
+            if (key == NCKEY_BACKSPACE || key == 127)
+            {
+                if (hw_pin_len > 0)
+                {
                     hw_pin_len--;
                     hw_pin_buf[hw_pin_len] = '\0';
                 }
                 return SCREEN_HOME;
             }
-            if (key >= '0' && key <= '9') {
-                if (hw_pin_len < 4) {
+            if (key >= '0' && key <= '9')
+            {
+                if (hw_pin_len < 4)
+                {
                     hw_pin_buf[hw_pin_len++] = (char)key;
                     hw_pin_buf[hw_pin_len] = '\0';
                 }
-                if (hw_pin_len == 4) {
-                    if (pin_service_verify(hw_pin_buf)) {
-                        settings_service_toggle_by_key("hand_white");
+                if (hw_pin_len == 4)
+                {
+                    if (pin_service_verify(hw_pin_buf))
+                    {
+                        settings_service_toggle_by_key(SETTINGS_KEY_HAND_WHITE);
                         theme_service_sync_from_settings();
                         hw_pin_prompt = 0;
                         hw_pin_len = 0;
                         hw_pin_buf[0] = '\0';
                         hw_pin_error[0] = '\0';
-                    } else {
+                    }
+                    else
+                    {
                         snprintf(hw_pin_error, sizeof(hw_pin_error), "WRONG PIN");
                         hw_pin_len = 0;
                         hw_pin_buf[0] = '\0';
@@ -527,16 +498,19 @@ screen_id screen_home_input(uint32_t key) {
             return SCREEN_HOME;
         }
 
-        if (hw_exit_armed && difftime(now, hw_exit_arm_ts) > 2.0) {
+        if (hw_exit_armed && difftime(now, hw_exit_arm_ts) > 2.0)
+        {
             hw_exit_armed = 0;
         }
 
-        if (key == 'q' || key == 'Q') {
+        if (key == KEY_SOFT_LEFT_ACTION)
+        {
             hw_exit_armed = 1;
             hw_exit_arm_ts = now;
             return SCREEN_HOME;
         }
-        if ((key == 'e' || key == 'E') && hw_exit_armed) {
+        if ((key == KEY_SOFT_RIGHT_ACTION) && hw_exit_armed)
+        {
             hw_pin_prompt = 1;
             hw_exit_armed = 0;
             hw_pin_len = 0;
@@ -558,71 +532,73 @@ screen_id screen_home_input(uint32_t key) {
      *
      * Fall-through is sometimes intentional (see NCKEY_ENTER and '\n' below).
      */
-    switch (key) {
-        /*
-         * UP ARROW: Move selection up (toward index 0)
-         *
-         * We only decrement if selected > 0 to prevent going negative.
-         * This is called "bounds checking."
-         */
-        case NCKEY_UP:
-            if (selected > 0) selected--;
-            return SCREEN_HOME;  /* Stay on home screen */
+    switch (key)
+    {
+    /*
+     * UP ARROW: Move selection up (toward index 0)
+     *
+     * We only decrement if selected > 0 to prevent going negative.
+     * This is called "bounds checking."
+     */
+    case NCKEY_UP:
+        if (selected > 0)
+            selected--;
+        return SCREEN_HOME; /* Stay on home screen */
 
-        /*
-         * DOWN ARROW: Move selection down (toward item_count - 1)
-         *
-         * We only increment if we're not at the last item.
-         * (item_count - 1) is the index of the last valid item.
-         */
-        case NCKEY_DOWN:
-            if (selected < item_count - 1) selected++;
-            return SCREEN_HOME;  /* Stay on home screen */
+    /*
+     * DOWN ARROW: Move selection down (toward item_count - 1)
+     *
+     * We only increment if we're not at the last item.
+     * (item_count - 1) is the index of the last valid item.
+     */
+    case NCKEY_DOWN:
+        if (selected < item_count - 1)
+            selected++;
+        return SCREEN_HOME; /* Stay on home screen */
 
-        /*
-         * LEFT ARROW: Same as LSK (quit) — matches on-screen D-pad layout
-         */
-        case NCKEY_LEFT:
-            return SCREEN_HOME;  /* No-op on home; quit is handled in main.c */
+    /*
+     * LEFT ARROW: Same as LSK (quit) — matches on-screen D-pad layout
+     */
+    case NCKEY_LEFT:
+        return SCREEN_HOME; /* No-op on home; quit is handled in main.c */
 
-        /*
-         * RIGHT ARROW: Same as ENTER/RSK — open selected item
-         */
-        case NCKEY_RIGHT:
-            return items[selected].target;
+    /*
+     * RIGHT ARROW: Same as ENTER/RSK — open selected item
+     */
+    case NCKEY_RIGHT:
+        return items[selected].target;
 
+    /*
+     * ENTER KEY: Navigate to the selected item's target screen
+     *
+     * NOTE: We handle both NCKEY_ENTER and '\n' (newline character).
+     * Some terminals send '\n' instead of NCKEY_ENTER.
+     *
+     * This is an example of INTENTIONAL fall-through:
+     *   case NCKEY_ENTER:
+     *   case '\n':
+     *       // This code runs for either key
+     *
+     * No 'break' after NCKEY_ENTER means execution continues to '\n' case.
+     */
+    case NCKEY_ENTER:
+    case '\n':
+    case KEY_SOFT_RIGHT_ACTION:
         /*
-         * ENTER KEY: Navigate to the selected item's target screen
-         *
-         * NOTE: We handle both NCKEY_ENTER and '\n' (newline character).
-         * Some terminals send '\n' instead of NCKEY_ENTER.
-         *
-         * This is an example of INTENTIONAL fall-through:
-         *   case NCKEY_ENTER:
-         *   case '\n':
-         *       // This code runs for either key
-         *
-         * No 'break' after NCKEY_ENTER means execution continues to '\n' case.
+         * items[selected].target accesses:
+         *   1. items - our menu_item array
+         *   2. [selected] - the currently selected index
+         *   3. .target - the screen_id field of that item
          */
-        case NCKEY_ENTER:
-        case '\n':
-        case 'e':
-        case 'E':
-            /*
-             * items[selected].target accesses:
-             *   1. items - our menu_item array
-             *   2. [selected] - the currently selected index
-             *   3. .target - the screen_id field of that item
-             */
-            return items[selected].target;
+        return items[selected].target;
 
-        /*
-         * DEFAULT: Any other key does nothing
-         *
-         * We stay on the home screen and ignore the key.
-         * The 'default' case catches any value not explicitly handled.
-         */
-        default:
-            return SCREEN_HOME;
+    /*
+     * DEFAULT: Any other key does nothing
+     *
+     * We stay on the home screen and ignore the key.
+     * The 'default' case catches any value not explicitly handled.
+     */
+    default:
+        return SCREEN_HOME;
     }
 }

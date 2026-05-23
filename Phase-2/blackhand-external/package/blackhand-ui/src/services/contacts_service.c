@@ -1,4 +1,5 @@
 #include "contacts_service.h"
+#include "../config.h"
 #include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,7 +13,7 @@
 static Contact **contact_list = NULL;
 static size_t contact_count = 0;
 static size_t contact_capacity = 0;
-static const char *CONTACTS_PATH = "./Contacts";
+static const char *CONTACTS_PATH = APP_PATH_CONTACTS_DIR;
 
 static void free_contact(Contact *c)
 {
