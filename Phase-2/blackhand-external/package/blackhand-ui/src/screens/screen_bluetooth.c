@@ -30,21 +30,129 @@ static char   dev_mac[24]   = {0};
 static char   dev_name[96]  = {0};
 static int    dev_connected = 0;
 static int    dev_sel       = 0;
+static int    dev_state_needs_refresh = 0;
 
-/* Filtered list — only devices that have a real resolved name */
+/* Display list. Prefer resolved names, but show MAC-only devices too so scan
+ * results never look empty while BlueZ is still resolving remote names. */
 static size_t s_named_idxs[BT_MAX_DEVICES];
 static size_t s_named_count = 0;
 
+/* Separate tracking for paired devices so they persist across scans */
+static size_t s_paired_idxs[BT_MAX_DEVICES];
+static size_t s_paired_count = 0;
+static size_t s_scan_idxs[BT_MAX_DEVICES];
+static size_t s_scan_count = 0;
+
+/* Debounce device list rebuilds - only rebuild if count changed */
+static size_t s_last_device_count = 0;
+static int    s_list_dirty = 1;  /* Force rebuild on first draw */
+
+/* Precomputed display offsets — always computed via compute_display_offsets() */
+static int s_paired_hdr   = -1;
+static int s_paired_first = -1;
+static int s_new_hdr      = -1;
+static int s_new_first    = -1;
+static int s_total_items  =  1;
+
+static void compute_display_offsets(void)
+{
+    int pos = 1;
+    if (s_paired_count > 0)
+    {
+        s_paired_hdr   = pos++;
+        s_paired_first = pos;
+        pos += (int)s_paired_count;
+    }
+    else { s_paired_hdr = -1; s_paired_first = -1; }
+    if (s_scan_count > 0)
+    {
+        s_new_hdr   = pos++;
+        s_new_first = pos;
+        pos += (int)s_scan_count;
+    }
+    else { s_new_hdr = -1; s_new_first = -1; }
+    s_total_items = pos;
+}
+
 static void build_named_device_list(void)
 {
+    /* Only rebuild if device count changed (debouncing).
+     * This prevents expensive rebuilds on every RSSI/Name change event. */
     size_t total = bluetooth_service_device_count();
+    if (!s_list_dirty && total == s_last_device_count)
+        return;
+    
+    s_last_device_count = total;
+    s_list_dirty = 0;
+
+    /* Build separate lists: paired devices first, then new scan results.
+     * Paired devices persist across scans and are always shown at the top. */
+    s_paired_count = 0;
+    s_scan_count = 0;
     s_named_count = 0;
+
+    /* First pass: collect paired devices */
     for (size_t i = 0; i < total; i++)
     {
         const BtDevice *d = bluetooth_service_device_at(i);
-        if (d && d->name[0] && !mac_is_safe(d->name))
+        if (d && d->mac[0] && d->paired)
+        {
+            s_paired_idxs[s_paired_count++] = i;
             s_named_idxs[s_named_count++] = i;
+        }
     }
+
+    /* Second pass: collect scan results (non-paired) */
+    for (size_t i = 0; i < total; i++)
+    {
+        const BtDevice *d = bluetooth_service_device_at(i);
+        if (d && d->mac[0] && !d->paired)
+        {
+            s_scan_idxs[s_scan_count++] = i;
+            s_named_idxs[s_named_count++] = i;
+        }
+    }
+
+    compute_display_offsets();
+}
+
+static int cached_device_connected(const char *mac)
+{
+    if (!mac || !mac[0]) return 0;
+    
+    /* Cache the last lookup to avoid repeatedly scanning the device list */
+    static char s_last_cached_mac[24] = {0};
+    static int  s_last_cached_connected = 0;
+    
+    if (strcmp(mac, s_last_cached_mac) == 0)
+        return s_last_cached_connected;
+    
+    strncpy(s_last_cached_mac, mac, sizeof(s_last_cached_mac) - 1);
+    
+    for (size_t i = 0; i < bluetooth_service_device_count(); i++)
+    {
+        const BtDevice *d = bluetooth_service_device_at(i);
+        if (d && strcmp(d->mac, mac) == 0)
+        {
+            s_last_cached_connected = d->connected ? 1 : 0;
+            return s_last_cached_connected;
+        }
+    }
+    
+    s_last_cached_connected = 0;
+    return 0;
+}
+
+static const BtDevice *get_device_at_display_index(int idx)
+{
+    if (idx == 0 || idx == s_paired_hdr || idx == s_new_hdr) return NULL;
+    if (s_paired_first >= 0 && idx >= s_paired_first &&
+        idx < s_paired_first + (int)s_paired_count)
+        return bluetooth_service_device_at(s_paired_idxs[idx - s_paired_first]);
+    if (s_new_first >= 0 && idx >= s_new_first &&
+        idx < s_new_first + (int)s_scan_count)
+        return bluetooth_service_device_at(s_scan_idxs[idx - s_new_first]);
+    return NULL;
 }
 
 static const char *SPINNER[] = {"|", "/", "-", "\\"};
@@ -129,19 +237,17 @@ static void draw_idle(struct ncplane *p, unsigned rows, unsigned cols)
     int max_rows   = footer - list_start - 2;
     if (max_rows < 1) max_rows = 1;
 
-    build_named_device_list();
-    size_t count = s_named_count;
-    size_t total = count + 1;
+    build_named_device_list(); /* also calls compute_display_offsets() */
 
-    if (sel < 0)                  sel = 0;
-    if (sel >= (int)total)        sel = (int)total - 1;
-    if (sel < scroll)             scroll = sel;
-    if (sel >= scroll + max_rows) scroll = sel - max_rows + 1;
+    if (sel < 0)                      sel = 0;
+    if (sel >= s_total_items)         sel = s_total_items - 1;
+    if (sel < scroll)                 scroll = sel;
+    if (sel >= scroll + max_rows)     scroll = sel - max_rows + 1;
 
     for (int i = 0; i < max_rows; i++)
     {
         int idx    = scroll + i;
-        if (idx >= (int)total) break;
+        if (idx >= s_total_items) break;
         int row    = list_start + i;
         int is_sel = (idx == sel);
 
@@ -149,18 +255,54 @@ static void draw_idle(struct ncplane *p, unsigned rows, unsigned cols)
         {
             draw_row(p, row, cols, is_sel, "Scan for devices");
         }
-        else
+        else if (idx == s_paired_hdr)
+        {
+            ncplane_set_fg_rgb(p, theme_text_muted());
+            ncplane_set_bg_rgb(p, theme_bg());
+            ncplane_putstr_yx(p, row, CONTENT_COL, "  ─ Paired ─");
+        }
+        else if (s_paired_first >= 0 && idx >= s_paired_first &&
+                 idx < s_paired_first + (int)s_paired_count)
         {
             const BtDevice *dev = bluetooth_service_device_at(
-                                      s_named_idxs[(size_t)(idx - 1)]);
-            if (!dev) continue;
-            char line[128];
-            snprintf(line, sizeof(line), "%.*s", INNER_WIDTH(cols) - 4, dev->name);
-            draw_row(p, row, cols, is_sel, line);
+                s_paired_idxs[idx - s_paired_first]);
+            if (dev)
+            {
+                char line[128];
+                const char *label = (dev->name[0] && !mac_is_safe(dev->name))
+                                    ? dev->name : dev->mac;
+                if (dev->connected)
+                    snprintf(line, sizeof(line), "● %.*s",
+                             INNER_WIDTH(cols) - 6, label);
+                else
+                    snprintf(line, sizeof(line), "%.*s",
+                             INNER_WIDTH(cols) - 4, label);
+                draw_row(p, row, cols, is_sel, line);
+            }
+        }
+        else if (idx == s_new_hdr)
+        {
+            ncplane_set_fg_rgb(p, theme_text_muted());
+            ncplane_set_bg_rgb(p, theme_bg());
+            ncplane_putstr_yx(p, row, CONTENT_COL, "  ─ Nearby ─");
+        }
+        else if (s_new_first >= 0 && idx >= s_new_first &&
+                 idx < s_new_first + (int)s_scan_count)
+        {
+            const BtDevice *dev = bluetooth_service_device_at(
+                s_scan_idxs[idx - s_new_first]);
+            if (dev)
+            {
+                char line[128];
+                const char *label = (dev->name[0] && !mac_is_safe(dev->name))
+                                    ? dev->name : dev->mac;
+                snprintf(line, sizeof(line), "%.*s", INNER_WIDTH(cols) - 4, label);
+                draw_row(p, row, cols, is_sel, line);
+            }
         }
     }
 
-    if (count == 0)
+    if (s_paired_count == 0 && s_scan_count == 0)
         ghost_text(p, footer - 2, CONTENT_COL, theme_text_muted(),
                    "No devices found. Press ENTER to scan.");
     else if (sel > 0)
@@ -244,21 +386,27 @@ void screen_bluetooth_draw(struct ncplane *phone)
 
     if (bt_state == BT_STATE_CONNECTING && !bluetooth_service_connect_is_running())
     {
-        int rc    = bluetooth_service_refresh_device(dev_mac);
-        dev_connected = (rc == 1) ? 1 : 0;
+        dev_connected = cached_device_connected(dev_mac);
 
         /* Refresh the name in case it was resolved during connect */
         for (size_t i = 0; i < bluetooth_service_device_count(); i++)
         {
             const BtDevice *d = bluetooth_service_device_at(i);
-            if (d && strcmp(d->mac, dev_mac) == 0 &&
-                d->name[0] && !mac_is_safe(d->name))
+            if (d && strcmp(d->mac, dev_mac) == 0 && d->name[0])
             {
-                strncpy(dev_name, d->name, sizeof(dev_name) - 1);
+                const char *label = !mac_is_safe(d->name) ? d->name : d->mac;
+                strncpy(dev_name, label, sizeof(dev_name) - 1);
                 break;
             }
         }
         bt_state = BT_STATE_DEVICE;
+    }
+
+    /* Check if async device state refresh completed and update UI */
+    if (dev_state_needs_refresh && bt_state == BT_STATE_DEVICE)
+    {
+        dev_connected = cached_device_connected(dev_mac);
+        dev_state_needs_refresh = 0;  /* Refresh complete */
     }
 
     switch (bt_state)
@@ -276,7 +424,15 @@ void screen_bluetooth_draw(struct ncplane *phone)
 screen_id screen_bluetooth_input(uint32_t key)
 {
     if (bt_state == BT_STATE_CONNECTING)
-        return SCREEN_BLUETOOTH; /* blocked during connect */
+    {
+        if (key == 'q' || key == 'Q' || key == NCKEY_LEFT ||
+            key == KEY_SOFT_LEFT_ACTION)
+        {
+            bt_state = BT_STATE_IDLE;
+            return SCREEN_SETTINGS;
+        }
+        return SCREEN_BLUETOOTH;
+    }
 
     /* SCANNING */
     if (bt_state == BT_STATE_SCANNING)
@@ -285,7 +441,7 @@ screen_id screen_bluetooth_input(uint32_t key)
             key == KEY_SOFT_LEFT_ACTION)
         {
             bluetooth_service_scan_stop();
-            bt_initialised = 0;
+            bt_state = BT_STATE_IDLE;
             return SCREEN_SETTINGS;
         }
         return SCREEN_BLUETOOTH;
@@ -354,9 +510,7 @@ screen_id screen_bluetooth_input(uint32_t key)
     }
 
     /* IDLE — named device list */
-    build_named_device_list();
-    size_t count = s_named_count;
-    size_t total = count + 1;
+    build_named_device_list(); /* also calls compute_display_offsets() */
 
     switch (key)
     {
@@ -364,7 +518,7 @@ screen_id screen_bluetooth_input(uint32_t key)
         if (sel > 0) sel--;
         return SCREEN_BLUETOOTH;
     case NCKEY_DOWN:
-        if (sel < (int)total - 1) sel++;
+        if (sel < s_total_items - 1) sel++;
         return SCREEN_BLUETOOTH;
 
     case NCKEY_ENTER: case '\n':
@@ -374,27 +528,29 @@ screen_id screen_bluetooth_input(uint32_t key)
             bt_state  = BT_STATE_SCANNING;
             bluetooth_service_scan_start();
         }
-        else if ((size_t)(sel - 1) < s_named_count)
+        else
         {
-            const BtDevice *dev = bluetooth_service_device_at(
-                                      s_named_idxs[(size_t)(sel - 1)]);
+            const BtDevice *dev = get_device_at_display_index(sel);
             if (dev)
             {
                 /* Stop scanning before inspecting/connecting — keeps audio clean */
                 bluetooth_service_scan_stop();
                 strncpy(dev_mac,  dev->mac,  sizeof(dev_mac)  - 1);
-                strncpy(dev_name, dev->name, sizeof(dev_name) - 1);
-                int rc        = bluetooth_service_refresh_device(dev_mac);
-                dev_connected = (rc == 1) ? 1 : 0;
+                {
+                    const char *label = (dev->name[0] && !mac_is_safe(dev->name)) ? dev->name : dev->mac;
+                    strncpy(dev_name, label, sizeof(dev_name) - 1);
+                }
+                dev_connected = dev->connected ? 1 : 0;
                 dev_sel  = 0;
                 bt_state = BT_STATE_DEVICE;
             }
         }
         return SCREEN_BLUETOOTH;
 
-    /* LSK — back to settings (does NOT change BT power state) */
+     /* LSK — back to settings (does NOT change BT power state) */
     case 'q': case 'Q': case NCKEY_LEFT: case KEY_SOFT_LEFT_ACTION:
         bluetooth_service_scan_stop();
+        /* Reset initialization flag so paired devices are reloaded on re-entry */
         bt_initialised = 0;
         return SCREEN_SETTINGS;
 

@@ -45,6 +45,30 @@ static void run_command(const char *cmd)
     if (cmd) system(cmd);
 }
 
+/* Fire-and-forget via a detached thread — avoids child processes entirely
+ * so BusyBox init never prints "reaping zombie" messages. */
+static void *bg_cmd_thread(void *arg)
+{
+    char *cmd = (char *)arg;
+    system(cmd);
+    free(cmd);
+    return NULL;
+}
+
+static void run_command_bg(const char *cmd)
+{
+    if (!cmd) return;
+    char *copy = strdup(cmd);
+    if (!copy) return;
+    pthread_t t;
+    if (pthread_create(&t, NULL, bg_cmd_thread, copy) != 0)
+    {
+        free(copy);
+        return;
+    }
+    pthread_detach(t);
+}
+
 /* ── ALSA routing ────────────────────────────────────────────────────── */
 
 /* Read the physical card number that rcS chose at boot */
@@ -241,6 +265,8 @@ static void populate_from_output(const char *out)
 
 /* ── Scan helper (shared by sync and async paths) ───────────────────── */
 
+static void detect_connected_devices(void); /* forward declaration */
+
 static void do_scan_and_list(void)
 {
     /* Load already-paired devices first so they appear even if not nearby */
@@ -262,8 +288,19 @@ static void do_scan_and_list(void)
     if (sf)
     {
         char buf[512];
-        while (fgets(buf, sizeof(buf), sf))
+        time_t scan_start = time(NULL);
+        while (fgets(buf, sizeof(buf), sf) && !s_scan_stop_requested)
         {
+            /* Check for stop request periodically to exit scan early */
+            time_t now = time(NULL);
+            if (s_scan_stop_requested && (now - scan_start > 2))
+            {
+                /* Drain remaining output without processing to clean up popen */
+                char drain[512];
+                while (fgets(drain, sizeof(drain), sf)) {}
+                break;
+            }
+            
             strip_ansi(buf);
             char mac[24]     = {0};
             char name_buf[96] = {0};
@@ -334,6 +371,8 @@ static void do_scan_and_list(void)
         pclose(sf);
     }
 
+    /* Update connected flags now that the full device list is known */
+    detect_connected_devices();
 }
 
 /* ── Load paired devices without scanning ───────────────────────────── */
@@ -421,6 +460,9 @@ void bluetooth_service_init(void)
     s_count = 0;
     s_available = (access("/usr/bin/bluetoothctl", X_OK) == 0 ||
                    access("/bin/bluetoothctl",     X_OK) == 0) ? 1 : 0;
+    /* Pre-populate paired devices at startup so they're visible before the
+     * first scan completes. Also detects any headset that auto-reconnected. */
+    bluetooth_service_load_paired();
 }
 
 void bluetooth_service_shutdown(void) {}
@@ -440,8 +482,7 @@ int bluetooth_service_set_power(int on)
     }
     else
     {
-        if (system("bluetoothctl --timeout 4 power off >/dev/null 2>&1") != 0)
-            return -1;
+        run_command_bg("bluetoothctl --timeout 4 power off >/dev/null 2>&1");
     }
     return 0;
 }
@@ -479,9 +520,9 @@ int bluetooth_service_scan_start(void)
 void bluetooth_service_scan_stop(void)
 {
     s_scan_stop_requested = 1;
-    /* Stop the radio immediately — don't wait for the thread's pipeline to finish */
+    /* Fire and forget — the radio stops in the background; the UI returns instantly */
     if (s_available)
-        system("bluetoothctl --timeout 2 scan off >/dev/null 2>&1");
+        run_command_bg("bluetoothctl --timeout 2 scan off >/dev/null 2>&1");
 }
 
 int bluetooth_service_scan_is_running(void)
@@ -578,6 +619,45 @@ static void *connect_thread_fn(void *arg)
     return NULL;
 }
 
+/* ── Async device state refresh ──────────────────────────────────────────── */
+
+static char              s_refresh_mac[24]   = {0};
+static volatile int      s_refresh_running = 0;
+static pthread_t         s_refresh_thread;
+
+static void *refresh_device_thread_fn(void *arg)
+{
+    (void)arg;
+    
+    for (size_t i = 0; i < s_count; i++)
+        if (strcmp(s_devices[i].mac, s_refresh_mac) == 0)
+        {
+            update_device_state(&s_devices[i]);
+            break;
+        }
+    
+    s_refresh_running = 0;
+    return NULL;
+}
+
+int bluetooth_service_refresh_device_async(const char *mac)
+{
+    if (!s_available || !mac_is_safe(mac)) return -1;
+    if (s_refresh_running) return 0;  /* Already refreshing */
+    
+    strncpy(s_refresh_mac, mac, sizeof(s_refresh_mac) - 1);
+    s_refresh_mac[sizeof(s_refresh_mac) - 1] = '\0';
+    s_refresh_running = 1;
+    
+    if (pthread_create(&s_refresh_thread, NULL, refresh_device_thread_fn, NULL) != 0)
+    {
+        s_refresh_running = 0;
+        return -1;
+    }
+    pthread_detach(s_refresh_thread);
+    return 0;
+}
+
 int bluetooth_service_connect_async(const char *mac)
 {
     if (!s_available || !mac_is_safe(mac)) return -1;
@@ -625,15 +705,16 @@ int bluetooth_service_disconnect(const char *mac)
     char cmd[256];
     snprintf(cmd, sizeof(cmd),
              "bluetoothctl --timeout 3 disconnect %s >/dev/null 2>&1", mac);
-    run_command(cmd);
+    run_command_bg(cmd);
     if (strcmp(s_connected_mac, mac) == 0)
         s_connected_mac[0] = '\0';
     restore_alsa_default();
 
+    /* Optimistic update — the UI reflects disconnected immediately */
     for (size_t i = 0; i < s_count; i++)
         if (strcmp(s_devices[i].mac, mac) == 0)
         {
-            update_device_state(&s_devices[i]);
+            s_devices[i].connected = 0;
             break;
         }
     return 0;
@@ -645,7 +726,7 @@ int bluetooth_service_remove(const char *mac)
     char cmd[256];
     snprintf(cmd, sizeof(cmd),
              "bluetoothctl --timeout 3 remove %s >/dev/null 2>&1", mac);
-    run_command(cmd);
+    run_command_bg(cmd);
     if (strcmp(s_connected_mac, mac) == 0)
         s_connected_mac[0] = '\0';
     restore_alsa_default();

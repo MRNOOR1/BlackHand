@@ -521,6 +521,7 @@ int main(void) {
      */
     uint32_t last_dispatch_key = 0;
     struct timespec last_dispatch_ts = {0};
+    time_t last_mp3_rescan_time = 0;
 
     /* ── Event loop ─────────────────────────────────────────────────────── */
     while (1) {
@@ -700,7 +701,11 @@ int main(void) {
         }
 
         if (current_screen == SCREEN_MP3 && prev_screen != SCREEN_MP3) {
-            mp3_service_rescan(APP_PATH_MUSIC_DIR);
+            time_t now = time(NULL);
+            if (last_mp3_rescan_time == 0 || now - last_mp3_rescan_time >= 10) {
+                mp3_service_rescan(APP_PATH_MUSIC_DIR);
+                last_mp3_rescan_time = now;
+            }
         }
 
         if (current_screen == SCREEN_CALLS && prev_screen != SCREEN_CALLS) {

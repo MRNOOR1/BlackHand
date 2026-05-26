@@ -22,6 +22,7 @@ int bluetooth_service_set_power(int on);
 int bluetooth_service_get_power(void);
 
 int bluetooth_service_refresh_devices(void);
+int bluetooth_service_refresh_device_async(const char *mac);
 void bluetooth_service_load_paired(void);
 int bluetooth_service_scan_start(void);
 void bluetooth_service_scan_stop(void);

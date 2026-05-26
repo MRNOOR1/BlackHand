@@ -19,7 +19,8 @@
 
 #define INITIAL_MEMO_CAPACITY 16
 #define TICK_STEP_MS 33
-#define WAV_SAMPLE_RATE 16000
+#define WAV_SAMPLE_RATE_BLUETOOTH 16000  /* HFP SCO mSBC max */
+#define WAV_SAMPLE_RATE_DEFAULT 48000    /* Mic/AUX input */
 #define WAV_CHANNELS 1
 #define WAV_BITS_PER_SAMPLE 16
 
@@ -42,6 +43,7 @@ static int64_t active_started_ms = 0;
 static int backend_record_supported = 0;
 static int backend_play_supported = 0;
 static char active_record_filename[160] = {0};
+static uint32_t active_record_sample_rate = WAV_SAMPLE_RATE_DEFAULT;  /* Track actual sample rate */
 
 static const char *VOICE_MEMO_PATH = APP_PATH_VOICE_MEMOS_DIR;
 
@@ -117,14 +119,13 @@ static void write_u32le(FILE *f, uint32_t v) {
     fwrite(b, 1, 4, f);
 }
 
-static int write_silence_wav(const char *path, int duration_ms) {
-    if (!path || duration_ms < 0) return -1;
+static int write_silence_wav(const char *path, int duration_ms, uint32_t sample_rate) {
+    if (!path || duration_ms < 0 || sample_rate == 0) return -1;
 
     FILE *f = fopen(path, "wb");
     if (!f) return -1;
 
     const uint16_t channels = WAV_CHANNELS;
-    const uint32_t sample_rate = WAV_SAMPLE_RATE;
     const uint16_t bits_per_sample = WAV_BITS_PER_SAMPLE;
     const uint16_t block_align = (uint16_t)(channels * (bits_per_sample / 8));
     const uint32_t byte_rate = sample_rate * block_align;
@@ -228,6 +229,11 @@ static void silence_stderr(void)
 	if (fd >= 0) { dup2(fd, STDERR_FILENO); close(fd); }
 }
 
+static const char *record_rate_args(void)
+{
+	return "48000";
+}
+
 static int spawn_arecord(const char *out_path)
 {
 	pid_t pid = fork();
@@ -240,27 +246,24 @@ static int spawn_arecord(const char *out_path)
 		bluetooth_service_get_connected_mac(bt_mac, sizeof(bt_mac));
 		if (bt_mac[0])
 		{
-			/* BT headset connected — record via HFP SCO (8 kHz mono) */
+			/* BT headset mic via HFP SCO. 16 kHz is the ceiling when mSBC is negotiated. */
 			char dev[64];
 			snprintf(dev, sizeof(dev), "bluealsa:DEV=%s,PROFILE=sco", bt_mac);
 			execlp("arecord", "arecord", "-q", "-D", dev,
-			       "-f", "S16_LE", "-c", "1", "-r", "8000", out_path, (char *)NULL);
-		}
-		else if (settings_service_get_bool(SETTINGS_KEY_AUX_INPUT))
-		{
-			/* Wired AUX — use the card number detected at boot */
-			int card = 1;
-			FILE *cf = fopen("/tmp/bh-audio-card", "r");
-			if (cf) { fscanf(cf, "%d", &card); fclose(cf); }
-			char aux_dev[16];
-			snprintf(aux_dev, sizeof(aux_dev), "hw:%d,0", card);
-			execlp("arecord", "arecord", "-q", "-D", aux_dev,
-			       "-f", "S16_LE", "-c", "1", "-r", "16000", out_path, (char *)NULL);
+			       "-f", "S16_LE", "-c", "1", "-r", "16000", "-t", "wav", out_path, (char *)NULL);
 		}
 		else
 		{
-			execlp("arecord", "arecord", "-q",
-			       "-f", "S16_LE", "-c", "1", "-r", "16000", out_path, (char *)NULL);
+			/* AUX or USB mic — both are on the card rcS detected at boot.
+			 * plughw handles sample-rate conversion so 48 kHz works even
+			 * if the hardware card's native rate differs. */
+			int card = 0;
+			FILE *cf = fopen("/tmp/bh-audio-card", "r");
+			if (cf) { fscanf(cf, "%d", &card); fclose(cf); }
+			char dev[24];
+			snprintf(dev, sizeof(dev), "plughw:%d,0", card);
+			execlp("arecord", "arecord", "-q", "-D", dev,
+			       "-f", "S16_LE", "-c", "1", "-r", "48000", "-t", "wav", out_path, (char *)NULL);
 		}
 		_exit(127);
 	}
@@ -290,7 +293,20 @@ static void stop_child_process(int sig)
 	if (io_pid <= 0)
 		return;
 	kill(io_pid, sig);
-	waitpid(io_pid, NULL, 0);
+	/* Poll up to 30 ms: arecord needs ~10-20 ms to flush and finalize the WAV
+	 * header on SIGINT. Keep this short so the UI stays responsive. */
+	int reaped = 0;
+	for (int i = 0; i < 3 && !reaped; i++)
+	{
+		reaped = (waitpid(io_pid, NULL, WNOHANG) == io_pid);
+		if (!reaped) usleep(10000);
+	}
+	if (!reaped)
+	{
+		/* Force-kill if the child is still alive; accept possible incomplete WAV. */
+		kill(io_pid, SIGKILL);
+		waitpid(io_pid, NULL, WNOHANG);
+	}
 	io_pid = -1;
 	io_paused = 0;
 	io_is_recording = 0;
@@ -409,6 +425,20 @@ int voice_memo_service_record_start(void)
 	if (io_pid > 0)
 		return -1;
 
+	/* Determine the sample rate based on input device */
+	char bt_mac[24] = {0};
+	bluetooth_service_get_connected_mac(bt_mac, sizeof(bt_mac));
+	if (bt_mac[0])
+	{
+		/* Bluetooth HFP SCO is limited to 16 kHz max (with mSBC wideband) */
+		active_record_sample_rate = WAV_SAMPLE_RATE_BLUETOOTH;
+	}
+	else
+	{
+		/* AUX or default microphone: record at 48 kHz for better quality */
+		active_record_sample_rate = WAV_SAMPLE_RATE_DEFAULT;
+	}
+
 	char *fname = make_timestamp_filename();
 	if (!fname)
 		return -1;
@@ -513,7 +543,7 @@ int voice_memo_service_record_stop(const char *title_optional)
 
 	if (!path_exists(path))
 	{
-		if (write_silence_wav(path, memo->duration_ms) != 0)
+		if (write_silence_wav(path, memo->duration_ms, active_record_sample_rate) != 0)
 		{
 			free(memo->filename);
 			free(memo);
