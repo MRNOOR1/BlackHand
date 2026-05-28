@@ -199,6 +199,7 @@ static const menu_item items[] = {
     {"VOICE MEMO", SCREEN_VOICE_MEMO},
     {"NOTES",      SCREEN_NOTES},
     {"ALARM",      SCREEN_ALARM},
+    {"GPS",        SCREEN_GPS},
     {"SETTINGS",   SCREEN_SETTINGS},
 };
 

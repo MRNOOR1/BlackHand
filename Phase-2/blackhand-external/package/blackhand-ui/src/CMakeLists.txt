@@ -25,6 +25,7 @@ add_executable(blackhand-ui
   screens/screen_alarm.c
   screens/screen_theme.c
   screens/screen_bluetooth.c
+  screens/screen_gps.c
   services/settings_service.c
   services/theme_service.c
   services/notes_service.c
@@ -38,7 +39,10 @@ add_executable(blackhand-ui
   services/bluetooth_service.c
   services/avrcp_service.c
   ui-ipcs/audio_ipc.c
+  ui-ipcs/modem_ipc.c
+  ui-ipcs/storage_ipc.c
 )
+
 
 target_include_directories(blackhand-ui PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}

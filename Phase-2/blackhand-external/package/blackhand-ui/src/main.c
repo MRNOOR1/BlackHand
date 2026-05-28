@@ -540,6 +540,7 @@ int main(void) {
             case SCREEN_ALARM:    screen_name = "ALARM";    break;
             case SCREEN_THEME:    screen_name = "THEME";    break;
             case SCREEN_BLUETOOTH:screen_name = "BT";       break;
+            case SCREEN_GPS:      screen_name = "GPS";      break;
             default:              screen_name = "";           break;
         }
 
@@ -579,6 +580,7 @@ int main(void) {
             case SCREEN_ALARM:      screen_alarm_draw(screen);      break;
             case SCREEN_THEME:      screen_theme_draw(screen);      break;
             case SCREEN_BLUETOOTH:  screen_bluetooth_draw(screen);  break;
+            case SCREEN_GPS:        screen_gps_draw(screen);        break;
             default:
                 ghost_text(screen, 4, 3, COL_PLACEHOLDER, TEXT_COMING_SOON);
                 ghost_text(screen, 6, 3, COL_HINT,        TEXT_GO_HOME);
@@ -697,6 +699,7 @@ int main(void) {
             case SCREEN_ALARM:      current_screen = screen_alarm_input(key);      break;
             case SCREEN_THEME:      current_screen = screen_theme_input(key);      break;
             case SCREEN_BLUETOOTH:  current_screen = screen_bluetooth_input(key);  break;
+            case SCREEN_GPS:        current_screen = screen_gps_input(key);        break;
             default: break;
         }
 

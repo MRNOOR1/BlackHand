@@ -138,7 +138,8 @@ typedef enum {
     SCREEN_NOTES,       /* Notes/text editor screen (= 7) */
     SCREEN_ALARM,       /* Alarm screen (= 8) */
     SCREEN_THEME,       /* Theme selection (= 9) */
-    SCREEN_BLUETOOTH    /* Bluetooth manager (= 10) */
+    SCREEN_BLUETOOTH,   /* Bluetooth manager (= 10) */
+    SCREEN_GPS          /* GPS location screen (= 11) */
 } screen_id;
 
 
@@ -232,6 +233,9 @@ screen_id screen_theme_input(uint32_t key);
 
 void screen_bluetooth_draw(struct ncplane *phone);
 screen_id screen_bluetooth_input(uint32_t key);
+
+void screen_gps_draw(struct ncplane *phone);
+screen_id screen_gps_input(uint32_t key);
 
 int screen_settings_is_pin_entry_mode(void);
 
