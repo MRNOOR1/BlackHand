@@ -27,6 +27,34 @@ fi
 # Disable console blanking so the screen stays lit.
 printf "\033[9;0]" > /dev/tty1 2>/dev/null || true
 
+# ── Device manager + USB serial drivers ──────────────────────────────────────
+# bcm2711_defconfig builds the SIM7600's USB-serial driver as a module
+# (CONFIG_USB_SERIAL=m, CONFIG_USB_SERIAL_OPTION=m). Nothing loads modules
+# automatically under our custom init, so without this block /dev/ttyUSB*
+# never appear and blackhand-modem reports "no AT-responding port".
+#
+# 1. udevd: loads drivers on hotplug via MODALIAS and applies
+#    /etc/udev/rules.d/99-blackhand-modem.rules → /dev/blackhand-modem-at.
+# 2. Explicit modprobe as a fallback in case udev is missing from the image.
+say "modem: loading USB serial drivers..."
+modprobe usbserial 2>/dev/null || true
+modprobe option    2>/dev/null || true
+
+UDEVD=""
+for p in /sbin/udevd /usr/sbin/udevd /lib/systemd/systemd-udevd; do
+    [ -x "$p" ] && UDEVD="$p" && break
+done
+if [ -n "$UDEVD" ]; then
+    "$UDEVD" --daemon 2>/dev/null || true
+    # Coldplug: replay add events for devices that enumerated before udevd
+    # started, so the modem symlink rule fires for already-present hardware.
+    udevadm trigger --action=add 2>/dev/null || true
+    udevadm settle --timeout=10  2>/dev/null || true
+    say "modem: udevd running, coldplug done"
+else
+    say "modem: WARNING — udevd not found, relying on ttyUSB* sweep only"
+fi
+
 # ── Networking ────────────────────────────────────────────────────────────────
 # Only run DHCP when a cable is physically present — boot must never block
 # on ethernet. Poll carrier for up to 1 s after bringing the interface up,

@@ -9,6 +9,7 @@
 typedef struct {
     int    has_incoming_call;
     char   incoming_number[64];
+    char   call_state[16];   /* "idle" | "dialling" | "ringing" | "active" */
     int    pending_sms;
     int    signal;
     int    gps_enabled;
@@ -22,12 +23,33 @@ typedef struct {
     int    has_fix;
 } GpsLocation;
 
+typedef struct {
+    int  present;          /* 1 if AT port is open and modem responded to init */
+    char port[64];         /* device path the service is using                 */
+    char error[128];       /* human-readable reason if !present                */
+} ModemHealth;
+
 int modem_ipc_ping(void);
+/* Always-safe reachability + hardware check. Service responds even when the
+ * modem is offline, so this distinguishes "modem service not running" (return
+ * -1) from "modem service is up but hardware is missing" (returns 0 with
+ * out->present == 0). */
+int modem_ipc_health(ModemHealth *out);
+
+/* Cached health, refreshed by the main loop. Cheap to call every frame —
+ * just reads a static. Screens use these to show an OFFLINE banner.        */
+void        modem_ipc_refresh_health(void);
+int         modem_ipc_is_online(void);
+const char *modem_ipc_health_error(void);
 
 /* SMS */
 int modem_ipc_send_sms(const char *number, const char *body);
 /* Fills buf with JSON array string of messages.  Returns 0 on success. */
 int modem_ipc_get_messages(char *buf, int buf_size);
+/* Drain pending incoming SMS from the modem service.
+ * buf is filled with a JSON array of {"sender":"...","body":"..."} objects.
+ * Returns 0 on success, -1 on IPC failure. Empty array on no pending.        */
+int modem_ipc_pop_pending_sms(char *buf, int buf_size);
 
 /* Calls */
 int modem_ipc_dial(const char *number);

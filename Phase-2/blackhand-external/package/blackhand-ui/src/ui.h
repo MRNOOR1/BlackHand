@@ -205,9 +205,24 @@ screen_id screen_settings_input(uint32_t key);
 
 void screen_calls_draw(struct ncplane *phone);
 screen_id screen_calls_input(uint32_t key);
+/* Start an outgoing call from anywhere; dials immediately and switches state. */
+void screen_calls_start_outgoing(const char *name, const char *phone);
+/* Switch to incoming-call UI; resolves caller name from contacts if possible. */
+void screen_calls_set_incoming(const char *phone);
+/* Called every frame by the main loop. Drives DIALING→ACTIVE transitions and
+ * detects remote hangup without requiring the user to press a key. */
+void screen_calls_tick(void);
+/* True while the user is entering digits on the dial pad — main loop checks
+ * this to skip numpad→arrow remapping so digits actually reach the buffer. */
+int screen_calls_is_dial_mode(void);
 
 void screen_messages_draw(struct ncplane *phone);
 screen_id screen_messages_input(uint32_t key);
+/* Open the compose view with phone pre-filled; cursor lands in body field. */
+void screen_messages_start_compose(const char *phone);
+/* True while the user is composing an SMS — same reason as above: the
+ * compose number field needs raw digits, not arrow keys. */
+int screen_messages_is_compose_mode(void);
 
 void screen_contacts_draw(struct ncplane *phone);
 screen_id screen_contacts_input(uint32_t key);

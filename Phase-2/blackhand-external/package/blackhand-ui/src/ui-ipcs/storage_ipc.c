@@ -3,6 +3,7 @@
 #include "cJSON.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define STORAGE_SOCK  "/run/bh-storage.sock"
 #define RESP_SIZE     32768

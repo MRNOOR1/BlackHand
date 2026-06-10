@@ -215,6 +215,8 @@
 #include "services/pin_service.h"
 #include "services/bluetooth_service.h"
 #include "services/avrcp_service.h"
+#include "ui-ipcs/modem_ipc.h"
+#include "cJSON.h"
 
 
 
@@ -568,6 +570,62 @@ int main(void) {
             current_screen = SCREEN_ALARM;
         }
 
+        /* ── Modem polling ────────────────────────────────────────────────
+         * The modem URC thread tracks state; we just sample it.
+         *   - Every ~2s: refresh modem health (cheap "is service up?" probe)
+         *   - Every ~1s: check for an incoming call from any screen.
+         *   - Every ~5s: drain pending incoming SMS into comm_service.
+         * Health is also pulled once at tick==1 so screens know the answer
+         * before the first 2s window elapses.
+         */
+        if (tick == 1 || tick % 60 == 0) {
+            modem_ipc_refresh_health();
+        }
+        /* Runs on EVERY screen including SCREEN_CALLS — a call can arrive
+         * while the user is reading the call log or typing on the dial pad.
+         * screen_calls_set_incoming() ignores the request when a live call
+         * UI is already up, so repeated polls while ringing are harmless. */
+        if (tick % 30 == 0 && modem_ipc_is_online()) {
+            ModemStatus st;
+            if (modem_ipc_get_status(&st) == 0 && st.has_incoming_call) {
+                screen_calls_set_incoming(st.incoming_number);
+                current_screen = SCREEN_CALLS;
+            }
+        }
+        // Always tick the calls screen so DIALING→ACTIVE and remote-hangup
+        // detection happen without requiring user input.
+        screen_calls_tick();
+        if (tick % 150 == 0 && modem_ipc_is_online()) {
+            static char sms_buf[16384];
+            if (modem_ipc_pop_pending_sms(sms_buf, sizeof(sms_buf)) == 0) {
+                cJSON *arr = cJSON_Parse(sms_buf);
+                if (arr && cJSON_IsArray(arr)) {
+                    cJSON *item;
+                    cJSON_ArrayForEach(item, arr) {
+                        cJSON *sender = cJSON_GetObjectItem(item, "sender");
+                        cJSON *body   = cJSON_GetObjectItem(item, "body");
+                        if (cJSON_IsString(sender) && cJSON_IsString(body)) {
+                            /* sender holds the phone number; resolve to a contact
+                             * name if we know them, else show the number. */
+                            const char *display = sender->valuestring;
+                            size_t cc = 0;
+                            const Contact **all = contact_service_list_all(&cc);
+                            for (size_t i = 0; i < cc; i++) {
+                                if (all && all[i] && all[i]->phone_number &&
+                                    strcmp(all[i]->phone_number, sender->valuestring) == 0) {
+                                    display = all[i]->name ? all[i]->name : display;
+                                    break;
+                                }
+                            }
+                            comm_service_message_add_full(
+                                display, sender->valuestring, body->valuestring, 0);
+                        }
+                    }
+                }
+                cJSON_Delete(arr);
+            }
+        }
+
         switch (current_screen) {
             case SCREEN_HOME:       screen_home_draw(screen);       break;
             case SCREEN_SETTINGS:   screen_settings_draw(screen);   break;
@@ -633,7 +691,9 @@ int main(void) {
               (current_screen == SCREEN_CONTACTS && screen_contacts_is_edit_mode()) ||
               (current_screen == SCREEN_VOICE_MEMO && screen_voice_memo_is_text_entry_mode()) ||
               (current_screen == SCREEN_SETTINGS && screen_settings_is_pin_entry_mode()) ||
-              (current_screen == SCREEN_ALARM && screen_alarm_is_time_entry_mode()))) {
+              (current_screen == SCREEN_ALARM && screen_alarm_is_time_entry_mode()) ||
+              (current_screen == SCREEN_CALLS && screen_calls_is_dial_mode()) ||
+              (current_screen == SCREEN_MESSAGES && screen_messages_is_compose_mode()))) {
             switch (key) {
                 case KEY_BIND_NUMPAD_UP: key = KEY_BIND_UP; break;
                 case KEY_BIND_NUMPAD_DOWN: key = KEY_BIND_DOWN; break;

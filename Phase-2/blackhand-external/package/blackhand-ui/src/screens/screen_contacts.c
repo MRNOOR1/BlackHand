@@ -353,14 +353,15 @@ screen_id screen_contacts_input(uint32_t key) {
         case '\n': {
             if (s_mode == CONTACTS_MODE_PROFILE) {
                 if (count > 0 && contacts && contacts[s_selected]) {
-                    const char *name = contacts[s_selected]->name ? contacts[s_selected]->name : "Unknown";
+                    const char *name  = contacts[s_selected]->name         ? contacts[s_selected]->name         : "Unknown";
+                    const char *phone = contacts[s_selected]->phone_number ? contacts[s_selected]->phone_number : "";
                     if (s_action == 0) {
-                        comm_service_call_add(name, "outgoing");
+                        // Dial via modem; screen_calls handles the rest.
+                        screen_calls_start_outgoing(name, phone);
                         return SCREEN_CALLS;
                     }
-                    char body[64];
-                    snprintf(body, sizeof(body), "Hey %s", name);
-                    comm_service_message_add(name, body);
+                    // Message action: open compose with number pre-filled.
+                    screen_messages_start_compose(phone);
                     return SCREEN_MESSAGES;
                 }
                 return SCREEN_CONTACTS;

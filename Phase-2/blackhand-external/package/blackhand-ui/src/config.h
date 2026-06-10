@@ -342,13 +342,19 @@ Nav bar
  *  CONTROL BINDINGS
  * ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Canonical logical softkey actions used across screens. */
-#define KEY_SOFT_LEFT_ACTION '7'
-#define KEY_SOFT_RIGHT_ACTION '9'
+/* Canonical logical softkey actions used across screens.
+ * MUST be outside the ASCII range — they're compared in switch cases against
+ * the post-normalize key, and if they collided with a printable character,
+ * pressing that character would falsely trigger the soft action. We use
+ * Unicode Private Use Area codepoints so they can never originate from a
+ * real keystroke. */
+#define KEY_SOFT_LEFT_ACTION  0xE001u
+#define KEY_SOFT_RIGHT_ACTION 0xE002u
 
-/* Physical key bindings (requested: F1/F2 soft keys). */
-#define KEY_BIND_SOFT_LEFT '7'
-#define KEY_BIND_SOFT_RIGHT '9'
+/* Physical key bindings — what the user actually presses.
+ * Moved off 7 and 9 so those keys are free for dialing / number entry. */
+#define KEY_BIND_SOFT_LEFT  'q'
+#define KEY_BIND_SOFT_RIGHT 'e'
 
 /* Optional alternate softkey bindings for terminals/keypads. */
 #define KEY_BIND_SOFT_LEFT_ALT_1 NCKEY_HOME

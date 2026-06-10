@@ -55,6 +55,18 @@ static void draw_delete_popup(struct ncplane *phone, unsigned rows, unsigned col
     ghost_confirm_popup(phone, "DELETE MESSAGE?", s_delete_yes);
 }
 
+/* ── public entry point ──────────────────────────────────────────────────── */
+
+void screen_messages_start_compose(const char *phone)
+{
+    enter_compose(phone);
+}
+
+int screen_messages_is_compose_mode(void)
+{
+    return s_state == MSG_COMPOSE ? 1 : 0;
+}
+
 /* ── draw ─────────────────────────────────────────────────────────────────── */
 
 void screen_messages_draw(struct ncplane *phone)
@@ -119,7 +131,15 @@ void screen_messages_draw(struct ncplane *phone)
     }
 
     /* ── inbox ── */
-    ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL, theme_text_muted(), "STATE: INBOX");
+    if (!modem_ipc_is_online()) {
+        ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL,
+                   theme_text_primary(), "! MODEM OFFLINE");
+        ghost_text(phone, CONTENT_START_ROW + 3, CONTENT_COL,
+                   theme_text_muted(), modem_ipc_health_error());
+    } else {
+        ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL,
+                   theme_text_muted(), "STATE: INBOX");
+    }
 
     size_t count = comm_service_message_count();
     if (s_selected < 0) s_selected = 0;

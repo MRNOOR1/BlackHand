@@ -7,12 +7,14 @@
 #include "config.h"
 #include "draw_utils.h"
 #include "services/comm_service.h"
+#include "services/contacts_service.h"
 #include "services/theme_service.h"
 #include "ui-ipcs/modem_ipc.h"
 #include "ui.h"
 
 typedef enum {
     CALLS_LOG,
+    CALLS_DIAL,        /* entering a number on the dial pad */
     CALLS_INCOMING,
     CALLS_DIALING,
     CALLS_ACTIVE,
@@ -26,7 +28,10 @@ static int           s_delete_yes = 0;
 
 static char    s_call_number[32]  = "";
 static char    s_call_name[48]    = "";
+static char    s_call_dir[12]     = "outgoing"; /* "outgoing" | "incoming" */
 static time_t  s_call_start       = 0;
+
+static char    s_dial_buffer[32]  = "";   /* digits being typed in CALLS_DIAL */
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
 
@@ -38,9 +43,114 @@ static void enter_log(void)
     s_call_start     = 0;
 }
 
+static void enter_dial(char first_digit)
+{
+    s_state = CALLS_DIAL;
+    s_dial_buffer[0] = '\0';
+    if (first_digit) {
+        s_dial_buffer[0] = first_digit;
+        s_dial_buffer[1] = '\0';
+    }
+}
+
+static int is_dial_char(uint32_t key)
+{
+    return (key >= '0' && key <= '9') || key == '+' || key == '*' || key == '#';
+}
+
+int screen_calls_is_dial_mode(void)
+{
+    return s_state == CALLS_DIAL ? 1 : 0;
+}
+
 static void draw_delete_popup(struct ncplane *phone)
 {
     ghost_confirm_popup(phone, "DELETE ENTRY?", s_delete_yes);
+}
+
+static void lookup_name_by_phone(const char *phone, char *out, size_t out_sz)
+{
+    out[0] = '\0';
+    if (!phone || !phone[0] || out_sz == 0) return;
+    size_t count = 0;
+    const Contact **all = contact_service_list_all(&count);
+    for (size_t i = 0; i < count; i++) {
+        if (all && all[i] && all[i]->phone_number &&
+            strcmp(all[i]->phone_number, phone) == 0) {
+            snprintf(out, out_sz, "%s", all[i]->name ? all[i]->name : "");
+            return;
+        }
+    }
+}
+
+/* ── public entry points (called from other screens / main loop) ─────────── */
+
+void screen_calls_start_outgoing(const char *name, const char *phone)
+{
+    if (!phone || !phone[0]) return;
+    snprintf(s_call_number, sizeof(s_call_number), "%s", phone);
+    if (name && name[0])
+        snprintf(s_call_name, sizeof(s_call_name), "%s", name);
+    else
+        lookup_name_by_phone(phone, s_call_name, sizeof(s_call_name));
+
+    if (modem_ipc_dial(s_call_number) == 0) {
+        s_state      = CALLS_DIALING;
+        s_call_start = 0;
+        snprintf(s_call_dir, sizeof(s_call_dir), "outgoing");
+    } else {
+        // Dial failed — fall back to log so the user isn't stuck on a fake "calling" screen.
+        enter_log();
+    }
+}
+
+void screen_calls_set_incoming(const char *phone)
+{
+    // Already showing this (or another) live call — don't yank the UI out
+    // from under the user. has_incoming_call stays true the whole time the
+    // modem rings, so the main loop may call this repeatedly.
+    if (s_state == CALLS_INCOMING || s_state == CALLS_ACTIVE) return;
+    snprintf(s_call_number, sizeof(s_call_number), "%s", phone ? phone : "");
+    lookup_name_by_phone(s_call_number, s_call_name, sizeof(s_call_name));
+    snprintf(s_call_dir, sizeof(s_call_dir), "incoming");
+    s_state      = CALLS_INCOMING;
+    s_call_start = 0;
+}
+
+void screen_calls_tick(void)
+{
+    // Only the live-call states care about modem-driven transitions.
+    // Throttle so we don't AT+CSQ on every frame — main loop runs ~30fps.
+    static int sample_tick = 0;
+    if (s_state != CALLS_DIALING && s_state != CALLS_ACTIVE &&
+        s_state != CALLS_INCOMING) return;
+    if (!modem_ipc_is_online()) return;
+    if (++sample_tick < 30) return;
+    sample_tick = 0;
+
+    ModemStatus st;
+    if (modem_ipc_get_status(&st) != 0) return;
+
+    if (s_state == CALLS_INCOMING) {
+        // Caller gave up before we answered — log a missed call and leave
+        // the ringing screen instead of showing INCOMING forever.
+        if (strcmp(st.call_state, "idle") == 0) {
+            comm_service_call_add_full(s_call_name, s_call_number, "missed", 0);
+            enter_log();
+        }
+        return;
+    }
+
+    if (s_state == CALLS_DIALING && strcmp(st.call_state, "active") == 0) {
+        s_state      = CALLS_ACTIVE;
+        s_call_start = time(NULL);
+    } else if (strcmp(st.call_state, "idle") == 0) {
+        // Remote hangup, BUSY, NO CARRIER — persist + return to log.
+        int dur = (s_call_start > 0) ? (int)(time(NULL) - s_call_start) : 0;
+        comm_service_call_add_full(
+            s_call_name, s_call_number, s_call_dir, dur);
+        enter_log();
+    }
 }
 
 /* ── draw ─────────────────────────────────────────────────────────────────── */
@@ -62,6 +172,18 @@ void screen_calls_draw(struct ncplane *phone)
     for (int x = 0; x < width && CONTENT_COL + x < (int)cols - 1; x++)
         ncplane_putstr_yx(phone, CONTENT_START_ROW + 1, CONTENT_COL + x,
                           (rule && rule[0]) ? rule : "-");
+
+    /* ── dial pad overlay ── */
+    if (s_state == CALLS_DIAL) {
+        int top = CONTENT_START_ROW + 5;
+        ghost_text(phone, top,     CONTENT_COL, theme_text_muted(),   "DIAL");
+        ghost_text(phone, top + 2, CONTENT_COL, theme_text_primary(),
+                   s_dial_buffer[0] ? s_dial_buffer : "(enter number)");
+        ghost_text(phone, top + 5, CONTENT_COL, theme_text_muted(),
+                   "0-9 + * # to type   Backspace to clear");
+        ghost_softkeys(phone, "[Cancel]", "[Call]");
+        return;
+    }
 
     /* ── incoming call overlay ── */
     if (s_state == CALLS_INCOMING) {
@@ -97,7 +219,15 @@ void screen_calls_draw(struct ncplane *phone)
     }
 
     /* ── call log ── */
-    ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL, theme_text_muted(), "STATE: LOG");
+    if (!modem_ipc_is_online()) {
+        ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL,
+                   theme_text_primary(), "! MODEM OFFLINE");
+        ghost_text(phone, CONTENT_START_ROW + 3, CONTENT_COL,
+                   theme_text_muted(), modem_ipc_health_error());
+    } else {
+        ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL,
+                   theme_text_muted(), "STATE: LOG");
+    }
 
     size_t count = comm_service_call_count();
     if (s_selected < 0) s_selected = 0;
@@ -149,6 +279,35 @@ void screen_calls_draw(struct ncplane *phone)
 
 screen_id screen_calls_input(uint32_t key)
 {
+    /* ── dial pad ── */
+    if (s_state == CALLS_DIAL) {
+        switch (key) {
+            case KEY_SOFT_LEFT_ACTION:
+                enter_log();
+                return SCREEN_CALLS;
+            case KEY_SOFT_RIGHT_ACTION:
+            case NCKEY_ENTER: case '\n':
+                if (s_dial_buffer[0]) {
+                    screen_calls_start_outgoing("", s_dial_buffer);
+                }
+                return SCREEN_CALLS;
+            case NCKEY_BACKSPACE: case 127: case '\b': {
+                size_t len = strlen(s_dial_buffer);
+                if (len > 0) s_dial_buffer[len - 1] = '\0';
+                return SCREEN_CALLS;
+            }
+            default:
+                if (is_dial_char(key)) {
+                    size_t len = strlen(s_dial_buffer);
+                    if (len + 1 < sizeof(s_dial_buffer)) {
+                        s_dial_buffer[len]     = (char)key;
+                        s_dial_buffer[len + 1] = '\0';
+                    }
+                }
+                return SCREEN_CALLS;
+        }
+    }
+
     /* ── incoming call ── */
     if (s_state == CALLS_INCOMING) {
         switch (key) {
@@ -178,23 +337,14 @@ screen_id screen_calls_input(uint32_t key)
             case NCKEY_ENTER: case '\n': {
                 int dur = (s_call_start > 0) ? (int)(time(NULL) - s_call_start) : 0;
                 modem_ipc_hangup();
-                /* Persist call to log */
                 comm_service_call_add_full(
-                    s_call_name, s_call_number,
-                    s_state == CALLS_DIALING ? "outgoing" : "outgoing",
-                    dur);
+                    s_call_name, s_call_number, s_call_dir, dur);
                 enter_log();
                 return SCREEN_CALLS;
             }
-            default: {
-                /* Check if call was answered (dialing → active) */
-                if (s_state == CALLS_DIALING) {
-                    ModemStatus st;
-                    if (modem_ipc_get_status(&st) == 0 && !st.has_incoming_call)
-                        s_state = CALLS_ACTIVE;
-                }
+            default:
+                // screen_calls_tick() handles auto-transitions; ignore other keys.
                 return SCREEN_CALLS;
-            }
         }
     }
 
@@ -230,15 +380,10 @@ screen_id screen_calls_input(uint32_t key)
             if (s_selected < (int)comm_service_call_count() - 1) s_selected++;
             return SCREEN_CALLS;
         case NCKEY_ENTER: case '\n': {
-            /* Dial the selected contact */
+            /* Dial the selected log entry. */
             const CommCall *c = comm_service_call_at((size_t)s_selected);
             if (c && c->phone[0]) {
-                snprintf(s_call_number, sizeof(s_call_number), "%s", c->phone);
-                snprintf(s_call_name,   sizeof(s_call_name),   "%s", c->name);
-                if (modem_ipc_dial(s_call_number) == 0) {
-                    s_state      = CALLS_DIALING;
-                    s_call_start = 0;
-                }
+                screen_calls_start_outgoing(c->name, c->phone);
             }
             return SCREEN_CALLS;
         }
@@ -250,15 +395,17 @@ screen_id screen_calls_input(uint32_t key)
             return SCREEN_CALLS;
         case KEY_SOFT_LEFT_ACTION:
             return SCREEN_HOME;
-        default: {
-            /* Check for incoming call */
-            ModemStatus st;
-            if (modem_ipc_get_status(&st) == 0 && st.has_incoming_call) {
-                snprintf(s_call_number, sizeof(s_call_number), "%s", st.incoming_number);
-                s_call_name[0] = '\0';
-                s_state = CALLS_INCOMING;
+        case KEY_SOFT_RIGHT_ACTION:
+            /* Right soft from the log opens the dial pad with an empty buffer. */
+            enter_dial(0);
+            return SCREEN_CALLS;
+        default:
+            /* Typing any digit / + / * / # from the log auto-enters the dial
+             * pad with that character as the first digit — dumbphone idiom.
+             * (Main loop polls modem_status for incoming calls.) */
+            if (is_dial_char(key)) {
+                enter_dial((char)key);
             }
             return SCREEN_CALLS;
-        }
     }
 }

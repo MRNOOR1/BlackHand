@@ -20,6 +20,7 @@ BR2_TARGET_GENERIC_ISSUE="Black Hand OS"
 BR2_TARGET_GENERIC_ROOT_PASSWD="blackhand"
 BR2_SYSTEM_DHCP="eth0"
 BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_DEVTMPFS=y
+BR2_PACKAGE_EUDEV=y
 # Keep busybox so /sbin/init, /bin/sh and standard tools are present.
 # blackhand-init becomes PID 1 via init=/sbin/blackhand-init in cmdline.txt,
 # not by replacing /sbin/init — that way verify-image.sh section 4 still passes.
