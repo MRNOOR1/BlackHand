@@ -38,6 +38,10 @@ int  modem_pending_sms_at(int index,
 void modem_clear_pending_sms(void);
 
 int modem_init();
+// One locked probe attempt — used by the background bring-up thread.
+int modem_attempt_bringup(void);
+// Pin + switch to a specific port ("auto" = resume sweep). 0 = modem up.
+int modem_select_port(const char *port);
 int modem_configure();										 // done
 int modem_dial(const char *number);							 // done
 int modem_answer();											 // done

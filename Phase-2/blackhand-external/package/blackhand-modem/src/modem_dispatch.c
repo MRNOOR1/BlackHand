@@ -149,6 +149,19 @@ static void handle_pop_pending_sms(int fd, int id, cJSON *params)
 	send_result_obj(fd, id, arr);
 }
 
+static void handle_set_port(int fd, int id, cJSON *params)
+{
+	// Deliberately NO modem-present guard: switching ports is exactly what
+	// you do when the modem is NOT present.
+	cJSON *port = cJSON_GetObjectItem(params, "port");
+	if (!cJSON_IsString(port)) { send_err(fd, id, "missing port"); return; }
+
+	if (modem_select_port(port->valuestring) == 0)
+		send_result_str(fd, id, modem_active_port());
+	else
+		send_err(fd, id, modem_error);
+}
+
 static void handle_modem_status(int fd, int id, cJSON *params)
 {
 	(void)params;
@@ -207,6 +220,7 @@ void modem_dispatch_handle(int client_fd, const char *json)
 	else if (strcmp(m, "hangup")       == 0) handle_hangup      (client_fd, id, params);
 	else if (strcmp(m, "answer")       == 0) handle_answer      (client_fd, id, params);
 	else if (strcmp(m, "reject")       == 0) handle_reject      (client_fd, id, params);
+	else if (strcmp(m, "set_port")         == 0) handle_set_port        (client_fd, id, params);
 	else if (strcmp(m, "send_sms")         == 0) handle_send_sms        (client_fd, id, params);
 	else if (strcmp(m, "modem_status")     == 0) handle_modem_status    (client_fd, id, params);
 	else if (strcmp(m, "pop_pending_sms")  == 0) handle_pop_pending_sms (client_fd, id, params);

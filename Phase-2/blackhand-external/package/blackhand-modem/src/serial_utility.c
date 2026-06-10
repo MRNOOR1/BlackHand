@@ -34,9 +34,28 @@ static const char *PORT_CANDIDATES[] = {
 
 static char active_port[64] = "";
 
+// When set (via the UI port picker → set_port IPC), the sweep is bypassed and
+// ONLY this port is probed. Lets the user pin /dev/ttyUSB0..4 one at a time to
+// find the AT port empirically before we bake in a permanent fix.
+static char forced_port[64] = "";
+
 const char *modem_active_port(void)
 {
 	return active_port[0] ? active_port : "/dev/blackhand-modem-at";
+}
+
+void serial_set_forced_port(const char *path)
+{
+	if (!path || !path[0] || strcmp(path, "auto") == 0) {
+		forced_port[0] = '\0';
+		return;
+	}
+	snprintf(forced_port, sizeof(forced_port), "%s", path);
+}
+
+const char *serial_get_forced_port(void)
+{
+	return forced_port;
 }
 
 static int apply_termios(int fd)
@@ -119,6 +138,19 @@ static int try_open_candidate(const char *path)
 
 int open_port_once(void)
 {
+	// Pinned port: probe it and nothing else, so the user's selection is
+	// tested exactly — no silent fallback to another port.
+	if (forced_port[0]) {
+		int fd = try_open_candidate(forced_port);
+		if (fd >= 0) {
+			snprintf(active_port, sizeof(active_port), "%s", forced_port);
+			fprintf(stderr, "blackhand-modem: AT port found at %s (pinned)\n",
+			        active_port);
+			return fd;
+		}
+		return -1;
+	}
+
 	for (int i = 0; PORT_CANDIDATES[i]; i++) {
 		int fd = try_open_candidate(PORT_CANDIDATES[i]);
 		if (fd >= 0) {

@@ -1,5 +1,6 @@
 #include "serial_utility.h"
 #include "Modem.h"
+#include "urc.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -111,6 +112,73 @@ int modem_init()
 	}
 
 	return fn;
+}
+
+/* ── bring-up / port switching ──────────────────────────────────────────────
+ * Both the background bring-up thread (main.c) and the set_port IPC handler
+ * can (re)open the modem. This lock makes open/close/configure atomic so a
+ * port switch can't race a background probe. */
+
+static pthread_mutex_t bringup_lock = PTHREAD_MUTEX_INITIALIZER;
+
+// One probe attempt. Returns 1 if the modem is (now) up, 0 if not.
+int modem_attempt_bringup(void)
+{
+	pthread_mutex_lock(&bringup_lock);
+	if (modem_present) {
+		pthread_mutex_unlock(&bringup_lock);
+		return 1;
+	}
+	int fd = open_port_once();
+	if (fd < 0) {
+		pthread_mutex_unlock(&bringup_lock);
+		return 0;
+	}
+	fn = fd;
+	urc_start(fn);
+	modem_configure();
+	modem_error[0] = '\0';
+	modem_present  = 1;
+	pthread_mutex_unlock(&bringup_lock);
+	return 1;
+}
+
+/* Switch to a specific port ("auto" restores the sweep). Tears down the
+ * current connection if any, pins the new port, and tries it immediately.
+ * Returns 0 if the modem answered on the new port, -1 otherwise (the
+ * background thread keeps retrying the pinned port every 5s after that). */
+int modem_select_port(const char *port)
+{
+	pthread_mutex_lock(&bringup_lock);
+
+	if (modem_present) {
+		modem_present = 0;          // gate dispatch handlers first
+		call_state    = CALL_IDLE;
+		urc_stop();                 // joins the URC thread (≤2s read timeout)
+		close_port(fn);
+		fn = -1;
+		modem_clear_incoming_number();
+	}
+
+	serial_set_forced_port(port);
+
+	int fd = open_port_once();
+	if (fd < 0) {
+		snprintf(modem_error, sizeof(modem_error),
+		         "no AT response on %s",
+		         (port && port[0] && strcmp(port, "auto") != 0)
+		             ? port : "any port (auto sweep)");
+		pthread_mutex_unlock(&bringup_lock);
+		return -1;
+	}
+
+	fn = fd;
+	urc_start(fn);
+	modem_configure();
+	modem_error[0] = '\0';
+	modem_present  = 1;
+	pthread_mutex_unlock(&bringup_lock);
+	return 0;
 }
 int modem_configure()
 {

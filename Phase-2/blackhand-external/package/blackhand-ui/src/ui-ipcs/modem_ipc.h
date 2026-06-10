@@ -41,6 +41,14 @@ int modem_ipc_health(ModemHealth *out);
 void        modem_ipc_refresh_health(void);
 int         modem_ipc_is_online(void);
 const char *modem_ipc_health_error(void);
+/* Device path the modem service is currently using (cached from health). */
+const char *modem_ipc_health_port(void);
+
+/* Pin the modem service to a specific AT port ("/dev/ttyUSB0".."4"), or
+ * "auto" to resume the normal sweep. Synchronous: the service tears down,
+ * probes the new port and configures it before replying (1-3s typically).
+ * Returns 0 if the modem answered on that port. */
+int modem_ipc_set_port(const char *port);
 
 /* SMS */
 int modem_ipc_send_sms(const char *number, const char *body);

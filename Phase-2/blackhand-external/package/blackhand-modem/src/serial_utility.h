@@ -23,4 +23,8 @@ int close_port(int fd);
 int read_line(int fd, char *buf, int max, int timeout_ms);
 const char *at_cmd(int fd, const char *cmd, int timeout_ms);
 const char *modem_active_port(void);
+/* Pin probing to one specific device path ("auto"/NULL/"" clears the pin and
+ * restores the normal candidate sweep). Takes effect on the next probe. */
+void serial_set_forced_port(const char *path);
+const char *serial_get_forced_port(void);
 #endif

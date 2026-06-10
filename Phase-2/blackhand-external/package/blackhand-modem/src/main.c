@@ -22,29 +22,28 @@ static void *modem_bringup_thread(void *arg)
 	(void)arg;
 	int attempt = 0;
 
+	// Runs for the daemon's whole life. Whenever the modem is absent —
+	// at boot, after a failed manual port switch — keep probing so it
+	// comes back without a service restart.
 	for (;;) {
-		int fd = open_port_once();
-		if (fd >= 0) {
-			fn = fd;
-			urc_start(fn);
-			modem_configure();
-			// Publish presence only after the port is configured so the
-			// first dial/sms can't race a half-initialised modem.
-			modem_error[0] = '\0';
-			modem_present  = 1;
-			fprintf(stderr,
-			        "blackhand-modem: ready on %s — signal=%d registered=%d\n",
-			        modem_active_port(), modem_signal(), modem_registered());
-			return NULL;
+		if (!modem_present) {
+			if (modem_attempt_bringup()) {
+				attempt = 0;
+				fprintf(stderr,
+				        "blackhand-modem: ready on %s — signal=%d registered=%d\n",
+				        modem_active_port(), modem_signal(), modem_registered());
+			} else {
+				attempt++;
+				const char *pinned = serial_get_forced_port();
+				snprintf(modem_error, sizeof(modem_error),
+				         "modem not detected (probe %d, %s) — "
+				         "check SIM7600 power + USB; still retrying",
+				         attempt, pinned[0] ? pinned : "/dev/ttyUSB0..5");
+				// Log the first miss and then once a minute — not every 5s.
+				if (attempt == 1 || attempt % 12 == 0)
+					fprintf(stderr, "blackhand-modem: %s\n", modem_error);
+			}
 		}
-
-		attempt++;
-		snprintf(modem_error, sizeof(modem_error),
-		         "modem not detected (probe %d, /dev/ttyUSB0..3) — "
-		         "check SIM7600 power + USB; still retrying", attempt);
-		// Log the first miss and then once a minute — not every 5s.
-		if (attempt == 1 || attempt % 12 == 0)
-			fprintf(stderr, "blackhand-modem: %s\n", modem_error);
 		sleep(5);
 	}
 	return NULL;

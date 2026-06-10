@@ -12,12 +12,15 @@
 
 static int  s_health_present = -1;     /* -1 unknown, 0 offline, 1 online */
 static char s_health_error[128] = "modem status unknown";
+static char s_health_port[64]   = "?";
 
 void modem_ipc_refresh_health(void)
 {
     ModemHealth h;
     if (modem_ipc_health(&h) == 0) {
         s_health_present = h.present;
+        if (h.port[0])
+            snprintf(s_health_port, sizeof(s_health_port), "%s", h.port);
         if (h.present) {
             s_health_error[0] = '\0';
         } else {
@@ -39,6 +42,31 @@ int modem_ipc_is_online(void)
 const char *modem_ipc_health_error(void)
 {
     return s_health_error;
+}
+
+const char *modem_ipc_health_port(void)
+{
+    return s_health_port;
+}
+
+int modem_ipc_set_port(const char *port)
+{
+    if (!port || !port[0]) return -1;
+    char req[256];
+    int n = snprintf(req, sizeof(req),
+        "{\"jsonrpc\":\"2.0\",\"method\":\"set_port\","
+        "\"params\":{\"port\":\"%s\"},\"id\":1}", port);
+    if (n < 0 || (size_t)n >= sizeof(req)) return -1;
+
+    char resp[1024];
+    if (ipc_request(MODEM_SOCK, req, resp, sizeof(resp)) != IPC_OK) return -1;
+
+    /* Success = a "result" string (the active port). Error = "error" key. */
+    cJSON *root = cJSON_Parse(resp);
+    if (!root) return -1;
+    int ok = cJSON_IsString(cJSON_GetObjectItem(root, "result"));
+    cJSON_Delete(root);
+    return ok ? 0 : -1;
 }
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
