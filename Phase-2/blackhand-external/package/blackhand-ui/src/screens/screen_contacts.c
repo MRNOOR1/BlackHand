@@ -9,6 +9,8 @@
 #include "services/contacts_service.h"
 #include "services/theme_service.h"
 #include "services/multitap_service.h"
+#include "ui-ipcs/storage_ipc.h"
+#include "country_codes.h"
 #include "ui.h"
 
 typedef enum {
@@ -24,14 +26,49 @@ static int s_delete_prompt = 0;
 static int s_delete_yes = 0;
 static contacts_mode_t s_mode = CONTACTS_MODE_LIST;
 
-/* Edit form */
+/* Edit form — fields: 0=name, 1=country (left/right cycles), 2=number */
 static int s_edit_existing = 0;
-static int s_edit_field = 0; /* 0=name 1=number */
+static int s_edit_field = 0;
 static char s_edit_id[128];
 static char s_name[96];
 static char s_number[48];
 static multitap_state s_mt;
 static int s_mt_ready = 0;
+
+/* Country for number normalisation. Persisted in settings.json so the
+ * last-used country is the default next time (and across reboots). */
+static int s_country_idx = -1;
+
+static void ensure_country(void)
+{
+    if (s_country_idx >= 0) return;
+    size_t n = 0;
+    const CountryCode *tab = country_table(&n);
+    s_country_idx = 0;
+    char iso[8];
+    if (storage_ipc_settings_get_str("country_iso", iso, sizeof(iso)) == 0) {
+        for (size_t i = 0; i < n; i++)
+            if (strcmp(tab[i].iso, iso) == 0) { s_country_idx = (int)i; break; }
+    }
+}
+
+static const CountryCode *current_country(void)
+{
+    ensure_country();
+    size_t n = 0;
+    const CountryCode *tab = country_table(&n);
+    if (s_country_idx < 0 || (size_t)s_country_idx >= n) s_country_idx = 0;
+    return &tab[s_country_idx];
+}
+
+static void cycle_country(int delta)
+{
+    size_t n = 0;
+    country_table(&n);
+    ensure_country();
+    s_country_idx = (s_country_idx + delta + (int)n) % (int)n;
+    storage_ipc_settings_set_str("country_iso", current_country()->iso);
+}
 
 static void ensure_mt(void) {
     if (!s_mt_ready) {
@@ -83,13 +120,20 @@ static void save_contact(void) {
         snprintf(s_name, sizeof(s_name), "Unknown");
     }
 
+    /* Normalise to E.164 with the selected country: "0413 805 252" + AU
+     * → "+61413805252". ATD can dial the stored form directly, and the
+     * history folder under /data/numbers/ uses the same key. */
+    char e164[48];
+    if (phone_normalize(s_number, current_country(), e164, sizeof(e164)) != 0)
+        snprintf(e164, sizeof(e164), "%s", s_number);   /* keep raw on failure */
+
     if (s_edit_existing) {
         const Contact *c = contact_service_get_by_id(s_edit_id);
         if (c) {
-            contact_service_update((Contact *)c, s_name, s_number);
+            contact_service_update((Contact *)c, s_name, e164);
         }
     } else {
-        contact_service_create(s_name, s_number);
+        contact_service_create(s_name, e164);
         s_selected = 0;
         s_scroll = 0;
     }
@@ -126,15 +170,38 @@ void screen_contacts_draw(struct ncplane *phone) {
         ghost_text(phone, top, CONTENT_COL, theme_text_muted(),
                    s_edit_existing ? "EDIT CONTACT" : "NEW CONTACT");
 
+        /* field 0: name */
         ncplane_set_fg_rgb(phone, (s_edit_field == 0) ? theme_selection_text() : theme_text_muted());
         ncplane_set_bg_rgb(phone, (s_edit_field == 0) ? theme_selection_bg() : theme_bg());
         ncplane_putstr_yx(phone, top + 2, CONTENT_COL, (s_edit_field == 0) ? MENU_CURSOR : MENU_CURSOR_BLANK);
         put_clipped(phone, top + 2, CONTENT_COL + 1, width - 2, s_name[0] ? s_name : "(name)");
 
-        ncplane_set_fg_rgb(phone, (s_edit_field == 1) ? theme_selection_text() : theme_text_muted());
-        ncplane_set_bg_rgb(phone, (s_edit_field == 1) ? theme_selection_bg() : theme_bg());
-        ncplane_putstr_yx(phone, top + 4, CONTENT_COL, (s_edit_field == 1) ? MENU_CURSOR : MENU_CURSOR_BLANK);
-        put_clipped(phone, top + 4, CONTENT_COL + 1, width - 2, s_number[0] ? s_number : "(number)");
+        /* field 1: country — Left/Right cycles, defines normalisation */
+        {
+            const CountryCode *cc = current_country();
+            char cline[80];
+            snprintf(cline, sizeof(cline), "< %s %s >", cc->name, cc->code);
+            ncplane_set_fg_rgb(phone, (s_edit_field == 1) ? theme_selection_text() : theme_text_muted());
+            ncplane_set_bg_rgb(phone, (s_edit_field == 1) ? theme_selection_bg() : theme_bg());
+            ncplane_putstr_yx(phone, top + 4, CONTENT_COL, (s_edit_field == 1) ? MENU_CURSOR : MENU_CURSOR_BLANK);
+            put_clipped(phone, top + 4, CONTENT_COL + 1, width - 2, cline);
+        }
+
+        /* field 2: number (raw — normalised on save) */
+        ncplane_set_fg_rgb(phone, (s_edit_field == 2) ? theme_selection_text() : theme_text_muted());
+        ncplane_set_bg_rgb(phone, (s_edit_field == 2) ? theme_selection_bg() : theme_bg());
+        ncplane_putstr_yx(phone, top + 6, CONTENT_COL, (s_edit_field == 2) ? MENU_CURSOR : MENU_CURSOR_BLANK);
+        put_clipped(phone, top + 6, CONTENT_COL + 1, width - 2, s_number[0] ? s_number : "(number)");
+
+        /* live preview of what will be stored */
+        if (s_number[0]) {
+            char e164[48];
+            if (phone_normalize(s_number, current_country(), e164, sizeof(e164)) == 0) {
+                char prev[64];
+                snprintf(prev, sizeof(prev), "Saves as: %s", e164);
+                ghost_text(phone, top + 8, CONTENT_COL + 1, theme_text_muted(), prev);
+            }
+        }
 
         ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(), "2-9:ABC  #:Case  *:Punct");
         ghost_softkeys(phone, "[Cancel]", "[Save]");
@@ -213,20 +280,22 @@ void screen_contacts_draw(struct ncplane *phone) {
             int top = list_start + (i * card_h);
             int sel = (idx == s_selected);
 
-            ncplane_set_bg_rgb(phone, sel ? theme_selection_bg() : theme_bg());
-            ncplane_set_fg_rgb(phone, sel ? theme_selection_text() : theme_text_muted());
-
-            for (int r = 0; r < card_h - 1; r++) {
-                for (int x = CONTENT_COL; x < CONTENT_COL + width; x++) {
-                    ncplane_putchar_yx(phone, top + r, x, ' ');
-                }
+            /* blueprint CNTC: name rows with first-letter group marker on
+             * group change (right column). Themed selection style. */
+            char label[20], meta[4] = "";
+            snprintf(label, sizeof(label), "%.14s", c->name ? c->name : "");
+            char first = (c->name && c->name[0]) ? c->name[0] : ' ';
+            if (first >= 'a' && first <= 'z') first -= 32;
+            if (idx == 0) {
+                meta[0] = first; meta[1] = '\0';
+            } else {
+                const Contact *prev = contacts[idx - 1];
+                char pf = (prev && prev->name && prev->name[0]) ? prev->name[0] : ' ';
+                if (pf >= 'a' && pf <= 'z') pf -= 32;
+                if (pf != first) { meta[0] = first; meta[1] = '\0'; }
             }
-
-            ncplane_putstr_yx(phone, top, CONTENT_COL, sel ? MENU_CURSOR : MENU_CURSOR_BLANK);
-            put_clipped(phone, top, CONTENT_COL + 1, width - 2, c->name ? c->name : "");
-
-            ncplane_set_fg_rgb(phone, sel ? theme_selection_text() : theme_text_muted());
-            put_clipped(phone, top + 1, CONTENT_COL + 1, width - 2, c->phone_number ? c->phone_number : "");
+            ghost_list_row_meta(phone, top, (int)cols, idx, sel, label, meta);
+            (void)card_h;
         }
     }
 
@@ -241,17 +310,27 @@ screen_id screen_contacts_input(uint32_t key) {
 
     if (s_mode == CONTACTS_MODE_EDIT) {
         ensure_mt();
-        char *active = (s_edit_field == 0) ? s_name : s_number;
-        size_t active_sz = (s_edit_field == 0) ? sizeof(s_name) : sizeof(s_number);
+        /* fields: 0=name (text), 1=country (selector), 2=number (text).
+         * multitap only knows the two text fields: slot 0=name, slot 1=number. */
+        int    is_text    = (s_edit_field != 1);
+        int    mt_slot    = (s_edit_field == 0) ? 0 : 1;
+        char  *active     = (s_edit_field == 0) ? s_name : s_number;
+        size_t active_sz  = (s_edit_field == 0) ? sizeof(s_name) : sizeof(s_number);
 
         switch (key) {
             case NCKEY_UP:
-                s_edit_field = 0;
-                multitap_set_field(&s_mt, s_edit_field);
+                if (s_edit_field > 0) s_edit_field--;
+                multitap_set_field(&s_mt, (s_edit_field == 0) ? 0 : 1);
                 return SCREEN_CONTACTS;
             case NCKEY_DOWN:
-                s_edit_field = 1;
-                multitap_set_field(&s_mt, s_edit_field);
+                if (s_edit_field < 2) s_edit_field++;
+                multitap_set_field(&s_mt, (s_edit_field == 0) ? 0 : 1);
+                return SCREEN_CONTACTS;
+            case NCKEY_LEFT:
+                if (s_edit_field == 1) cycle_country(-1);
+                return SCREEN_CONTACTS;
+            case NCKEY_RIGHT:
+                if (s_edit_field == 1) cycle_country(+1);
                 return SCREEN_CONTACTS;
             case KEY_SOFT_LEFT_ACTION:
                 multitap_reset(&s_mt);
@@ -263,20 +342,21 @@ screen_id screen_contacts_input(uint32_t key) {
                 return SCREEN_CONTACTS;
             case NCKEY_ENTER:
             case '\n':
-                if (s_edit_field == 0) s_edit_field = 1;
+                if (s_edit_field < 2) s_edit_field++;
                 else save_contact();
-                multitap_set_field(&s_mt, s_edit_field);
+                multitap_set_field(&s_mt, (s_edit_field == 0) ? 0 : 1);
                 return SCREEN_CONTACTS;
             case NCKEY_BACKSPACE:
             case 127:
-                multitap_backspace(&s_mt, s_edit_field, active);
+                if (is_text) multitap_backspace(&s_mt, mt_slot, active);
                 return SCREEN_CONTACTS;
             case '#':
-                multitap_toggle_case(&s_mt);
+                if (is_text) multitap_toggle_case(&s_mt);
                 return SCREEN_CONTACTS;
             default:
+                if (!is_text) return SCREEN_CONTACTS;
                 if ((key >= '0' && key <= '9') || key == '*') {
-                    multitap_apply_key(&s_mt, key, s_edit_field, active, active_sz);
+                    multitap_apply_key(&s_mt, key, mt_slot, active, active_sz);
                     return SCREEN_CONTACTS;
                 }
                 if (key >= 32 && key <= 126) {

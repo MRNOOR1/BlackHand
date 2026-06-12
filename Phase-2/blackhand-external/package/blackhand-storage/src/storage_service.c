@@ -1,103 +1,80 @@
 /*
- * blackhand-storage — persistent data service using JSON files.
+ * blackhand-storage — persistent data service, per-number layout.
  *
- * All data lives in /data/:
- *   contacts.json   — array of contact objects
- *   messages.json   — array of SMS/call message objects
- *   calls.json      — array of call-log objects
- *   locations.json  — array of GPS location objects
- *   settings.json   — key/value object
+ *   /data/contacts/contacts.json          one lookup table: [{name,number}]
+ *   /data/numbers/<E.164>/sms.json        all SMS with that number
+ *   /data/numbers/<E.164>/calls.json      all calls with that number
  *
- * Data is loaded into memory at startup.  Every mutation immediately writes
- * the affected file back to disk so no data is lost on crash.
+ * Design rules (see CODE-REVIEW.md / project notes):
+ *   - Contacts is ONLY a name lookup. It never grows with usage.
+ *   - Every number that ever calls/texts/is dialled gets a folder. Saved vs
+ *     unknown makes no difference to history storage — saving a contact just
+ *     adds a name on top. No migration ever.
+ *   - Writers (modem service) and readers (UI) both talk JSON-RPC to this
+ *     daemon, which serialises all file access — no cross-process locking.
+ *   - Every mutation is written immediately, atomically (tmp + rename).
  *
  * JSON-RPC methods:
- *   contacts.list / .add / .delete / .update / .search
- *   messages.list / .add / .delete / .mark_read
- *   calls.list / .add / .delete
- *   locations.add / .list
- *   settings.get / .set
+ *   ping
+ *   contacts.list                          → [{name,number}]
+ *   contacts.save    {name,number}           upsert keyed by number
+ *   contacts.delete  {number}
+ *   history.add_sms  {number,direction:"in"|"out",body,ts?,read?}
+ *   history.sms_list {number}              → [{direction,body,ts,read}]
+ *   history.sms_threads                    → [{number,last_body,last_ts,unread,count}]
+ *   history.mark_read {number}
+ *   history.add_call {number,direction,outcome,ts?,duration?}
+ *        outcome: "answered"|"missed"|"busy"|"rejected"|"no_answer"|"failed"
+ *   history.calls_list   {number}          → [{direction,outcome,ts,duration}]
+ *   history.calls_recent {limit?}          → [{number,direction,outcome,ts,duration}]
+ *   settings.get {key} / settings.set {key,value}
+ *
+ * SMS entry:  { "direction":"in", "body":"...", "ts":1718000000, "read":0 }
+ * Call entry: { "direction":"out", "outcome":"answered", "ts":..., "duration":62 }
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <dirent.h>
+#include <time.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 
 #include "ipc.h"
-#include "ipc_framing.h"
 #include "cJSON.h"
 
-#define STORAGE_SOCK  "/run/bh-storage.sock"
-#define DATA_DIR      "/data"
-#define BUFFER_SIZE   32768
+#define STORAGE_SOCK   "/run/bh-storage.sock"
+#define CONTACTS_DIR   "/data/contacts"
+#define CONTACTS_PATH  CONTACTS_DIR "/contacts.json"
+#define NUMBERS_DIR    "/data/numbers"
+#define SETTINGS_PATH  "/data/settings.json"
+#define BUFFER_SIZE    32768
 
-/* ── file paths ─────────────────────────────────────────────────────────── */
+/* ── JSON file I/O (atomic) ─────────────────────────────────────────────── */
 
-static const char *PATH_CONTACTS  = DATA_DIR "/contacts.json";
-static const char *PATH_MESSAGES  = DATA_DIR "/messages.json";
-static const char *PATH_CALLS     = DATA_DIR "/calls.json";
-static const char *PATH_LOCATIONS = DATA_DIR "/locations.json";
-static const char *PATH_SETTINGS  = DATA_DIR "/settings.json";
-
-/* ── in-memory state ────────────────────────────────────────────────────── */
-
-static cJSON *g_contacts  = NULL;
-static cJSON *g_messages  = NULL;
-static cJSON *g_calls     = NULL;
-static cJSON *g_locations = NULL;
-static cJSON *g_settings  = NULL;
-
-/* ── JSON file I/O ──────────────────────────────────────────────────────── */
-
-static cJSON *load_json_array(const char *path)
+static cJSON *load_json(const char *path, int want_array)
 {
     FILE *f = fopen(path, "r");
-    if (!f) return cJSON_CreateArray();
+    if (!f) return want_array ? cJSON_CreateArray() : cJSON_CreateObject();
 
     fseek(f, 0, SEEK_END);
     long sz = ftell(f);
     fseek(f, 0, SEEK_SET);
-    if (sz <= 0) { fclose(f); return cJSON_CreateArray(); }
+    if (sz <= 0) { fclose(f); return want_array ? cJSON_CreateArray() : cJSON_CreateObject(); }
 
     char *buf = malloc((size_t)sz + 1);
-    if (!buf) { fclose(f); return cJSON_CreateArray(); }
+    if (!buf) { fclose(f); return want_array ? cJSON_CreateArray() : cJSON_CreateObject(); }
     size_t rd = fread(buf, 1, (size_t)sz, f);
     fclose(f);
     buf[rd] = '\0';
 
     cJSON *root = cJSON_Parse(buf);
     free(buf);
-    if (!root || !cJSON_IsArray(root)) {
+    if (!root || (want_array ? !cJSON_IsArray(root) : !cJSON_IsObject(root))) {
         cJSON_Delete(root);
-        return cJSON_CreateArray();
-    }
-    return root;
-}
-
-static cJSON *load_json_object(const char *path)
-{
-    FILE *f = fopen(path, "r");
-    if (!f) return cJSON_CreateObject();
-
-    fseek(f, 0, SEEK_END);
-    long sz = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    if (sz <= 0) { fclose(f); return cJSON_CreateObject(); }
-
-    char *buf = malloc((size_t)sz + 1);
-    if (!buf) { fclose(f); return cJSON_CreateObject(); }
-    size_t rd = fread(buf, 1, (size_t)sz, f);
-    fclose(f);
-    buf[rd] = '\0';
-
-    cJSON *root = cJSON_Parse(buf);
-    free(buf);
-    if (!root || !cJSON_IsObject(root)) {
-        cJSON_Delete(root);
-        return cJSON_CreateObject();
+        return want_array ? cJSON_CreateArray() : cJSON_CreateObject();
     }
     return root;
 }
@@ -106,458 +83,471 @@ static void save_json(const char *path, cJSON *root)
 {
     char *str = cJSON_PrintUnformatted(root);
     if (!str) return;
-
-    /* Write to a temp file then rename for atomicity */
-    char tmp[256];
+    char tmp[300];
     snprintf(tmp, sizeof(tmp), "%s.tmp", path);
     FILE *f = fopen(tmp, "w");
     if (f) {
         fputs(str, f);
+        fflush(f);
         fclose(f);
-        rename(tmp, path);
+        rename(tmp, path);   /* atomic replace */
     }
     free(str);
 }
 
-/* ── ID helpers ─────────────────────────────────────────────────────────── */
+/* ── number helpers ─────────────────────────────────────────────────────── */
 
-static int next_id(cJSON *arr)
+/* Sanitise a number into a safe directory name: optional leading '+', digits
+ * only, length-capped. Returns 0 on success. Callers (UI/modem) normalise to
+ * E.164 before sending; this is defence, not normalisation. */
+static int number_dirname(const char *number, char *out, size_t out_sz)
 {
-    int max_id = 0;
-    cJSON *item;
-    cJSON_ArrayForEach(item, arr) {
-        cJSON *id = cJSON_GetObjectItem(item, "id");
-        if (cJSON_IsNumber(id) && id->valueint > max_id)
-            max_id = id->valueint;
+    if (!number || !out || out_sz < 8) return -1;
+    size_t w = 0;
+    for (size_t r = 0; number[r] && w + 1 < out_sz && w < 20; r++) {
+        char c = number[r];
+        if ((c == '+' && w == 0) || (c >= '0' && c <= '9'))
+            out[w++] = c;
     }
-    return max_id + 1;
+    out[w] = '\0';
+    return (w >= 3) ? 0 : -1;   /* at least 3 digits to be a number */
 }
 
-/* ── IPC helpers ────────────────────────────────────────────────────────── */
-
-static void send_error(int fd, const char *msg)
+static void ensure_dirs(void)
 {
-    cJSON *res = cJSON_CreateObject();
-    cJSON_AddStringToObject(res, "error", msg);
-    char *str = cJSON_PrintUnformatted(res);
-    send_msg(fd, str);
-    free(str);
-    cJSON_Delete(res);
+    mkdir("/data", 0755);
+    mkdir(CONTACTS_DIR, 0755);
+    mkdir(NUMBERS_DIR, 0755);
 }
 
-static void send_result_json(int fd, cJSON *req, cJSON *result)
+/* Path to a number's sms.json/calls.json, creating the folder on demand. */
+static int number_file(const char *number, const char *fname,
+                       char *out, size_t out_sz, int create)
 {
-    cJSON *id = cJSON_GetObjectItem(req, "id");
-    if (!id || !cJSON_IsNumber(id)) {
-        send_error(fd, "invalid id");
-        cJSON_Delete(result);
-        return;
-    }
+    char dir[32];
+    if (number_dirname(number, dir, sizeof(dir)) != 0) return -1;
+    char dpath[128];
+    snprintf(dpath, sizeof(dpath), NUMBERS_DIR "/%s", dir);
+    if (create) mkdir(dpath, 0755);
+    snprintf(out, out_sz, "%s/%s", dpath, fname);
+    return 0;
+}
+
+/* ── response helpers ───────────────────────────────────────────────────── */
+
+static void send_result(int fd, int id, cJSON *result /* owned */)
+{
     cJSON *res = cJSON_CreateObject();
     cJSON_AddStringToObject(res, "jsonrpc", "2.0");
     cJSON_AddItemToObject(res, "result", result);
-    cJSON_AddNumberToObject(res, "id", id->valueint);
+    cJSON_AddNumberToObject(res, "id", id);
     char *str = cJSON_PrintUnformatted(res);
-    send_msg(fd, str);
-    free(str);
+    if (str) { send_msg(fd, str); free(str); }
     cJSON_Delete(res);
 }
 
-static void send_result_str(int fd, cJSON *req, const char *s)
+static void send_ok(int fd, int id)
 {
-    cJSON *res_val = cJSON_CreateString(s);
-    send_result_json(fd, req, res_val);
+    send_result(fd, id, cJSON_CreateString("ok"));
 }
 
-static void send_result_num(int fd, cJSON *req, int n)
+static void send_err(int fd, int id, const char *message)
 {
-    send_result_json(fd, req, cJSON_CreateNumber((double)n));
+    cJSON *res = cJSON_CreateObject();
+    cJSON_AddStringToObject(res, "jsonrpc", "2.0");
+    cJSON_AddStringToObject(res, "error", message);
+    cJSON_AddNumberToObject(res, "id", id);
+    char *str = cJSON_PrintUnformatted(res);
+    if (str) { send_msg(fd, str); free(str); }
+    cJSON_Delete(res);
 }
 
-/* ── contacts ────────────────────────────────────────────────────────────── */
-
-static void handle_contacts_list(int fd, cJSON *req)
+static const char *param_str(cJSON *params, const char *key)
 {
-    send_result_json(fd, req, cJSON_Duplicate(g_contacts, 1));
+    cJSON *it = params ? cJSON_GetObjectItem(params, key) : NULL;
+    return cJSON_IsString(it) ? it->valuestring : NULL;
 }
 
-static void handle_contacts_add(int fd, cJSON *req)
+static double param_num(cJSON *params, const char *key, double dflt)
 {
-    cJSON *p = cJSON_GetObjectItem(req, "params");
-    if (!p) { send_error(fd, "missing params"); return; }
-    cJSON *name  = cJSON_GetObjectItem(p, "name");
-    cJSON *phone = cJSON_GetObjectItem(p, "phone");
-    if (!cJSON_IsString(name) || !cJSON_IsString(phone)) {
-        send_error(fd, "name and phone required");
+    cJSON *it = params ? cJSON_GetObjectItem(params, key) : NULL;
+    return cJSON_IsNumber(it) ? it->valuedouble : dflt;
+}
+
+/* ── contacts ───────────────────────────────────────────────────────────── */
+
+static void h_contacts_list(int fd, int id, cJSON *params)
+{
+    (void)params;
+    send_result(fd, id, load_json(CONTACTS_PATH, 1));
+}
+
+static void h_contacts_save(int fd, int id, cJSON *params)
+{
+    const char *name   = param_str(params, "name");
+    const char *number = param_str(params, "number");
+    if (!name || !number) { send_err(fd, id, "missing name or number"); return; }
+
+    cJSON *arr = load_json(CONTACTS_PATH, 1);
+    int replaced = 0;
+    cJSON *it;
+    cJSON_ArrayForEach(it, arr) {
+        cJSON *n = cJSON_GetObjectItem(it, "number");
+        if (cJSON_IsString(n) && strcmp(n->valuestring, number) == 0) {
+            cJSON_ReplaceItemInObject(it, "name", cJSON_CreateString(name));
+            replaced = 1;
+            break;
+        }
+    }
+    if (!replaced) {
+        cJSON *c = cJSON_CreateObject();
+        cJSON_AddStringToObject(c, "name",   name);
+        cJSON_AddStringToObject(c, "number", number);
+        cJSON_AddItemToArray(arr, c);
+    }
+    save_json(CONTACTS_PATH, arr);
+    cJSON_Delete(arr);
+    send_ok(fd, id);
+}
+
+static void h_contacts_delete(int fd, int id, cJSON *params)
+{
+    const char *number = param_str(params, "number");
+    if (!number) { send_err(fd, id, "missing number"); return; }
+
+    cJSON *arr = load_json(CONTACTS_PATH, 1);
+    int n = cJSON_GetArraySize(arr);
+    for (int i = 0; i < n; i++) {
+        cJSON *it = cJSON_GetArrayItem(arr, i);
+        cJSON *num = cJSON_GetObjectItem(it, "number");
+        if (cJSON_IsString(num) && strcmp(num->valuestring, number) == 0) {
+            cJSON_DeleteItemFromArray(arr, i);
+            break;
+        }
+    }
+    save_json(CONTACTS_PATH, arr);
+    cJSON_Delete(arr);
+    send_ok(fd, id);
+}
+
+/* ── history: SMS ───────────────────────────────────────────────────────── */
+
+static void h_add_sms(int fd, int id, cJSON *params)
+{
+    const char *number = param_str(params, "number");
+    const char *dir    = param_str(params, "direction");
+    const char *body   = param_str(params, "body");
+    if (!number || !dir || !body) {
+        send_err(fd, id, "missing number/direction/body");
         return;
     }
-    cJSON *entry = cJSON_CreateObject();
-    int id = next_id(g_contacts);
-    cJSON_AddNumberToObject(entry, "id",    (double)id);
-    cJSON_AddStringToObject(entry, "name",  name->valuestring);
-    cJSON_AddStringToObject(entry, "phone", phone->valuestring);
-    cJSON *email = cJSON_GetObjectItem(p, "email");
-    cJSON_AddStringToObject(entry, "email",
-                            cJSON_IsString(email) ? email->valuestring : "");
-    cJSON *notes = cJSON_GetObjectItem(p, "notes");
-    cJSON_AddStringToObject(entry, "notes",
-                            cJSON_IsString(notes) ? notes->valuestring : "");
-    cJSON_AddItemToArray(g_contacts, entry);
-    save_json(PATH_CONTACTS, g_contacts);
-    send_result_num(fd, req, id);
-}
+    double ts = param_num(params, "ts", (double)time(NULL));
+    /* outgoing messages are born read; incoming default unread */
+    int read_dflt = (strcmp(dir, "out") == 0) ? 1 : 0;
+    int read = (int)param_num(params, "read", read_dflt);
 
-static void handle_contacts_delete(int fd, cJSON *req)
-{
-    cJSON *p  = cJSON_GetObjectItem(req, "params");
-    cJSON *id = cJSON_GetObjectItem(p, "id");
-    if (!cJSON_IsNumber(id)) { send_error(fd, "missing id"); return; }
-    int target = id->valueint;
-    int idx = 0;
-    cJSON *item;
-    cJSON_ArrayForEach(item, g_contacts) {
-        cJSON *cid = cJSON_GetObjectItem(item, "id");
-        if (cJSON_IsNumber(cid) && cid->valueint == target) {
-            cJSON_DeleteItemFromArray(g_contacts, idx);
-            save_json(PATH_CONTACTS, g_contacts);
-            send_result_str(fd, req, "ok");
-            return;
-        }
-        idx++;
-    }
-    send_error(fd, "not found");
-}
-
-static void handle_contacts_update(int fd, cJSON *req)
-{
-    cJSON *p  = cJSON_GetObjectItem(req, "params");
-    cJSON *id = cJSON_GetObjectItem(p, "id");
-    if (!cJSON_IsNumber(id)) { send_error(fd, "missing id"); return; }
-    int target = id->valueint;
-    cJSON *item;
-    cJSON_ArrayForEach(item, g_contacts) {
-        cJSON *cid = cJSON_GetObjectItem(item, "id");
-        if (cJSON_IsNumber(cid) && cid->valueint == target) {
-            cJSON *name  = cJSON_GetObjectItem(p, "name");
-            cJSON *phone = cJSON_GetObjectItem(p, "phone");
-            cJSON *email = cJSON_GetObjectItem(p, "email");
-            cJSON *notes = cJSON_GetObjectItem(p, "notes");
-            if (cJSON_IsString(name))
-                cJSON_ReplaceItemInObject(item, "name",  cJSON_CreateString(name->valuestring));
-            if (cJSON_IsString(phone))
-                cJSON_ReplaceItemInObject(item, "phone", cJSON_CreateString(phone->valuestring));
-            if (cJSON_IsString(email))
-                cJSON_ReplaceItemInObject(item, "email", cJSON_CreateString(email->valuestring));
-            if (cJSON_IsString(notes))
-                cJSON_ReplaceItemInObject(item, "notes", cJSON_CreateString(notes->valuestring));
-            save_json(PATH_CONTACTS, g_contacts);
-            send_result_str(fd, req, "ok");
-            return;
-        }
-    }
-    send_error(fd, "not found");
-}
-
-static void handle_contacts_search(int fd, cJSON *req)
-{
-    cJSON *p     = cJSON_GetObjectItem(req, "params");
-    cJSON *query = cJSON_GetObjectItem(p, "query");
-    if (!cJSON_IsString(query)) { send_error(fd, "missing query"); return; }
-    const char *q = query->valuestring;
-    cJSON *results = cJSON_CreateArray();
-    cJSON *item;
-    cJSON_ArrayForEach(item, g_contacts) {
-        cJSON *name  = cJSON_GetObjectItem(item, "name");
-        cJSON *phone = cJSON_GetObjectItem(item, "phone");
-        int match = 0;
-        if (cJSON_IsString(name)  && strstr(name->valuestring, q))  match = 1;
-        if (cJSON_IsString(phone) && strstr(phone->valuestring, q)) match = 1;
-        if (match) cJSON_AddItemToArray(results, cJSON_Duplicate(item, 1));
-    }
-    send_result_json(fd, req, results);
-}
-
-/* ── messages ────────────────────────────────────────────────────────────── */
-
-static void handle_messages_list(int fd, cJSON *req)
-{
-    send_result_json(fd, req, cJSON_Duplicate(g_messages, 1));
-}
-
-static void handle_messages_add(int fd, cJSON *req)
-{
-    cJSON *p     = cJSON_GetObjectItem(req, "params");
-    cJSON *phone = cJSON_GetObjectItem(p, "phone");
-    cJSON *body  = cJSON_GetObjectItem(p, "body");
-    if (!cJSON_IsString(phone) || !cJSON_IsString(body)) {
-        send_error(fd, "phone and body required");
+    char path[160];
+    if (number_file(number, "sms.json", path, sizeof(path), 1) != 0) {
+        send_err(fd, id, "bad number");
         return;
     }
-    cJSON *entry = cJSON_CreateObject();
-    int id = next_id(g_messages);
-    cJSON_AddNumberToObject(entry, "id",          (double)id);
-    cJSON_AddStringToObject(entry, "phone",        phone->valuestring);
-    cJSON *sender = cJSON_GetObjectItem(p, "sender");
-    cJSON_AddStringToObject(entry, "sender",
-                            cJSON_IsString(sender) ? sender->valuestring : "");
-    cJSON_AddStringToObject(entry, "body",         body->valuestring);
-    cJSON *is_out = cJSON_GetObjectItem(p, "is_outgoing");
-    cJSON_AddNumberToObject(entry, "is_outgoing",
-                            cJSON_IsNumber(is_out) ? is_out->valuedouble : 0);
-    cJSON *ts = cJSON_GetObjectItem(p, "timestamp");
-    cJSON_AddStringToObject(entry, "timestamp",
-                            cJSON_IsString(ts) ? ts->valuestring : "");
-    cJSON_AddNumberToObject(entry, "read", 0);
-    cJSON_AddItemToArray(g_messages, entry);
-    save_json(PATH_MESSAGES, g_messages);
-    send_result_num(fd, req, id);
+    cJSON *arr = load_json(path, 1);
+    cJSON *e = cJSON_CreateObject();
+    cJSON_AddStringToObject(e, "direction", dir);
+    cJSON_AddStringToObject(e, "body", body);
+    cJSON_AddNumberToObject(e, "ts", ts);
+    cJSON_AddNumberToObject(e, "read", read);
+    cJSON_AddItemToArray(arr, e);
+    save_json(path, arr);
+    cJSON_Delete(arr);
+    send_ok(fd, id);
 }
 
-static void handle_messages_delete(int fd, cJSON *req)
+static void h_sms_list(int fd, int id, cJSON *params)
 {
-    cJSON *p  = cJSON_GetObjectItem(req, "params");
-    cJSON *id = cJSON_GetObjectItem(p, "id");
-    if (!cJSON_IsNumber(id)) { send_error(fd, "missing id"); return; }
-    int target = id->valueint;
-    int idx = 0;
-    cJSON *item;
-    cJSON_ArrayForEach(item, g_messages) {
-        cJSON *mid = cJSON_GetObjectItem(item, "id");
-        if (cJSON_IsNumber(mid) && mid->valueint == target) {
-            cJSON_DeleteItemFromArray(g_messages, idx);
-            save_json(PATH_MESSAGES, g_messages);
-            send_result_str(fd, req, "ok");
-            return;
-        }
-        idx++;
-    }
-    send_error(fd, "not found");
-}
-
-static void handle_messages_mark_read(int fd, cJSON *req)
-{
-    cJSON *p  = cJSON_GetObjectItem(req, "params");
-    cJSON *id = cJSON_GetObjectItem(p, "id");
-    if (!cJSON_IsNumber(id)) { send_error(fd, "missing id"); return; }
-    int target = id->valueint;
-    cJSON *item;
-    cJSON_ArrayForEach(item, g_messages) {
-        cJSON *mid = cJSON_GetObjectItem(item, "id");
-        if (cJSON_IsNumber(mid) && mid->valueint == target) {
-            cJSON_ReplaceItemInObject(item, "read", cJSON_CreateNumber(1));
-            save_json(PATH_MESSAGES, g_messages);
-            send_result_str(fd, req, "ok");
-            return;
-        }
-    }
-    send_error(fd, "not found");
-}
-
-/* ── calls ───────────────────────────────────────────────────────────────── */
-
-static void handle_calls_list(int fd, cJSON *req)
-{
-    send_result_json(fd, req, cJSON_Duplicate(g_calls, 1));
-}
-
-static void handle_calls_add(int fd, cJSON *req)
-{
-    cJSON *p     = cJSON_GetObjectItem(req, "params");
-    cJSON *phone = cJSON_GetObjectItem(p, "phone");
-    cJSON *ctype = cJSON_GetObjectItem(p, "call_type");
-    if (!cJSON_IsString(phone)) { send_error(fd, "phone required"); return; }
-
-    cJSON *entry = cJSON_CreateObject();
-    int id = next_id(g_calls);
-    cJSON_AddNumberToObject(entry, "id",          (double)id);
-    cJSON_AddStringToObject(entry, "phone",        phone->valuestring);
-    cJSON *name = cJSON_GetObjectItem(p, "caller_name");
-    cJSON_AddStringToObject(entry, "caller_name",
-                            cJSON_IsString(name) ? name->valuestring : "");
-    cJSON_AddStringToObject(entry, "call_type",
-                            cJSON_IsString(ctype) ? ctype->valuestring : "outgoing");
-    cJSON *dur = cJSON_GetObjectItem(p, "duration_sec");
-    cJSON_AddNumberToObject(entry, "duration_sec",
-                            cJSON_IsNumber(dur) ? dur->valuedouble : 0);
-    cJSON *ts = cJSON_GetObjectItem(p, "timestamp");
-    cJSON_AddStringToObject(entry, "timestamp",
-                            cJSON_IsString(ts) ? ts->valuestring : "");
-    cJSON_AddItemToArray(g_calls, entry);
-    save_json(PATH_CALLS, g_calls);
-    send_result_num(fd, req, id);
-}
-
-static void handle_calls_delete(int fd, cJSON *req)
-{
-    cJSON *p  = cJSON_GetObjectItem(req, "params");
-    cJSON *id = cJSON_GetObjectItem(p, "id");
-    if (!cJSON_IsNumber(id)) { send_error(fd, "missing id"); return; }
-    int target = id->valueint;
-    int idx = 0;
-    cJSON *item;
-    cJSON_ArrayForEach(item, g_calls) {
-        cJSON *cid = cJSON_GetObjectItem(item, "id");
-        if (cJSON_IsNumber(cid) && cid->valueint == target) {
-            cJSON_DeleteItemFromArray(g_calls, idx);
-            save_json(PATH_CALLS, g_calls);
-            send_result_str(fd, req, "ok");
-            return;
-        }
-        idx++;
-    }
-    send_error(fd, "not found");
-}
-
-/* ── locations ───────────────────────────────────────────────────────────── */
-
-static void handle_locations_add(int fd, cJSON *req)
-{
-    cJSON *p   = cJSON_GetObjectItem(req, "params");
-    cJSON *lat = cJSON_GetObjectItem(p, "latitude");
-    cJSON *lon = cJSON_GetObjectItem(p, "longitude");
-    if (!cJSON_IsNumber(lat) || !cJSON_IsNumber(lon)) {
-        send_error(fd, "latitude and longitude required");
+    const char *number = param_str(params, "number");
+    char path[160];
+    if (!number || number_file(number, "sms.json", path, sizeof(path), 0) != 0) {
+        send_err(fd, id, "bad number");
         return;
     }
-    cJSON *entry = cJSON_CreateObject();
-    cJSON_AddNumberToObject(entry, "id",        (double)next_id(g_locations));
-    cJSON_AddNumberToObject(entry, "latitude",  lat->valuedouble);
-    cJSON_AddNumberToObject(entry, "longitude", lon->valuedouble);
-    cJSON *alt = cJSON_GetObjectItem(p, "altitude");
-    cJSON_AddNumberToObject(entry, "altitude",
-                            cJSON_IsNumber(alt) ? alt->valuedouble : 0.0);
-    cJSON *spd = cJSON_GetObjectItem(p, "speed");
-    cJSON_AddNumberToObject(entry, "speed",
-                            cJSON_IsNumber(spd) ? spd->valuedouble : 0.0);
-    cJSON *ts = cJSON_GetObjectItem(p, "timestamp");
-    cJSON_AddStringToObject(entry, "timestamp",
-                            cJSON_IsString(ts) ? ts->valuestring : "");
-    cJSON_AddItemToArray(g_locations, entry);
-    save_json(PATH_LOCATIONS, g_locations);
-    send_result_str(fd, req, "ok");
+    send_result(fd, id, load_json(path, 1));
 }
 
-static void handle_locations_list(int fd, cJSON *req)
+static void h_mark_read(int fd, int id, cJSON *params)
 {
-    send_result_json(fd, req, cJSON_Duplicate(g_locations, 1));
+    const char *number = param_str(params, "number");
+    char path[160];
+    if (!number || number_file(number, "sms.json", path, sizeof(path), 0) != 0) {
+        send_err(fd, id, "bad number");
+        return;
+    }
+    cJSON *arr = load_json(path, 1);
+    int dirty = 0;
+    cJSON *it;
+    cJSON_ArrayForEach(it, arr) {
+        cJSON *r = cJSON_GetObjectItem(it, "read");
+        if (cJSON_IsNumber(r) && r->valueint == 0) {
+            cJSON_SetNumberValue(r, 1);
+            dirty = 1;
+        }
+    }
+    if (dirty) save_json(path, arr);
+    cJSON_Delete(arr);
+    send_ok(fd, id);
 }
 
-/* ── settings ────────────────────────────────────────────────────────────── */
-
-static void handle_settings_get(int fd, cJSON *req)
+/* Thread summary across all number folders. */
+static void h_sms_threads(int fd, int id, cJSON *params)
 {
-    cJSON *p   = cJSON_GetObjectItem(req, "params");
-    cJSON *key = cJSON_GetObjectItem(p, "key");
-    if (!cJSON_IsString(key)) { send_error(fd, "missing key"); return; }
-    cJSON *val = cJSON_GetObjectItem(g_settings, key->valuestring);
-    if (val) {
-        send_result_json(fd, req, cJSON_Duplicate(val, 1));
+    (void)params;
+    cJSON *out = cJSON_CreateArray();
+
+    DIR *d = opendir(NUMBERS_DIR);
+    if (d) {
+        struct dirent *de;
+        while ((de = readdir(d)) != NULL) {
+            if (de->d_name[0] == '.') continue;
+            char path[300];
+            snprintf(path, sizeof(path), NUMBERS_DIR "/%s/sms.json", de->d_name);
+            cJSON *arr = load_json(path, 1);
+            int count = cJSON_GetArraySize(arr);
+            if (count == 0) { cJSON_Delete(arr); continue; }
+
+            int unread = 0;
+            cJSON *it;
+            cJSON_ArrayForEach(it, arr) {
+                cJSON *r = cJSON_GetObjectItem(it, "read");
+                if (cJSON_IsNumber(r) && r->valueint == 0) unread++;
+            }
+            cJSON *last = cJSON_GetArrayItem(arr, count - 1);
+            cJSON *lb = cJSON_GetObjectItem(last, "body");
+            cJSON *lt = cJSON_GetObjectItem(last, "ts");
+
+            cJSON *t = cJSON_CreateObject();
+            cJSON_AddStringToObject(t, "number", de->d_name);
+            cJSON_AddStringToObject(t, "last_body",
+                                    cJSON_IsString(lb) ? lb->valuestring : "");
+            cJSON_AddNumberToObject(t, "last_ts",
+                                    cJSON_IsNumber(lt) ? lt->valuedouble : 0);
+            cJSON_AddNumberToObject(t, "unread", unread);
+            cJSON_AddNumberToObject(t, "count", count);
+            cJSON_AddItemToArray(out, t);
+            cJSON_Delete(arr);
+        }
+        closedir(d);
+    }
+
+    /* sort by last_ts desc (simple insertion into new array) */
+    int n = cJSON_GetArraySize(out);
+    cJSON *sorted = cJSON_CreateArray();
+    for (int i = 0; i < n; i++) {
+        cJSON *best = NULL; int best_idx = -1; double best_ts = -1;
+        for (int j = 0; j < cJSON_GetArraySize(out); j++) {
+            cJSON *c = cJSON_GetArrayItem(out, j);
+            double ts = param_num(c, "last_ts", 0);
+            if (ts > best_ts) { best_ts = ts; best = c; best_idx = j; }
+        }
+        (void)best;
+        if (best_idx >= 0)
+            cJSON_AddItemToArray(sorted, cJSON_DetachItemFromArray(out, best_idx));
+    }
+    cJSON_Delete(out);
+    send_result(fd, id, sorted);
+}
+
+/* ── history: calls ─────────────────────────────────────────────────────── */
+
+static void h_add_call(int fd, int id, cJSON *params)
+{
+    const char *number  = param_str(params, "number");
+    const char *dir     = param_str(params, "direction");
+    const char *outcome = param_str(params, "outcome");
+    if (!number || !dir || !outcome) {
+        send_err(fd, id, "missing number/direction/outcome");
+        return;
+    }
+    double ts  = param_num(params, "ts", (double)time(NULL));
+    int    dur = (int)param_num(params, "duration", 0);
+
+    char path[160];
+    if (number_file(number, "calls.json", path, sizeof(path), 1) != 0) {
+        send_err(fd, id, "bad number");
+        return;
+    }
+    cJSON *arr = load_json(path, 1);
+    cJSON *e = cJSON_CreateObject();
+    cJSON_AddStringToObject(e, "direction", dir);
+    cJSON_AddStringToObject(e, "outcome", outcome);
+    cJSON_AddNumberToObject(e, "ts", ts);
+    cJSON_AddNumberToObject(e, "duration", dur);
+    cJSON_AddItemToArray(arr, e);
+    save_json(path, arr);
+    cJSON_Delete(arr);
+    send_ok(fd, id);
+}
+
+static void h_calls_list(int fd, int id, cJSON *params)
+{
+    const char *number = param_str(params, "number");
+    char path[160];
+    if (!number || number_file(number, "calls.json", path, sizeof(path), 0) != 0) {
+        send_err(fd, id, "bad number");
+        return;
+    }
+    send_result(fd, id, load_json(path, 1));
+}
+
+/* Merged recent calls across every number folder, newest first. */
+static void h_calls_recent(int fd, int id, cJSON *params)
+{
+    int limit = (int)param_num(params, "limit", 50);
+    if (limit <= 0 || limit > 500) limit = 50;
+
+    cJSON *all = cJSON_CreateArray();
+    DIR *d = opendir(NUMBERS_DIR);
+    if (d) {
+        struct dirent *de;
+        while ((de = readdir(d)) != NULL) {
+            if (de->d_name[0] == '.') continue;
+            char path[300];
+            snprintf(path, sizeof(path), NUMBERS_DIR "/%s/calls.json", de->d_name);
+            cJSON *arr = load_json(path, 1);
+            cJSON *it;
+            cJSON_ArrayForEach(it, arr) {
+                cJSON *e = cJSON_Duplicate(it, 1);
+                cJSON_AddStringToObject(e, "number", de->d_name);
+                cJSON_AddItemToArray(all, e);
+            }
+            cJSON_Delete(arr);
+        }
+        closedir(d);
+    }
+
+    /* selection-sort the newest `limit` entries into the result */
+    cJSON *sorted = cJSON_CreateArray();
+    for (int i = 0; i < limit && cJSON_GetArraySize(all) > 0; i++) {
+        int best_idx = -1; double best_ts = -1;
+        for (int j = 0; j < cJSON_GetArraySize(all); j++) {
+            double ts = param_num(cJSON_GetArrayItem(all, j), "ts", 0);
+            if (ts > best_ts) { best_ts = ts; best_idx = j; }
+        }
+        if (best_idx < 0) break;
+        cJSON_AddItemToArray(sorted, cJSON_DetachItemFromArray(all, best_idx));
+    }
+    cJSON_Delete(all);
+    send_result(fd, id, sorted);
+}
+
+/* ── settings ───────────────────────────────────────────────────────────── */
+
+static void h_settings_get(int fd, int id, cJSON *params)
+{
+    const char *key = param_str(params, "key");
+    cJSON *obj = load_json(SETTINGS_PATH, 0);
+    if (key) {
+        cJSON *v = cJSON_GetObjectItem(obj, key);
+        send_result(fd, id, v ? cJSON_Duplicate(v, 1) : cJSON_CreateNull());
+        cJSON_Delete(obj);
     } else {
-        send_result_str(fd, req, "");
+        send_result(fd, id, obj);   /* whole object */
     }
 }
 
-static void handle_settings_set(int fd, cJSON *req)
+static void h_settings_set(int fd, int id, cJSON *params)
 {
-    cJSON *p     = cJSON_GetObjectItem(req, "params");
-    cJSON *key   = cJSON_GetObjectItem(p, "key");
-    cJSON *value = cJSON_GetObjectItem(p, "value");
-    if (!cJSON_IsString(key)) { send_error(fd, "missing key"); return; }
-    if (cJSON_GetObjectItem(g_settings, key->valuestring))
-        cJSON_ReplaceItemInObject(g_settings, key->valuestring, cJSON_Duplicate(value, 1));
+    const char *key = param_str(params, "key");
+    cJSON *val = params ? cJSON_GetObjectItem(params, "value") : NULL;
+    if (!key || !val) { send_err(fd, id, "missing key or value"); return; }
+
+    cJSON *obj = load_json(SETTINGS_PATH, 0);
+    if (cJSON_GetObjectItem(obj, key))
+        cJSON_ReplaceItemInObject(obj, key, cJSON_Duplicate(val, 1));
     else
-        cJSON_AddItemToObject(g_settings, key->valuestring, cJSON_Duplicate(value, 1));
-    save_json(PATH_SETTINGS, g_settings);
-    send_result_str(fd, req, "ok");
+        cJSON_AddItemToObject(obj, key, cJSON_Duplicate(val, 1));
+    save_json(SETTINGS_PATH, obj);
+    cJSON_Delete(obj);
+    send_ok(fd, id);
 }
 
-/* ── dispatch ────────────────────────────────────────────────────────────── */
+static void h_ping(int fd, int id, cJSON *params)
+{
+    (void)params;
+    send_result(fd, id, cJSON_CreateString("pong"));
+}
 
-struct handler { const char *method; void (*fn)(int, cJSON *); };
+/* ── dispatch ───────────────────────────────────────────────────────────── */
 
-static struct handler table[] = {
-    {"contacts.list",     handle_contacts_list},
-    {"contacts.add",      handle_contacts_add},
-    {"contacts.delete",   handle_contacts_delete},
-    {"contacts.update",   handle_contacts_update},
-    {"contacts.search",   handle_contacts_search},
-    {"messages.list",     handle_messages_list},
-    {"messages.add",      handle_messages_add},
-    {"messages.delete",   handle_messages_delete},
-    {"messages.mark_read",handle_messages_mark_read},
-    {"calls.list",        handle_calls_list},
-    {"calls.add",         handle_calls_add},
-    {"calls.delete",      handle_calls_delete},
-    {"locations.add",     handle_locations_add},
-    {"locations.list",    handle_locations_list},
-    {"settings.get",      handle_settings_get},
-    {"settings.set",      handle_settings_set},
-    {NULL, NULL}
+struct handler { const char *method; void (*fn)(int, int, cJSON *); };
+
+static const struct handler TABLE[] = {
+    { "ping",                 h_ping            },
+    { "contacts.list",        h_contacts_list   },
+    { "contacts.save",        h_contacts_save   },
+    { "contacts.delete",      h_contacts_delete },
+    { "history.add_sms",      h_add_sms         },
+    { "history.sms_list",     h_sms_list        },
+    { "history.sms_threads",  h_sms_threads     },
+    { "history.mark_read",    h_mark_read       },
+    { "history.add_call",     h_add_call        },
+    { "history.calls_list",   h_calls_list      },
+    { "history.calls_recent", h_calls_recent    },
+    { "settings.get",         h_settings_get    },
+    { "settings.set",         h_settings_set    },
+    { NULL, NULL }
 };
 
-static void dispatch(int fd, cJSON *req)
+static void dispatch(int fd, const char *json)
 {
-    cJSON *ver  = cJSON_GetObjectItem(req, "jsonrpc");
-    if (!ver || !cJSON_IsString(ver) || strcmp(ver->valuestring, "2.0") != 0) {
-        send_error(fd, "invalid jsonrpc version");
+    cJSON *req = cJSON_Parse(json);
+    if (!req) { send_err(fd, 0, "invalid json"); return; }
+
+    cJSON *id_item = cJSON_GetObjectItem(req, "id");
+    int id = cJSON_IsNumber(id_item) ? id_item->valueint : 0;
+
+    cJSON *meth   = cJSON_GetObjectItem(req, "method");
+    cJSON *params = cJSON_GetObjectItem(req, "params");
+    if (!cJSON_IsString(meth)) {
+        send_err(fd, id, "missing method");
+        cJSON_Delete(req);
         return;
     }
-    cJSON *id = cJSON_GetObjectItem(req, "id");
-    if (!id || !cJSON_IsNumber(id)) { send_error(fd, "missing id"); return; }
-    cJSON *meth = cJSON_GetObjectItem(req, "method");
-    if (!meth || !cJSON_IsString(meth)) { send_error(fd, "missing method"); return; }
 
-    const char *method = meth->valuestring;
-    for (int i = 0; table[i].method; i++) {
-        if (strcmp(table[i].method, method) == 0) {
-            table[i].fn(fd, req);
+    for (int i = 0; TABLE[i].method; i++) {
+        if (strcmp(TABLE[i].method, meth->valuestring) == 0) {
+            TABLE[i].fn(fd, id, params);
+            cJSON_Delete(req);
             return;
         }
     }
-    send_error(fd, "unknown method");
+    send_err(fd, id, "unknown method");
+    cJSON_Delete(req);
 }
 
-/* ── main ─────────────────────────────────────────────────────────────────── */
+/* ── main ───────────────────────────────────────────────────────────────── */
 
 int main(void)
 {
-    /* Ensure data directory exists */
-    mkdir(DATA_DIR, 0755);
-
-    /* Load all JSON data files */
-    g_contacts  = load_json_array(PATH_CONTACTS);
-    g_messages  = load_json_array(PATH_MESSAGES);
-    g_calls     = load_json_array(PATH_CALLS);
-    g_locations = load_json_array(PATH_LOCATIONS);
-    g_settings  = load_json_object(PATH_SETTINGS);
+    ensure_dirs();
 
     int server_fd = ipc_server_listen(STORAGE_SOCK);
     if (server_fd < 0) {
-        perror("blackhand-storage: ipc_server_listen failed");
-        return EXIT_FAILURE;
+        fprintf(stderr, "blackhand-storage: ipc_server_listen(%s) failed\n",
+                STORAGE_SOCK);
+        return 1;
     }
-
     fprintf(stderr, "blackhand-storage: listening on " STORAGE_SOCK "\n");
 
     while (1) {
         int client_fd = accept(server_fd, NULL, NULL);
-        if (client_fd < 0) {
-            perror("blackhand-storage: accept");
-            continue;
-        }
+        if (client_fd < 0) continue;
         while (1) {
             char buffer[BUFFER_SIZE];
             int n = recv_msg(client_fd, buffer, BUFFER_SIZE);
             if (n <= 0) break;
-
-            cJSON *req = cJSON_Parse(buffer);
-            if (!req) break;
-
-            dispatch(client_fd, req);
-            cJSON_Delete(req);
+            dispatch(client_fd, buffer);
         }
         close(client_fd);
     }
-
     return 0;
 }

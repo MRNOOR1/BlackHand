@@ -1,6 +1,7 @@
 #include "serial_utility.h"
 #include "Modem.h"
 #include "urc.h"
+#include "modem_storage.h"
 #include <pthread.h>
 #include <string.h>
 #include <stdio.h>
@@ -124,8 +125,11 @@ void urc_stop()
 
 void handle_ring(const char *line)
 {
+	(void)line;
 	printf("Incoming call logic\n");
 	call_state = CALL_RINGING;
+	// RING repeats — call_session_start ignores all but the first.
+	call_session_start(1, NULL);
 }
 
 void handle_clip(const char *line)
@@ -144,6 +148,7 @@ void handle_clip(const char *line)
 			memcpy(number, start, len);
 			number[len] = '\0';
 			modem_set_incoming_number(number);
+			call_session_set_number(number);
 			printf("Caller ID: %s\n", number);
 			return;
 		}
@@ -173,6 +178,8 @@ void handle_cmt(const char *line)
 	int n = read_line(fn, body, sizeof(body), 2000);
 	if (n > 0) {
 		printf("SMS from %s: %s\n", sender[0] ? sender : "(unknown)", body);
+		// Persist first (source of truth), then queue for the UI banner.
+		storage_record_sms(sender, "in", body);
 		modem_push_pending_sms(sender, body);
 	} else {
 		printf("SMS body: <missing or timed out>\n");
@@ -181,34 +188,44 @@ void handle_cmt(const char *line)
 
 void handle_no_carrier(const char *line)
 {
+	(void)line;
 	printf("Call ended logic\n");
 	call_state = CALL_IDLE;
 	modem_clear_incoming_number();
+	call_session_end(NULL);   /* derive: answered / missed / no_answer */
 }
 
 void handle_busy(const char *line)
 {
+	(void)line;
 	printf("Line busy logic\n");
 	call_state = CALL_IDLE;
 	modem_clear_incoming_number();
+	call_session_end("busy");
 }
 
 void handle_call_begin(const char *line)
 {
+	(void)line;
 	printf("Call connected logic\n");
 	call_state = CALL_ACTIVE;
+	call_session_answered();
 }
 
 void handle_call_end(const char *line)
 {
+	(void)line;
 	printf("Call ended logic\n");
 	call_state = CALL_IDLE;
 	modem_clear_incoming_number();
+	call_session_end(NULL);
 }
 
 void handle_missed_call(const char *line)
 {
+	(void)line;
 	printf("Missed call logic\n");
 	call_state = CALL_IDLE;
 	modem_clear_incoming_number();
+	call_session_end("missed");
 }

@@ -208,7 +208,7 @@ static void draw_off(struct ncplane *p, unsigned rows, unsigned cols)
                theme_text_muted(), "Bluetooth is off");
     ghost_text(p, CONTENT_START_ROW + 5, CONTENT_COL,
                theme_text_primary(), "Press ENTER to power on");
-    ghost_softkeys(p, "[Back]", "[On]");
+    ghost_softkeys(p, "[Back]", "[Power On]");
 }
 
 /* ── SCANNING ────────────────────────────────────────────────────────── */
@@ -230,7 +230,24 @@ static void draw_scanning(struct ncplane *p, unsigned rows, unsigned cols)
 
 static void draw_idle(struct ncplane *p, unsigned rows, unsigned cols)
 {
-    draw_header(p, cols, "  [ON]");
+    /* Surface the live link in the header — "can't see what's connected"
+     * should never be a thing on this screen. */
+    char sub[80] = "  [ON]";
+    {
+        char mac[24] = "";
+        bluetooth_service_get_connected_mac(mac, sizeof(mac));
+        if (mac[0]) {
+            const char *label = mac;
+            size_t n = bluetooth_service_device_count();
+            for (size_t i = 0; i < n; i++) {
+                const BtDevice *d = bluetooth_service_device_at(i);
+                if (d && strcmp(d->mac, mac) == 0 &&
+                    d->name[0] && !mac_is_safe(d->name)) { label = d->name; break; }
+            }
+            snprintf(sub, sizeof(sub), "  [ON] ▸ %.40s", label);
+        }
+    }
+    draw_header(p, cols, sub);
 
     int footer     = (int)rows - FOOTER_ROW_OFFSET;
     int list_start = CONTENT_START_ROW + 2;
@@ -309,7 +326,7 @@ static void draw_idle(struct ncplane *p, unsigned rows, unsigned cols)
         ghost_text(p, footer - 2, CONTENT_COL, theme_text_muted(),
                    "ENTER to connect");
 
-    ghost_softkeys(p, "[Back]", "[Off]");
+    ghost_softkeys(p, "[Back]", "[Power Off]");
 }
 
 /* ── DEVICE DETAIL ───────────────────────────────────────────────────── */
@@ -453,6 +470,7 @@ screen_id screen_bluetooth_input(uint32_t key)
         switch (key)
         {
         case NCKEY_ENTER: case '\n':
+        case KEY_SOFT_RIGHT_ACTION:   /* [On] softkey — was dead before */
             bluetooth_service_set_power(1);
             s_bt_powered = 1;
             scan_tick    = 0;

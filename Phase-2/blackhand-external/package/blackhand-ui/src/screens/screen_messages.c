@@ -9,10 +9,13 @@
 #include "services/theme_service.h"
 #include "services/multitap_service.h"
 #include "ui-ipcs/modem_ipc.h"
+#include "ui-ipcs/storage_ipc.h"
+#include "country_codes.h"
 #include "ui.h"
 
 typedef enum {
-    MSG_INBOX,
+    MSG_INBOX,     /* thread list: one row per conversation */
+    MSG_THREAD,    /* one open conversation, oldest→newest  */
     MSG_COMPOSE,
 } msg_state_t;
 
@@ -30,6 +33,9 @@ static multitap_state s_mt;
 static int    s_mt_ready = 0;
 static int    s_send_feedback = 0; /* 1=sent ok, -1=error, 0=idle */
 static int    s_send_ticks = 0;
+
+/* Thread view scroll: index of the first visible message. */
+static int    s_thread_scroll = 0;
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
 
@@ -124,21 +130,73 @@ void screen_messages_draw(struct ncplane *phone)
                        s_send_feedback > 0 ? "Message sent!" : "Send failed");
         }
 
-        ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(),
-                   "2-9:ABC  #:Case  *:Punct");
-        ghost_softkeys(phone, "[Cancel]", "[Send]");
+        /* char counter in the footer position (blueprint SEND) */
+        char counter[16];
+        snprintf(counter, sizeof(counter), "%d/160", (int)strlen(s_compose_body));
+        ghost_text(phone, footer - 2, (int)cols - CONTENT_COL - (int)strlen(counter),
+                   theme_border(), counter);
+
+        ghost_action_cells(phone, "SEND", "CLR", -1);
+        return;
+    }
+
+    /* ── open conversation ── */
+    if (s_state == MSG_THREAD) {
+        size_t n = comm_service_thread_count();
+
+        /* header: who we're talking to */
+        char hdr[64];
+        const CommMessage *first = comm_service_thread_at(0);
+        snprintf(hdr, sizeof(hdr), "%s",
+                 (first && !first->is_outgoing && first->sender[0])
+                     ? first->sender : comm_service_thread_number());
+        ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL,
+                   theme_text_primary(), hdr);
+
+        int list_start = CONTENT_START_ROW + 4;
+        int visible    = footer - list_start - 1;
+        if (visible < 1) visible = 1;
+
+        if (s_thread_scroll < 0) s_thread_scroll = 0;
+        if ((int)n > visible && s_thread_scroll > (int)n - visible)
+            s_thread_scroll = (int)n - visible;
+
+        if (n == 0) {
+            ghost_text(phone, list_start, CONTENT_COL, theme_text_muted(),
+                       "No messages in this conversation");
+        }
+
+        for (int i = 0; i < visible; i++) {
+            int idx = s_thread_scroll + i;
+            if (idx >= (int)n) break;
+            const CommMessage *m = comm_service_thread_at((size_t)idx);
+            if (!m) continue;
+
+            char line[256];
+            snprintf(line, sizeof(line), "%s %s",
+                     m->is_outgoing ? "→" : "←", m->body);
+            if ((int)strlen(line) > width) line[width] = '\0';
+            ncplane_set_fg_rgb(phone, m->is_outgoing ? theme_text_muted()
+                                                     : theme_text_primary());
+            ncplane_set_bg_rgb(phone, theme_bg());
+            ncplane_putstr_yx(phone, list_start + i, CONTENT_COL, line);
+        }
+
+        ghost_action_cells(phone, "REPLY", "", 0);
         return;
     }
 
     /* ── inbox ── */
-    if (!modem_ipc_is_online()) {
+    if (!comm_service_storage_ok()) {
+        ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL,
+                   theme_text_primary(), "! STORAGE OFFLINE");
+        ghost_text(phone, CONTENT_START_ROW + 3, CONTENT_COL,
+                   theme_text_muted(), "history unavailable (bh-storage down)");
+    } else if (!modem_ipc_is_online()) {
         ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL,
                    theme_text_primary(), "! MODEM OFFLINE");
         ghost_text(phone, CONTENT_START_ROW + 3, CONTENT_COL,
                    theme_text_muted(), modem_ipc_health_error());
-    } else {
-        ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL,
-                   theme_text_muted(), "STATE: INBOX");
     }
 
     size_t count = comm_service_message_count();
@@ -170,16 +228,12 @@ void screen_messages_draw(struct ncplane *phone)
             if (row >= footer - 1) break;
             int sel = (idx == s_selected);
 
-            char line[256];
-            snprintf(line, sizeof(line), "%s%s%-12s  %s",
-                     sel ? MENU_CURSOR : MENU_CURSOR_BLANK,
-                     msg->is_outgoing ? "→ " : "← ",
-                     msg->sender,
-                     msg->body);
-            if ((int)strlen(line) > width) line[width] = '\0';
-            ncplane_set_fg_rgb(phone, sel ? theme_text_primary() : theme_text_muted());
-            ncplane_set_bg_rgb(phone, theme_bg());
-            ncplane_putstr_yx(phone, row, CONTENT_COL, line);
+            /* blueprint MSGS row: NAME (left, 10ch) · unread ● + HH:MM */
+            char label[16], meta[20];
+            snprintf(label, sizeof(label), "%.10s", msg->sender);
+            snprintf(meta, sizeof(meta), "%s%s",
+                     msg->read ? "" : "● ", msg->stamp);
+            ghost_list_row_meta(phone, row, (int)cols, idx, sel, label, meta);
         }
     }
 
@@ -215,6 +269,20 @@ screen_id screen_messages_input(uint32_t key)
             case KEY_SOFT_RIGHT_ACTION: {
                 /* Send */
                 if (s_compose_number[0] && s_compose_body[0]) {
+                    /* Normalise to E.164 with the user's selected country so
+                     * the modem dials/stores the same key as everything else. */
+                    char e164[40];
+                    {
+                        const CountryCode *cc = NULL;
+                        char iso[8];
+                        if (storage_ipc_settings_get_str("country_iso", iso,
+                                                         sizeof(iso)) == 0)
+                            cc = country_by_iso(iso);
+                        if (phone_normalize(s_compose_number, cc,
+                                            e164, sizeof(e164)) != 0)
+                            snprintf(e164, sizeof(e164), "%s", s_compose_number);
+                    }
+                    snprintf(s_compose_number, sizeof(s_compose_number), "%s", e164);
                     int rc = modem_ipc_send_sms(s_compose_number, s_compose_body);
                     if (rc == 0) {
                         comm_service_message_add_full(
@@ -265,6 +333,29 @@ screen_id screen_messages_input(uint32_t key)
         }
     }
 
+    /* ── open conversation ── */
+    if (s_state == MSG_THREAD) {
+        switch (key) {
+            case NCKEY_UP:
+                if (s_thread_scroll > 0) s_thread_scroll--;
+                return SCREEN_MESSAGES;
+            case NCKEY_DOWN:
+                s_thread_scroll++;   /* clamped in draw */
+                return SCREEN_MESSAGES;
+            case KEY_SOFT_RIGHT_ACTION:
+            case NCKEY_ENTER: case '\n':
+                enter_compose(comm_service_thread_number());
+                return SCREEN_MESSAGES;
+            case KEY_SOFT_LEFT_ACTION:
+            case NCKEY_LEFT:
+                comm_service_sync();   /* refresh unread counts */
+                s_state = MSG_INBOX;
+                return SCREEN_MESSAGES;
+            default:
+                return SCREEN_MESSAGES;
+        }
+    }
+
     /* ── delete prompt ── */
     if (s_delete_prompt) {
         switch (key) {
@@ -301,8 +392,12 @@ screen_id screen_messages_input(uint32_t key)
             enter_compose(NULL);
             return SCREEN_MESSAGES;
         case NCKEY_ENTER: case '\n': {
+            /* open the conversation; scroll to the newest message */
             const CommMessage *m = comm_service_message_at((size_t)s_selected);
-            if (m) enter_compose(m->phone);
+            if (m && comm_service_thread_open(m->phone) == 0) {
+                s_thread_scroll = 1 << 20;   /* clamped to bottom in draw */
+                s_state = MSG_THREAD;
+            }
             return SCREEN_MESSAGES;
         }
         case NCKEY_LEFT:

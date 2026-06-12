@@ -1,44 +1,33 @@
+/*
+ * storage_ipc.h — UI-side client for blackhand-storage (per-number layout).
+ *
+ * The UI is a READER of history (/data/numbers/...) and the OWNER of contact
+ * edits (/data/contacts/contacts.json). It never writes call/SMS history —
+ * the modem service does that on URC events.
+ *
+ * List-returning calls fill buf with the JSON array string from the service.
+ * All return 0 on success, -1 on IPC/parse failure.
+ */
 #ifndef STORAGE_IPC_H
 #define STORAGE_IPC_H
 
-/*
- * storage_ipc — client-side wrappers for blackhand-storage JSON-RPC calls.
- * All functions return 0 on success, -1 on IPC failure.
- *
- * Array results are written as JSON strings into the caller's buffer
- * (same pattern as audio_ipc).
- */
+int storage_ipc_ping(void);
 
-/* ── Contacts ────────────────────────────────────────────────────────────── */
+/* contacts.json — the lookup table */
 int storage_ipc_contacts_list(char *buf, int buf_size);
-/* params: { "name":"Alice", "phone":"+1234", "email":"", "notes":"" }
- * Returns the new contact id on success (>= 1), -1 on failure. */
-int storage_ipc_contacts_add(const char *name, const char *phone,
-                              const char *email, const char *notes);
-int storage_ipc_contacts_delete(int id);
-int storage_ipc_contacts_update(int id, const char *name, const char *phone);
-int storage_ipc_contacts_search(const char *query, char *buf, int buf_size);
+int storage_ipc_contacts_save(const char *name, const char *number);
+int storage_ipc_contacts_delete(const char *number);
 
-/* ── Messages ────────────────────────────────────────────────────────────── */
-int storage_ipc_messages_list(char *buf, int buf_size);
-int storage_ipc_messages_add(const char *phone, const char *sender,
-                              const char *body, int is_outgoing);
-int storage_ipc_messages_delete(int id);
-int storage_ipc_messages_mark_read(int id);
+/* SMS history */
+int storage_ipc_sms_threads(char *buf, int buf_size);
+int storage_ipc_sms_list(const char *number, char *buf, int buf_size);
+int storage_ipc_mark_read(const char *number);
 
-/* ── Calls ───────────────────────────────────────────────────────────────── */
-int storage_ipc_calls_list(char *buf, int buf_size);
-int storage_ipc_calls_add(const char *phone, const char *caller_name,
-                           const char *call_type, int duration_sec);
-int storage_ipc_calls_delete(int id);
+/* call history (merged across numbers, newest first) */
+int storage_ipc_calls_recent(int limit, char *buf, int buf_size);
 
-/* ── Locations ───────────────────────────────────────────────────────────── */
-int storage_ipc_locations_add(double lat, double lon,
-                               double alt, double speed);
-int storage_ipc_locations_list(char *buf, int buf_size);
-
-/* ── Settings ────────────────────────────────────────────────────────────── */
-int storage_ipc_settings_get(const char *key, char *val_buf, int val_size);
-int storage_ipc_settings_set(const char *key, const char *value);
+/* settings.json */
+int storage_ipc_settings_get_str(const char *key, char *buf, int buf_size);
+int storage_ipc_settings_set_str(const char *key, const char *value);
 
 #endif

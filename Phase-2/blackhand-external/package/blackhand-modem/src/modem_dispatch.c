@@ -1,6 +1,7 @@
 #include "modem_dispatch.h"
 #include "Modem.h"
 #include "serial_utility.h"
+#include "modem_storage.h"
 #include "ipc.h"
 #include "cJSON.h"
 
@@ -128,6 +129,8 @@ static void handle_send_sms(int fd, int id, cJSON *params)
 		return;
 	}
 	int rc = modem_sms_send(num->valuestring, body->valuestring);
+	if (rc > 0)
+		storage_record_sms(num->valuestring, "out", body->valuestring);
 	send_result_str(fd, id, rc > 0 ? "ok" : "error");
 }
 
@@ -168,7 +171,7 @@ static void handle_modem_status(int fd, int id, cJSON *params)
 	REQUIRE_MODEM_OR_FAIL(fd, id);
 	cJSON *obj = cJSON_CreateObject();
 
-	cJSON_AddNumberToObject(obj, "signal",            modem_signal());
+	cJSON_AddNumberToObject(obj, "signal",            modem_signal_cached());
 	cJSON_AddBoolToObject  (obj, "has_incoming_call", call_state == CALL_RINGING);
 
 	const char *state_str = "idle";

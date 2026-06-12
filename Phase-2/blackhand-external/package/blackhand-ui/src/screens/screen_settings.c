@@ -143,7 +143,7 @@ static void draw_main(struct ncplane *phone) {
         ncplane_putstr_yx(phone, CONTENT_START_ROW + 1, CONTENT_COL + x, (rule && rule[0]) ? rule : "-");
 
     ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL, theme_text_muted(),
-               settings_service_get_bool(SETTINGS_KEY_NIGHT_MODE) ? "Mode: Dark" : "Mode: Light");
+               theme_active()->id);
 
     if (s_selected < 0) s_selected = 0;
     if (s_selected >= MAIN_ITEM_COUNT) s_selected = MAIN_ITEM_COUNT - 1;
@@ -151,12 +151,7 @@ static void draw_main(struct ncplane *phone) {
     for (int i = 0; i < MAIN_ITEM_COUNT; i++) {
         int row = CONTENT_START_ROW + 3 + i;
         if (row >= footer) break;
-
-        const char *cursor = (i == s_selected) ? MENU_CURSOR : MENU_CURSOR_BLANK;
-        ncplane_set_fg_rgb(phone, (i == s_selected) ? theme_selection_text() : theme_text_muted());
-        ncplane_set_bg_rgb(phone, (i == s_selected) ? theme_selection_bg() : theme_bg());
-        ncplane_putstr_yx(phone, row, CONTENT_COL, cursor);
-        ncplane_putstr_yx(phone, row, CONTENT_COL + 1, main_items[i]);
+        ghost_list_row(phone, row, (int)cols, i, (i == s_selected), main_items[i]);
     }
 
     ghost_softkeys(phone, "[Back]", "[Open]");
@@ -178,30 +173,17 @@ static void draw_appearance(struct ncplane *phone) {
     for (int x = 0; x < width && CONTENT_COL + x < (int)cols - 1; x++)
         ncplane_putstr_yx(phone, CONTENT_START_ROW + 1, CONTENT_COL + x, (rule && rule[0]) ? rule : "-");
 
-    int total = 2;
+    int total = 1;
     if (s_sub_selected >= total) s_sub_selected = total - 1;
     if (s_sub_selected < 0) s_sub_selected = 0;
 
-    /* Night Mode toggle */
+    /* Single item: theme picker with live readout. (The old night-mode
+     * toggle is gone — all spec themes are dark instruments by design.) */
     int row = CONTENT_START_ROW + 4;
     if (row < footer) {
-        ncplane_set_fg_rgb(phone, (s_sub_selected == 0) ? theme_selection_text() : theme_text_muted());
-        ncplane_set_bg_rgb(phone, (s_sub_selected == 0) ? theme_selection_bg() : theme_bg());
-        ncplane_putstr_yx(phone, row, CONTENT_COL,
-                          (s_sub_selected == 0) ? MENU_CURSOR : MENU_CURSOR_BLANK);
-        ncplane_putstr_yx(phone, row, CONTENT_COL + 1,
-                          settings_service_get_bool(SETTINGS_KEY_NIGHT_MODE) ?
-                          "[ON]  DARK MODE" : "[OFF] DARK MODE");
-    }
-
-    /* Theme option (only in light mode) */
-    row = CONTENT_START_ROW + 5;
-    if (row < footer) {
-        ncplane_set_fg_rgb(phone, (s_sub_selected == 1) ? theme_selection_text() : theme_text_muted());
-        ncplane_set_bg_rgb(phone, (s_sub_selected == 1) ? theme_selection_bg() : theme_bg());
-        ncplane_putstr_yx(phone, row, CONTENT_COL,
-                          (s_sub_selected == 1) ? MENU_CURSOR : MENU_CURSOR_BLANK);
-        ncplane_putstr_yx(phone, row, CONTENT_COL + 1, "[OPEN] THEMES");
+        char line[40];
+        snprintf(line, sizeof(line), "THEME  ▸ %s", theme_active()->id);
+        ghost_list_row(phone, row, (int)cols, 0, (s_sub_selected == 0), line);
     }
 
     ghost_softkeys(phone, "[Back]", "[Select]");
@@ -464,7 +446,7 @@ screen_id screen_settings_input(uint32_t key) {
 
     /* ── Appearance sub-menu ──────────────────────────────────────── */
     if (mode == SETT_MODE_APPEARANCE) {
-        int total = 2;
+        int total = 1;
         switch (key) {
             case NCKEY_UP:
                 if (s_sub_selected > 0) s_sub_selected--;
@@ -474,13 +456,7 @@ screen_id screen_settings_input(uint32_t key) {
                 return SCREEN_SETTINGS;
             case NCKEY_ENTER:
             case '\n':
-                if (s_sub_selected == APP_NIGHT_MODE) {
-                    settings_service_toggle_by_key(SETTINGS_KEY_NIGHT_MODE);
-                    theme_service_sync_from_settings();
-                } else if (s_sub_selected == APP_THEME) {
-                    return SCREEN_THEME;
-                }
-                return SCREEN_SETTINGS;
+                return SCREEN_THEME;
             case KEY_SOFT_RIGHT_ACTION:
                 return SCREEN_HOME;
             case KEY_SOFT_LEFT_ACTION:

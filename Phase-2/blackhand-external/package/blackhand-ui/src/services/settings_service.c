@@ -18,12 +18,16 @@ static setting_item_t g_items[] = {
     { SETTINGS_KEY_AUX_INPUT,  SETTINGS_LABEL_AUX_INPUT,  SETTINGS_DEFAULT_AUX_INPUT,  SETTINGS_DEFAULT_AUX_INPUT  },
 };
 
+/* Theme ids — must match k_themes[] order in theme_service.c (spec §5). */
 static const char *g_themes[] = {
-    UI_THEME_LABEL_0,
-    UI_THEME_LABEL_1,
-    UI_THEME_LABEL_2,
-    UI_THEME_LABEL_3,
-    UI_THEME_LABEL_4,
+    "AMBER-LEDGER",
+    "PHOSPHOR-INDEX",
+    "REDLINE-MONO",
+    "VALE-SIGNAL",
+    "RUSHNYK",
+    "THERMAL-INDEX",
+    "INSTRUMENT",
+    "BOOT-RITE",
 };
 
 static const int g_item_count = (int)(sizeof(g_items) / sizeof(g_items[0]));

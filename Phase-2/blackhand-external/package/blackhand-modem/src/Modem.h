@@ -29,6 +29,13 @@ void modem_set_incoming_number(const char *num);
 void modem_get_incoming_number(char *buf, size_t buf_size);
 void modem_clear_incoming_number(void);
 
+// Call session: one live call tracked from first event to terminal event,
+// recorded to storage exactly once (see Modem.c).
+void call_session_start(int incoming, const char *number);
+void call_session_set_number(const char *number);
+void call_session_answered(void);
+void call_session_end(const char *outcome_hint); /* NULL = derive */
+
 // Pending incoming SMS queue (populated by +CMT URC, drained by IPC).
 void modem_push_pending_sms(const char *sender, const char *body);
 int  modem_pending_sms_count(void);
@@ -48,5 +55,7 @@ int modem_answer();											 // done
 int modem_hangup();											 // done
 int modem_sms_send(const char *number, const char *message); // done
 int modem_signal();											 // done
+int  modem_signal_cached(void);  /* last polled CSQ, never blocks          */
+void modem_signal_poll(void);    /* refresh cache (background thread only) */
 int modem_registered();										 // done
 #endif

@@ -22,6 +22,7 @@ define BLACKHAND_IPC_INSTALL_STAGING_CMDS
 	$(INSTALL) -D -m 0644 $(@D)/ipc_framing.h         $(STAGING_DIR)/usr/include/blackhand/ipc_framing.h
 	$(INSTALL) -D -m 0644 $(@D)/ipc_dispatch.h        $(STAGING_DIR)/usr/include/blackhand/ipc_dispatch.h
 	$(INSTALL) -D -m 0644 $(@D)/cJSON.h               $(STAGING_DIR)/usr/include/blackhand/cJSON.h
+	$(INSTALL) -D -m 0644 $(@D)/country_codes.h       $(STAGING_DIR)/usr/include/blackhand/country_codes.h
 endef
 
 # TARGET install — puts headers on the device rootfs so verify-image.sh can

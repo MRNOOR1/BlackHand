@@ -159,25 +159,15 @@ void screen_alarm_draw(struct ncplane *phone) {
         int selected = (idx == s_selected);
         const Alarm *a = alarms[idx];
 
-        char line[128];
-        snprintf(line, sizeof(line), "%02d:%02d  %s  %s  %s",
-                 a->hour, a->minute,
-                 a->enabled ? "ON " : "OFF",
-                 a->label ? a->label : "Alarm",
-                 repeat_label(a->repeat));
-
-        ncplane_set_fg_rgb(phone, selected ? theme_text_primary() : theme_text_muted());
-        ncplane_set_bg_rgb(phone, theme_bg());
-        ncplane_putstr_yx(phone, row, CONTENT_COL, selected ? MENU_CURSOR : MENU_CURSOR_BLANK);
-
-        /* Truncate if too long */
-        char trunc[128];
-        snprintf(trunc, sizeof(trunc), "%s", line);
-        if ((int)strlen(trunc) > width - 2) {
-            if (width > 5) { trunc[width-5] = '.'; trunc[width-4] = '.'; trunc[width-3] = '.'; }
-            trunc[width-2] = '\0';
-        }
-        ncplane_putstr_yx(phone, row, CONTENT_COL + 1, trunc);
+        /* blueprint WAKE row: HH:MM (left) · ON/OFF/DAILY (right) */
+        char label[16], meta[12];
+        snprintf(label, sizeof(label), "%02d:%02d", a->hour, a->minute);
+        const char *rep = repeat_label(a->repeat);
+        if (a->enabled && rep && strstr(rep, "Daily"))
+            snprintf(meta, sizeof(meta), "DAILY");
+        else
+            snprintf(meta, sizeof(meta), "%s", a->enabled ? "ON" : "OFF");
+        ghost_list_row_meta(phone, row, (int)cols, idx, selected, label, meta);
     }
 
     ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(),

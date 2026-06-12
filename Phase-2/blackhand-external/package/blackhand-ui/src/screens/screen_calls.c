@@ -10,6 +10,8 @@
 #include "services/contacts_service.h"
 #include "services/theme_service.h"
 #include "ui-ipcs/modem_ipc.h"
+#include "ui-ipcs/storage_ipc.h"
+#include "country_codes.h"
 #include "ui.h"
 
 typedef enum {
@@ -18,7 +20,6 @@ typedef enum {
     CALLS_INCOMING,
     CALLS_DIALING,
     CALLS_ACTIVE,
-    CALLS_PORT_SELECT, /* diagnostic: pin the modem AT port to ttyUSB0-4 */
 } calls_state_t;
 
 static calls_state_t s_state      = CALLS_LOG;
@@ -34,22 +35,9 @@ static time_t  s_call_start       = 0;
 
 static char    s_dial_buffer[32]  = "";   /* digits being typed in CALLS_DIAL */
 
-/* ── port picker state ───────────────────────────────────────────────────── */
+/* Action-cell focus on decision screens: 0 = affirm, 1 = destruct. */
+static int s_act_focus = 0;
 
-typedef struct { const char *label; const char *arg; } port_option;
-
-static const port_option PORT_OPTIONS[] = {
-    { "Auto (scan all)", "auto"          },
-    { "/dev/ttyUSB0",    "/dev/ttyUSB0"  },
-    { "/dev/ttyUSB1",    "/dev/ttyUSB1"  },
-    { "/dev/ttyUSB2",    "/dev/ttyUSB2"  },
-    { "/dev/ttyUSB3",    "/dev/ttyUSB3"  },
-    { "/dev/ttyUSB4",    "/dev/ttyUSB4"  },
-};
-#define PORT_OPTION_COUNT ((int)(sizeof(PORT_OPTIONS) / sizeof(PORT_OPTIONS[0])))
-
-static int  s_port_sel    = 0;
-static char s_port_msg[96] = "";   /* result line after an apply */
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
 
@@ -64,11 +52,35 @@ static void enter_log(void)
 static void enter_dial(char first_digit)
 {
     s_state = CALLS_DIAL;
+    s_act_focus = 0;
     s_dial_buffer[0] = '\0';
     if (first_digit) {
         s_dial_buffer[0] = first_digit;
         s_dial_buffer[1] = '\0';
     }
+}
+
+/* +61413805252 → "+61 4·· ··· ··2" — blueprints §1 rule 6.
+ * Keeps country code + first subscriber digit + last digit; masks the rest
+ * with U+00B7 (proper UTF-8, "·" is two bytes). */
+static void mask_number(const char *num, char *out, size_t out_sz)
+{
+    out[0] = '\0';
+    if (!num || !num[0]) return;
+    size_t len = strlen(num), w = 0;
+    for (size_t i = 0; i < len; i++) {
+        if (i < 5 || i + 1 >= len) {
+            if (w + 2 >= out_sz) break;
+            out[w++] = num[i];
+        } else {
+            if (w + 3 >= out_sz) break;
+            out[w++] = '\xc2';   /* U+00B7 · */
+            out[w++] = '\xb7';
+        }
+        if ((i == 2 || i == 5 || i == 8) && w + 2 < out_sz)
+            out[w++] = ' ';
+    }
+    out[w] = '\0';
 }
 
 static int is_dial_char(uint32_t key)
@@ -103,10 +115,24 @@ static void lookup_name_by_phone(const char *phone, char *out, size_t out_sz)
 
 /* ── public entry points (called from other screens / main loop) ─────────── */
 
+/* Normalise whatever the user typed to E.164 using the country selected in
+ * the contacts editor (persisted in settings.json). "0413 805 252" with AU
+ * becomes "+61413805252" — directly dialable and the same key the storage
+ * layer files history under. Already-international input passes through. */
+static void normalize_dial(const char *raw, char *out, size_t out_sz)
+{
+    const CountryCode *cc = NULL;
+    char iso[8];
+    if (storage_ipc_settings_get_str("country_iso", iso, sizeof(iso)) == 0)
+        cc = country_by_iso(iso);
+    if (phone_normalize(raw, cc, out, out_sz) != 0)
+        snprintf(out, out_sz, "%s", raw);
+}
+
 void screen_calls_start_outgoing(const char *name, const char *phone)
 {
     if (!phone || !phone[0]) return;
-    snprintf(s_call_number, sizeof(s_call_number), "%s", phone);
+    normalize_dial(phone, s_call_number, sizeof(s_call_number));
     if (name && name[0])
         snprintf(s_call_name, sizeof(s_call_name), "%s", name);
     else
@@ -131,6 +157,7 @@ void screen_calls_set_incoming(const char *phone)
     snprintf(s_call_number, sizeof(s_call_number), "%s", phone ? phone : "");
     lookup_name_by_phone(s_call_number, s_call_name, sizeof(s_call_name));
     snprintf(s_call_dir, sizeof(s_call_dir), "incoming");
+    s_act_focus  = 0;   /* ACPT focused first */
     s_state      = CALLS_INCOMING;
     s_call_start = 0;
 }
@@ -191,93 +218,104 @@ void screen_calls_draw(struct ncplane *phone)
         ncplane_putstr_yx(phone, CONTENT_START_ROW + 1, CONTENT_COL + x,
                           (rule && rule[0]) ? rule : "-");
 
-    /* ── dial pad overlay ── */
+    /* ── dialer (blueprint DIAL) ── */
     if (s_state == CALLS_DIAL) {
-        int top = CONTENT_START_ROW + 5;
-        ghost_text(phone, top,     CONTENT_COL, theme_text_muted(),   "DIAL");
-        ghost_text(phone, top + 2, CONTENT_COL, theme_text_primary(),
-                   s_dial_buffer[0] ? s_dial_buffer : "(enter number)");
-        ghost_text(phone, top + 5, CONTENT_COL, theme_text_muted(),
-                   "0-9 + * # to type   Backspace to clear");
-        ghost_softkeys(phone, "[Cancel]", "[Call]");
-        return;
-    }
+        int top = CONTENT_START_ROW + 2;
 
-    /* ── modem port picker overlay ── */
-    if (s_state == CALLS_PORT_SELECT) {
-        int top = CONTENT_START_ROW + 3;
-        ghost_text(phone, top, CONTENT_COL, theme_text_muted(), "MODEM AT PORT");
+        /* label, dim, letterspaced, centered */
+        const char *lbl = "E N T E R  N O .";
+        ghost_text(phone, top, ((int)cols - 16) / 2, theme_border(), lbl);
 
-        char cur[96];
-        snprintf(cur, sizeof(cur), "Now: %s  [%s]",
-                 modem_ipc_health_port(),
-                 modem_ipc_is_online() ? "ONLINE" : "OFFLINE");
-        ghost_text(phone, top + 1, CONTENT_COL, theme_text_primary(), cur);
+        /* the number, bright, centered, trailing cursor */
+        char numline[40];
+        snprintf(numline, sizeof(numline), "%s_", s_dial_buffer);
+        int ncol = ((int)cols - (int)strlen(numline)) / 2;
+        if (ncol < CONTENT_COL) ncol = CONTENT_COL;
+        ghost_text(phone, top + 3, ncol, theme_text_primary(), numline);
 
-        for (int i = 0; i < PORT_OPTION_COUNT; i++) {
-            int sel = (i == s_port_sel);
-            ncplane_set_fg_rgb(phone, sel ? theme_text_primary()
-                                          : theme_text_muted());
-            ncplane_set_bg_rgb(phone, theme_bg());
-            char line[80];
-            snprintf(line, sizeof(line), "%s%s",
-                     sel ? MENU_CURSOR : MENU_CURSOR_BLANK,
-                     PORT_OPTIONS[i].label);
-            ncplane_putstr_yx(phone, top + 3 + i, CONTENT_COL, line);
+        /* live contact match, updates per digit */
+        if (s_dial_buffer[0]) {
+            size_t cc = 0;
+            const Contact **all = contact_service_list_all(&cc);
+            for (size_t i = 0; i < cc; i++) {
+                if (all && all[i] && all[i]->phone_number &&
+                    strstr(all[i]->phone_number, s_dial_buffer)) {
+                    char match[40];
+                    snprintf(match, sizeof(match), "→ %.20s", all[i]->name);
+                    ghost_text(phone, top + 6,
+                               ((int)cols - (int)strlen(match)) / 2,
+                               theme_text_muted(), match);
+                    break;
+                }
+            }
         }
 
-        if (s_port_msg[0])
-            ghost_text(phone, top + 4 + PORT_OPTION_COUNT, CONTENT_COL,
-                       theme_text_muted(), s_port_msg);
-
-        ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(),
-                   "Enter:Try port (takes a few sec)");
-        ghost_softkeys(phone, "[Back]", "[Try]");
+        ghost_action_cells(phone, "CALL", "CLR", s_act_focus);
         return;
     }
 
-    /* ── incoming call overlay ── */
+    /* ── incoming call (blueprint CALL — overrides any screen) ── */
     if (s_state == CALLS_INCOMING) {
         int mid = (CONTENT_START_ROW + 2 + footer) / 2;
-        ghost_text(phone, mid - 3, CONTENT_COL, theme_text_primary(), "INCOMING CALL");
-        ghost_text(phone, mid - 1, CONTENT_COL, theme_text_primary(), s_call_name[0]
-                   ? s_call_name : "Unknown");
-        ghost_text(phone, mid,     CONTENT_COL, theme_text_muted(),   s_call_number);
-        ghost_text(phone, mid + 2, CONTENT_COL, theme_text_muted(),   "↙ Ringing...");
-        ghost_softkeys(phone, "[Reject]", "[Answer]");
+
+        const char *lbl = "I N C O M I N G";
+        ghost_text(phone, mid - 4, ((int)cols - 15) / 2, theme_text_muted(), lbl);
+
+        const char *who = s_call_name[0] ? s_call_name : "UNKNOWN";
+        ghost_text(phone, mid - 2, ((int)cols - (int)strlen(who)) / 2,
+                   theme_text_primary(), who);
+
+        char masked[40];
+        mask_number(s_call_number, masked, sizeof(masked));
+        if (masked[0])
+            ghost_text(phone, mid, ((int)cols - (int)strlen(masked)) / 2,
+                       theme_border(), masked);
+
+        ghost_action_cells(phone, "ACPT", "REJ", s_act_focus);
         return;
     }
 
-    /* ── dialing / active call overlay ── */
+    /* ── dialing / live call (blueprint LIVE) ── */
     if (s_state == CALLS_DIALING || s_state == CALLS_ACTIVE) {
         int mid = (CONTENT_START_ROW + 2 + footer) / 2;
-        ghost_text(phone, mid - 3, CONTENT_COL, theme_text_primary(),
-                   s_state == CALLS_DIALING ? "CALLING..." : "ON CALL");
-        ghost_text(phone, mid - 1, CONTENT_COL, theme_text_primary(),
-                   s_call_name[0] ? s_call_name : "Unknown");
-        ghost_text(phone, mid,     CONTENT_COL, theme_text_muted(), s_call_number);
 
+        char lbl[24];
         if (s_state == CALLS_ACTIVE && s_call_start > 0) {
-            time_t elapsed = time(NULL) - s_call_start;
-            char timer[16];
-            snprintf(timer, sizeof(timer), "%02d:%02d",
-                     (int)(elapsed / 60), (int)(elapsed % 60));
-            ghost_text(phone, mid + 2, CONTENT_COL, theme_text_muted(), timer);
+            time_t el = time(NULL) - s_call_start;
+            snprintf(lbl, sizeof(lbl), "LIVE · %02d:%02d",
+                     (int)(el / 60), (int)(el % 60));
+        } else {
+            snprintf(lbl, sizeof(lbl), "CALLING···");
         }
+        ghost_text(phone, mid - 4, ((int)cols - (int)strlen(lbl)) / 2,
+                   theme_text_muted(), lbl);
 
-        ghost_softkeys(phone, "[Hang Up]", "");
+        const char *who = s_call_name[0] ? s_call_name : "UNKNOWN";
+        ghost_text(phone, mid - 2, ((int)cols - (int)strlen(who)) / 2,
+                   theme_text_primary(), who);
+
+        char masked[40];
+        mask_number(s_call_number, masked, sizeof(masked));
+        if (masked[0])
+            ghost_text(phone, mid, ((int)cols - (int)strlen(masked)) / 2,
+                       theme_border(), masked);
+
+        /* single destructive cell — END is the only decision here */
+        ghost_action_cells(phone, "", "END", 1);
         return;
     }
 
     /* ── call log ── */
-    if (!modem_ipc_is_online()) {
+    if (!comm_service_storage_ok()) {
+        ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL,
+                   theme_text_primary(), "! STORAGE OFFLINE");
+        ghost_text(phone, CONTENT_START_ROW + 3, CONTENT_COL,
+                   theme_text_muted(), "history unavailable (bh-storage down)");
+    } else if (!modem_ipc_is_online()) {
         ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL,
                    theme_text_primary(), "! MODEM OFFLINE");
         ghost_text(phone, CONTENT_START_ROW + 3, CONTENT_COL,
                    theme_text_muted(), modem_ipc_health_error());
-    } else {
-        ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL,
-                   theme_text_muted(), "STATE: LOG");
     }
 
     size_t count = comm_service_call_count();
@@ -296,8 +334,6 @@ void screen_calls_draw(struct ncplane *phone)
     if (count == 0) {
         ghost_text(phone, list_start,     CONTENT_COL, theme_text_muted(), "No call history yet");
         ghost_text(phone, list_start + 1, CONTENT_COL, theme_text_muted(), "Open a contact to call");
-        ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(),
-                   "Right:Modem port");
         ghost_softkeys(phone, "[Back]", "");
         return;
     }
@@ -310,21 +346,16 @@ void screen_calls_draw(struct ncplane *phone)
 
         int row = list_start + i;
         if (row >= footer) break;
-        int sel = (idx == s_selected);
 
-        ncplane_set_fg_rgb(phone, sel ? theme_text_primary() : theme_text_muted());
-        ncplane_set_bg_rgb(phone, theme_bg());
-
-        char line[256];
-        snprintf(line, sizeof(line), "%s%s  %-10s  %s",
-                 sel ? MENU_CURSOR : MENU_CURSOR_BLANK,
-                 call->icon, call->name, call->time);
-        if ((int)strlen(line) > width) line[width] = '\0';
-        ncplane_putstr_yx(phone, row, CONTENT_COL, line);
+        /* NAME (icon-prefixed, truncated) · time — themed selection style */
+        char label[24];
+        snprintf(label, sizeof(label), "%s %.10s", call->icon, call->name);
+        ghost_list_row_meta(phone, row, (int)cols, idx,
+                            (idx == s_selected), label, call->time);
     }
 
     ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(),
-               "Left:Del  Enter:Call  Right:Port");
+               "Left:Del  Enter:Call");
     ghost_softkeys(phone, "[Back]", "");
     if (s_delete_prompt) draw_delete_popup(phone);
 }
@@ -333,14 +364,27 @@ void screen_calls_draw(struct ncplane *phone)
 
 screen_id screen_calls_input(uint32_t key)
 {
-    /* ── dial pad ── */
+    /* ── dialer ── */
     if (s_state == CALLS_DIAL) {
         switch (key) {
             case KEY_SOFT_LEFT_ACTION:
                 enter_log();
                 return SCREEN_CALLS;
-            case KEY_SOFT_RIGHT_ACTION:
+            case NCKEY_LEFT:
+                s_act_focus = 0;            /* CALL */
+                return SCREEN_CALLS;
+            case NCKEY_RIGHT:
+                s_act_focus = 1;            /* CLR  */
+                return SCREEN_CALLS;
             case NCKEY_ENTER: case '\n':
+                if (s_act_focus == 1) {     /* CLR clears all */
+                    s_dial_buffer[0] = '\0';
+                    s_act_focus = 0;
+                } else if (s_dial_buffer[0]) {
+                    screen_calls_start_outgoing("", s_dial_buffer);
+                }
+                return SCREEN_CALLS;
+            case KEY_SOFT_RIGHT_ACTION:     /* E = call, always */
                 if (s_dial_buffer[0]) {
                     screen_calls_start_outgoing("", s_dial_buffer);
                 }
@@ -362,52 +406,30 @@ screen_id screen_calls_input(uint32_t key)
         }
     }
 
-    /* ── modem port picker ── */
-    if (s_state == CALLS_PORT_SELECT) {
-        switch (key) {
-            case NCKEY_UP:
-                if (s_port_sel > 0) s_port_sel--;
-                return SCREEN_CALLS;
-            case NCKEY_DOWN:
-                if (s_port_sel < PORT_OPTION_COUNT - 1) s_port_sel++;
-                return SCREEN_CALLS;
-            case NCKEY_ENTER: case '\n':
-            case KEY_SOFT_RIGHT_ACTION: {
-                /* Synchronous on purpose — this is a diagnostic tool. The
-                 * service probes + configures before replying (1-3s). */
-                const port_option *opt = &PORT_OPTIONS[s_port_sel];
-                if (modem_ipc_set_port(opt->arg) == 0) {
-                    modem_ipc_refresh_health();
-                    snprintf(s_port_msg, sizeof(s_port_msg),
-                             "OK — modem online on %s", modem_ipc_health_port());
-                } else {
-                    modem_ipc_refresh_health();
-                    snprintf(s_port_msg, sizeof(s_port_msg),
-                             "FAIL — no AT response on %s", opt->label);
-                }
-                return SCREEN_CALLS;
-            }
-            case KEY_SOFT_LEFT_ACTION:
-            case NCKEY_LEFT:
-                s_port_msg[0] = '\0';
-                enter_log();
-                return SCREEN_CALLS;
-            default:
-                return SCREEN_CALLS;
-        }
-    }
-
-    /* ── incoming call ── */
+    /* ── incoming call: A/D move focus between ACPT/REJ, CENTER commits.
+     *    Q = reject and E = accept remain direct shortcuts. ── */
     if (s_state == CALLS_INCOMING) {
         switch (key) {
-            case KEY_SOFT_LEFT_ACTION:
             case NCKEY_LEFT:
+                s_act_focus = 0;            /* ACPT */
+                return SCREEN_CALLS;
+            case NCKEY_RIGHT:
+                s_act_focus = 1;            /* REJ  */
+                return SCREEN_CALLS;
+            case NCKEY_ENTER: case '\n':
+                if (s_act_focus == 1) {
+                    modem_ipc_reject();
+                    enter_log();
+                } else if (modem_ipc_answer() == 0) {
+                    s_state      = CALLS_ACTIVE;
+                    s_call_start = time(NULL);
+                }
+                return SCREEN_CALLS;
+            case KEY_SOFT_LEFT_ACTION:
                 modem_ipc_reject();
                 enter_log();
                 return SCREEN_CALLS;
             case KEY_SOFT_RIGHT_ACTION:
-            case NCKEY_ENTER: case '\n':
-            case NCKEY_RIGHT:
                 if (modem_ipc_answer() == 0) {
                     s_state      = CALLS_ACTIVE;
                     s_call_start = time(NULL);
@@ -481,11 +503,6 @@ screen_id screen_calls_input(uint32_t key)
                 s_delete_prompt = 1;
                 s_delete_yes    = 0;
             }
-            return SCREEN_CALLS;
-        case NCKEY_RIGHT:
-            /* Diagnostic: pick which ttyUSB the modem service should use. */
-            s_state       = CALLS_PORT_SELECT;
-            s_port_msg[0] = '\0';
             return SCREEN_CALLS;
         case KEY_SOFT_LEFT_ACTION:
             return SCREEN_HOME;

@@ -1,6 +1,7 @@
 #include "serial_utility.h"
 #include "Modem.h"
 #include "urc.h"
+#include "modem_storage.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -103,6 +104,88 @@ void modem_clear_pending_sms(void)
 	pthread_mutex_unlock(&sms_mutex);
 }
 
+/* ── call session ───────────────────────────────────────────────────────────
+ * Tracks the one live call from first event (ATD / RING) to terminal event,
+ * then writes exactly ONE history record via modem_storage. Both the URC
+ * thread and the dispatch thread touch this, hence the mutex. The `active`
+ * flag is what prevents double-recording when a local hangup (ATH) is
+ * followed by the modem's own VOICE CALL: END / NO CARRIER. */
+
+typedef struct {
+	int    active;
+	int    incoming;    /* 1 = in, 0 = out */
+	int    answered;
+	char   number[64];
+	time_t ts_start;    /* when dialling/ringing began */
+	time_t ts_answer;   /* when the call connected     */
+} CallSession;
+
+static pthread_mutex_t session_mutex = PTHREAD_MUTEX_INITIALIZER;
+static CallSession session;
+
+void call_session_start(int incoming, const char *number)
+{
+	pthread_mutex_lock(&session_mutex);
+	// RING repeats every few seconds — don't restart an active session.
+	if (!session.active) {
+		memset(&session, 0, sizeof(session));
+		session.active   = 1;
+		session.incoming = incoming;
+		session.ts_start = time(NULL);
+		if (number)
+			snprintf(session.number, sizeof(session.number), "%s", number);
+	}
+	pthread_mutex_unlock(&session_mutex);
+}
+
+void call_session_set_number(const char *number)
+{
+	pthread_mutex_lock(&session_mutex);
+	if (session.active && number && number[0])
+		snprintf(session.number, sizeof(session.number), "%s", number);
+	pthread_mutex_unlock(&session_mutex);
+}
+
+void call_session_answered(void)
+{
+	pthread_mutex_lock(&session_mutex);
+	if (session.active && !session.answered) {
+		session.answered  = 1;
+		session.ts_answer = time(NULL);
+	}
+	pthread_mutex_unlock(&session_mutex);
+}
+
+/* outcome_hint: explicit outcome ("busy", "rejected", "missed"), or NULL to
+ * derive: answered → "answered"; unanswered in → "missed"; out → "no_answer" */
+void call_session_end(const char *outcome_hint)
+{
+	CallSession snap;
+
+	pthread_mutex_lock(&session_mutex);
+	if (!session.active) {
+		pthread_mutex_unlock(&session_mutex);
+		return;
+	}
+	snap = session;
+	session.active = 0;
+	pthread_mutex_unlock(&session_mutex);
+
+	const char *outcome = outcome_hint;
+	if (!outcome)
+		outcome = snap.answered ? "answered"
+		        : (snap.incoming ? "missed" : "no_answer");
+
+	int duration = 0;
+	if (snap.answered)
+		duration = (int)(time(NULL) - snap.ts_answer);
+
+	// Outside the lock — this is a blocking IPC round-trip to storage.
+	storage_record_call(snap.number,
+	                    snap.incoming ? "in" : "out",
+	                    outcome, (long)snap.ts_start, duration);
+}
+
 int modem_init()
 {
 	fn = open_port();
@@ -192,6 +275,22 @@ int modem_configure()
 	return 1;
 }
 
+/* Cached CSQ — refreshed by the background thread every ~5s. The UI polls
+ * modem_status every second; running AT+CSQ inline there blocked the UI for
+ * up to 2s per poll (the "UI is very slow" bug, part 2). */
+static int s_cached_signal = -1;
+
+int modem_signal_cached(void)
+{
+	return s_cached_signal;
+}
+
+void modem_signal_poll(void)
+{
+	if (modem_present)
+		s_cached_signal = modem_signal();
+}
+
 int modem_signal()
 {
 	const char *response = at_cmd(fn, "AT+CSQ", 2000);
@@ -243,6 +342,7 @@ int modem_dial(const char *number)
 	if (strstr(response, "OK") != NULL)
 	{
 		call_state = CALL_DIALLING;
+		call_session_start(0, number);
 		return 1;
 	}
 	call_state = CALL_IDLE;
@@ -257,6 +357,9 @@ int modem_answer()
 		if (strstr(response, "OK") != NULL)
 		{
 			call_state = CALL_ACTIVE;
+			// Belt and braces: VOICE CALL: BEGIN also marks answered, but
+			// some firmware skips it for mobile-terminated calls.
+			call_session_answered();
 			return 1;
 		}
 	}
@@ -266,6 +369,12 @@ int modem_hangup()
 {
 	if (call_state != CALL_IDLE)
 	{
+		// Hanging up a ringing incoming call = rejecting it. Decide the
+		// outcome BEFORE sending CHUP, while call_state still tells us why.
+		const char *outcome = NULL;   /* NULL = derive (answered/no_answer) */
+		if (call_state == CALL_RINGING)
+			outcome = "rejected";
+
 		// AT+CHUP is the voice-call hangup on SIM7600 — ATH is only
 		// guaranteed for data calls and silently no-ops on voice in some
 		// firmware. Keep ATH as a fallback for older firmware.
@@ -276,6 +385,7 @@ int modem_hangup()
 		{
 			call_state = CALL_IDLE;
 			modem_clear_incoming_number();
+			call_session_end(outcome);
 			return 1;
 		}
 	}
@@ -291,6 +401,10 @@ int modem_sms_send(const char *number, const char *message)
 	const char *response = at_cmd(fn, cmd, 5000);
 	if (strstr(response, ">") == NULL)
 		return -1;
+
+	// Capture the body up front — the write loop below advances `message`,
+	// and storage_record_sms needs the original pointer.
+	const char *body_for_log = message;
 
 	// Phase 2: send body + Ctrl-Z, wait for final +CMGS:/OK or +CMS ERROR.
 	// Lock and reset response_ready BEFORE writing so the URC thread can't
@@ -327,7 +441,10 @@ int modem_sms_send(const char *number, const char *message)
 
 	if (strstr(buffer, "+CMS ERROR") != NULL)
 		return -1;
-	if (strstr(buffer, "+CMGS:") != NULL)
+	if (strstr(buffer, "+CMGS:") != NULL) {
+		// Persist to storage before returning so the UI's next sync finds it.
+		storage_record_sms(number, "out", body_for_log);
 		return 1;
+	}
 	return -1;
 }

@@ -26,6 +26,10 @@ static void *modem_bringup_thread(void *arg)
 	// at boot, after a failed manual port switch — keep probing so it
 	// comes back without a service restart.
 	for (;;) {
+		if (modem_present) {
+			/* periodic telemetry refresh — keeps modem_status instant */
+			modem_signal_poll();
+		}
 		if (!modem_present) {
 			if (modem_attempt_bringup()) {
 				attempt = 0;

@@ -515,6 +515,12 @@ int main(void) {
      * All animation uses tick % N so it loops forever.
      */
     int tick = 0;
+    /* Render throttle: full redraw only after input or every 250ms.
+     * The Pi pushes a full framebuffer composite per render — 30fps idle
+     * redraw was the "UI is very slow" bug. Idle now renders at 4fps
+     * (clock/banners stay live); any keypress renders immediately. */
+    int  ui_dirty = 1;
+    long last_draw_ms = 0;
 
     /*
      * last_key tracks the most recently pressed key for keypad highlight
@@ -531,18 +537,20 @@ int main(void) {
         /* ── RESOLVE SCREEN NAME ───────────────────────────────────────── */
         const char *screen_name;
         switch (current_screen) {
-            case SCREEN_HOME:     screen_name = "HOME";     break;
-            case SCREEN_SETTINGS: screen_name = "SETTINGS"; break;
-            case SCREEN_CALLS:    screen_name = "CALLS";    break;
-            case SCREEN_MESSAGES: screen_name = "MESSAGES"; break;
-            case SCREEN_CONTACTS: screen_name = "CONTACTS"; break;
-            case SCREEN_MP3:      screen_name = "MP3";      break;
-            case SCREEN_VOICE_MEMO: screen_name = "VOICE";  break;
-            case SCREEN_NOTES:    screen_name = "NOTES";    break;
-            case SCREEN_ALARM:    screen_name = "ALARM";    break;
-            case SCREEN_THEME:    screen_name = "THEME";    break;
-            case SCREEN_BLUETOOTH:screen_name = "BT";       break;
-            case SCREEN_GPS:      screen_name = "GPS";      break;
+            /* 4-5 char screen tags per design pack §1 — also the screens'
+             * log/debug names. Labeled dividers render them. */
+            case SCREEN_HOME:     screen_name = "MENU";  break;
+            case SCREEN_SETTINGS: screen_name = "CONF";  break;
+            case SCREEN_CALLS:    screen_name = "CALL";  break;
+            case SCREEN_MESSAGES: screen_name = "MSGS";  break;
+            case SCREEN_CONTACTS: screen_name = "CNTC";  break;
+            case SCREEN_MP3:      screen_name = "PLAY";  break;
+            case SCREEN_VOICE_MEMO: screen_name = "MEMO"; break;
+            case SCREEN_NOTES:    screen_name = "NOTE";  break;
+            case SCREEN_ALARM:    screen_name = "WAKE";  break;
+            case SCREEN_THEME:    screen_name = "THEME"; break;
+            case SCREEN_BLUETOOTH:screen_name = "CONN";  break;
+            case SCREEN_GPS:      screen_name = "GPS";   break;
             default:              screen_name = "";           break;
         }
 
@@ -559,7 +567,6 @@ int main(void) {
          * only this PHONE_SCREEN_ROWS-row canvas.  The keypad is drawn on
          * the parent phone plane starting at KEYPAD_START_ROW.
          */
-        draw_frame(screen, tick, screen_name);
         tick++;
         voice_memo_service_tick();
         mp3_service_update();
@@ -595,6 +602,12 @@ int main(void) {
         // Always tick the calls screen so DIALING→ACTIVE and remote-hangup
         // detection happen without requiring user input.
         screen_calls_tick();
+        /* Periodic cache refresh while sitting on a data screen (~10s) —
+         * catches history written by the modem service in the background. */
+        if (tick % 300 == 0 &&
+            (current_screen == SCREEN_CALLS || current_screen == SCREEN_MESSAGES)) {
+            comm_service_sync();
+        }
         if (tick % 150 == 0 && modem_ipc_is_online()) {
             static char sms_buf[16384];
             if (modem_ipc_pop_pending_sms(sms_buf, sizeof(sms_buf)) == 0) {
@@ -626,27 +639,36 @@ int main(void) {
             }
         }
 
-        switch (current_screen) {
-            case SCREEN_HOME:       screen_home_draw(screen);       break;
-            case SCREEN_SETTINGS:   screen_settings_draw(screen);   break;
-            case SCREEN_CALLS:      screen_calls_draw(screen);      break;
-            case SCREEN_MESSAGES:   screen_messages_draw(screen);   break;
-            case SCREEN_CONTACTS:   screen_contacts_draw(screen);   break;
-            case SCREEN_MP3:        screen_mp3_draw(screen);        break;
-            case SCREEN_VOICE_MEMO: screen_voice_memo_draw(screen); break;
-            case SCREEN_NOTES:      screen_notes_draw(screen);      break;
-            case SCREEN_ALARM:      screen_alarm_draw(screen);      break;
-            case SCREEN_THEME:      screen_theme_draw(screen);      break;
-            case SCREEN_BLUETOOTH:  screen_bluetooth_draw(screen);  break;
-            case SCREEN_GPS:        screen_gps_draw(screen);        break;
-            default:
-                ghost_text(screen, 4, 3, COL_PLACEHOLDER, TEXT_COMING_SOON);
-                ghost_text(screen, 6, 3, COL_HINT,        TEXT_GO_HOME);
-                break;
-        }
+        struct timespec dnow;
+        clock_gettime(CLOCK_MONOTONIC, &dnow);
+        long dnow_ms = dnow.tv_sec * 1000L + dnow.tv_nsec / 1000000L;
+        if (ui_dirty || dnow_ms - last_draw_ms >= 250) {
+            ui_dirty     = 0;
+            last_draw_ms = dnow_ms;
 
-        /* ── RENDER ──────────────────────────────────────────────────── */
-        notcurses_render(nc);
+            draw_frame(screen, tick, screen_name);
+            switch (current_screen) {
+                case SCREEN_HOME:       screen_home_draw(screen);       break;
+                case SCREEN_SETTINGS:   screen_settings_draw(screen);   break;
+                case SCREEN_CALLS:      screen_calls_draw(screen);      break;
+                case SCREEN_MESSAGES:   screen_messages_draw(screen);   break;
+                case SCREEN_CONTACTS:   screen_contacts_draw(screen);   break;
+                case SCREEN_MP3:        screen_mp3_draw(screen);        break;
+                case SCREEN_VOICE_MEMO: screen_voice_memo_draw(screen); break;
+                case SCREEN_NOTES:      screen_notes_draw(screen);      break;
+                case SCREEN_ALARM:      screen_alarm_draw(screen);      break;
+                case SCREEN_THEME:      screen_theme_draw(screen);      break;
+                case SCREEN_BLUETOOTH:  screen_bluetooth_draw(screen);  break;
+                case SCREEN_GPS:        screen_gps_draw(screen);        break;
+                default:
+                    ghost_text(screen, 4, 3, COL_PLACEHOLDER, TEXT_COMING_SOON);
+                    ghost_text(screen, 6, 3, COL_HINT,        TEXT_GO_HOME);
+                    break;
+            }
+
+            /* ── RENDER ────────────────────────────────────────────── */
+            notcurses_render(nc);
+        }
 
         /* ── INPUT ───────────────────────────────────────────────────── */
         ncinput ni;
@@ -656,8 +678,12 @@ int main(void) {
         if (key == 0) {
             continue;
         }
+        ui_dirty = 1;   /* input → redraw on the next loop */
 
-        if (ni.evtype == NCTYPE_REPEAT) {
+        /* Held W/S auto-repeats for list scrolling (audit Part 0);
+         * repeats of every other key are still dropped. */
+        if (ni.evtype == NCTYPE_REPEAT &&
+            !(key == NCKEY_UP || key == NCKEY_DOWN)) {
             continue;
         }
 
@@ -773,6 +799,21 @@ int main(void) {
 
         if (current_screen == SCREEN_CALLS && prev_screen != SCREEN_CALLS) {
             mp3_service_stop();
+        }
+
+        /* ── Refresh data caches on screen entry ──────────────────────────
+         * History lives in blackhand-storage and is written by the MODEM
+         * service (URC events) — the UI cache goes stale whenever a call or
+         * SMS happens. Entering a data screen re-pulls from storage so the
+         * log is always current. This was the "call log not showing" bug:
+         * records existed on disk, the cache was never re-read. */
+        if (current_screen != prev_screen &&
+            (current_screen == SCREEN_CALLS ||
+             current_screen == SCREEN_MESSAGES)) {
+            comm_service_sync();
+        }
+        if (current_screen == SCREEN_CONTACTS && prev_screen != SCREEN_CONTACTS) {
+            contact_service_init();   /* re-pull contacts.json */
         }
     }
 

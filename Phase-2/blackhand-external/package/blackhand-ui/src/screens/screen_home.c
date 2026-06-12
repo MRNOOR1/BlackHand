@@ -67,6 +67,7 @@
  *   - Color values (0xRRGGBB format)
  */
 #include <stdint.h>
+#include <string.h>
 
 /*
  * "ui.h" - Our UI Header
@@ -192,15 +193,14 @@ typedef struct
  *   4. Add the case to the switch in main.c
  */
 static const menu_item items[] = {
-    {"CALLS",      SCREEN_CALLS},
-    {"MESSAGES",   SCREEN_MESSAGES},
-    {"CONTACTS",   SCREEN_CONTACTS},
-    {"MUSIC",      SCREEN_MP3},
-    {"VOICE MEMO", SCREEN_VOICE_MEMO},
-    {"NOTES",      SCREEN_NOTES},
-    {"ALARM",      SCREEN_ALARM},
-    {"GPS",        SCREEN_GPS},
-    {"SETTINGS",   SCREEN_SETTINGS},
+    {"PHONE",    SCREEN_CALLS},
+    {"MESSAGES", SCREEN_MESSAGES},
+    {"CONTACTS", SCREEN_CONTACTS},
+    {"MUSIC",    SCREEN_MP3},
+    {"VOICE",    SCREEN_VOICE_MEMO},
+    {"NOTES",    SCREEN_NOTES},
+    {"ALARM",    SCREEN_ALARM},
+    {"SYSTEM",   SCREEN_SETTINGS},
 };
 
 /*
@@ -271,6 +271,7 @@ static char hw_pin_error[32] = {0};
  *   - Change spacing: Edit HOME_ROW_SPACING in config.h
  *   - Change cursor: Edit MENU_CURSOR in config.h
  */
+
 void screen_home_draw(struct ncplane *phone)
 {
     /*
@@ -368,19 +369,10 @@ void screen_home_draw(struct ncplane *phone)
         if (row >= (int)rows - 3)
             break;
 
-        int is_sel = (i == selected);
-        uint32_t fg = is_sel ? theme_selection_text() : theme_text_muted();
-        uint32_t bg = is_sel ? theme_selection_bg()   : theme_bg();
-
-        /* Full-width row fill so the highlight block is solid */
-        ncplane_set_fg_rgb(phone, fg);
-        ncplane_set_bg_rgb(phone, bg);
-        for (int x = 0; x < list_width && HOME_CONTENT_COL + x < (int)cols - 1; x++)
-            ncplane_putchar_yx(phone, row, HOME_CONTENT_COL + x, ' ');
-
-        /* Cursor dot + label */
-        ncplane_putstr_yx(phone, row, HOME_CONTENT_COL,     is_sel ? MENU_CURSOR : MENU_CURSOR_BLANK);
-        ncplane_putstr_yx(phone, row, HOME_CONTENT_COL + 2, items[i].label);
+        /* Selection rendering is fully theme-driven (spec §5): inverted bar,
+         * diamond, bracket, index — one call, zero theme branching here. */
+        ghost_list_row(phone, row, (int)cols, i, (i == selected), items[i].label);
+        (void)list_width;
     }
 
     /* Minimal music status — only when playing or paused */

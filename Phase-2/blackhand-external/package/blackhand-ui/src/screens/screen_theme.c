@@ -1,5 +1,15 @@
+/*
+ * screen_theme.c — SYSTEM > THEME picker.
+ *
+ * Lists the 8 spec themes by id (theme_service owns the table; settings owns
+ * the persisted index). Selecting applies instantly — the whole UI re-renders
+ * in the new tokens on the next frame, and the choice persists across boots
+ * via settings_service.
+ */
 #include <notcurses/notcurses.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "config.h"
 #include "draw_utils.h"
@@ -13,41 +23,45 @@ void screen_theme_draw(struct ncplane *phone) {
     unsigned rows, cols;
     ncplane_dim_yx(phone, &rows, &cols);
     int footer = (int)rows - FOOTER_ROW_OFFSET;
-    int width = INNER_WIDTH(cols);
 
-    ncplane_set_fg_rgb(phone, theme_text_primary());
+    ghost_text(phone, CONTENT_START_ROW, CONTENT_COL,
+               theme_text_primary(), "THEME");
+    ghost_text(phone, CONTENT_START_ROW, CONTENT_COL + 6,
+               theme_text_muted(), theme_active()->id);
+
+    ncplane_set_fg_rgb(phone, theme_border());
     ncplane_set_bg_rgb(phone, theme_bg());
-    ncplane_putstr_yx(phone, CONTENT_START_ROW, CONTENT_COL, "THEMES");
-
-    ncplane_set_fg_rgb(phone, theme_text_muted());
     const char *rule = theme_rule_glyph();
-    for (int x = 0; x < width && CONTENT_COL + x < (int)cols - 1; x++) {
-        ncplane_putstr_yx(phone, CONTENT_START_ROW + 1, CONTENT_COL + x, (rule && rule[0]) ? rule : "-");
-    }
+    int width = INNER_WIDTH(cols);
+    for (int x = 0; x < width && CONTENT_COL + x < (int)cols - 1; x++)
+        ncplane_putstr_yx(phone, CONTENT_START_ROW + 1, CONTENT_COL + x,
+                          (rule && rule[0]) ? rule : "-");
 
-    ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL, theme_text_muted(), "MODE: ACCENT THEME");
-
-    int count = settings_service_theme_count();
+    int count = theme_count();
     if (s_selected < 0) s_selected = 0;
-    if (count > 0 && s_selected >= count) s_selected = count - 1;
+    if (s_selected >= count) s_selected = count - 1;
+
+    int active = settings_service_get_light_theme();
 
     for (int i = 0; i < count; i++) {
-        int row = CONTENT_START_ROW + 4 + i;
-        if (row >= footer) break;
-        int active = (settings_service_get_light_theme() == i);
-        const char *cursor = (i == s_selected) ? MENU_CURSOR : MENU_CURSOR_BLANK;
-        ncplane_set_fg_rgb(phone, (i == s_selected) ? theme_selection_text() : theme_text_muted());
-        ncplane_set_bg_rgb(phone, (i == s_selected) ? theme_selection_bg() : theme_bg());
-        ncplane_putstr_yx(phone, row, CONTENT_COL, cursor);
-        ncplane_putstr_yx(phone, row, CONTENT_COL + 1, active ? "[*]" : "[ ]");
-        ncplane_putstr_yx(phone, row, CONTENT_COL + 5, settings_service_theme_label(i));
+        int row = CONTENT_START_ROW + 3 + i;
+        if (row >= footer - 1) break;
+
+        /* Row renders in the CURRENT theme's selection style — previewing a
+         * theme means applying it; this list is the live preview. */
+        char label[24];
+        snprintf(label, sizeof(label), "%s%s",
+                 (i == active) ? "* " : "  ", theme_id_at(i));
+        ghost_list_row(phone, row, (int)cols, i, (i == s_selected), label);
     }
 
+    ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(),
+               "Enter applies instantly · * = saved");
     ghost_softkeys(phone, "[Back]", "[Apply]");
 }
 
 screen_id screen_theme_input(uint32_t key) {
-    int count = settings_service_theme_count();
+    int count = theme_count();
     switch (key) {
         case NCKEY_UP:
             if (s_selected > 0) s_selected--;
@@ -56,19 +70,15 @@ screen_id screen_theme_input(uint32_t key) {
             if (s_selected < count - 1) s_selected++;
             return SCREEN_THEME;
         case NCKEY_LEFT:
-            return SCREEN_SETTINGS;  /* Same as LSK — go back */
+        case KEY_SOFT_LEFT_ACTION:
+            return SCREEN_SETTINGS;
         case NCKEY_RIGHT:
-            settings_service_set_light_theme(s_selected);
-            theme_service_sync_from_settings();
-            return SCREEN_THEME;     /* Same as RSK — apply */
         case NCKEY_ENTER:
         case '\n':
         case KEY_SOFT_RIGHT_ACTION:
-            settings_service_set_light_theme(s_selected);
-            theme_service_sync_from_settings();
+            settings_service_set_light_theme(s_selected);   /* persists */
+            theme_service_sync_from_settings();             /* applies  */
             return SCREEN_THEME;
-        case KEY_SOFT_LEFT_ACTION:
-            return SCREEN_SETTINGS;
         default:
             return SCREEN_THEME;
     }
