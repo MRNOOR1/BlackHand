@@ -1,13 +1,8 @@
 #!/bin/sh
 
-# ── Logging ───────────────────────────────────────────────────────────────────
-mkdir -p /data
-exec > /data/boot.log 2>&1
-# say: write to boot.log AND tty1 so progress is visible on-screen without SSH
-say() { echo "$@"; printf '%s\n' "$@" > /dev/tty1 2>/dev/null || true; }
-say ">>> Black Hand OS starting..."
-
 # ── Essential pseudo-filesystems ──────────────────────────────────────────────
+# Mounted BEFORE the log redirect so /proc and friends are usable, and so the
+# /boot vfat mount below has a kernel to talk to.
 mountpoint -q /proc || mount -t proc     proc     /proc
 mountpoint -q /sys  || mount -t sysfs   sysfs    /sys
 mountpoint -q /dev  || mount -t devtmpfs devtmpfs /dev
@@ -17,6 +12,44 @@ mountpoint -q /tmp  || mount -t tmpfs   tmpfs    /tmp
 mkdir -p /dev/pts /dev/shm
 mount -t devpts devpts /dev/pts -o gid=5,mode=620 2>/dev/null || true
 mount -t tmpfs  tmpfs  /dev/shm 2>/dev/null || true
+
+# ── Boot partition (FAT32) ────────────────────────────────────────────────────
+# Mounted early so logs can be written here. FAT32 is readable from macOS
+# and Windows by simply plugging the SD card in — no ext4 driver required.
+# All log files in this script and in the audio daemon are written under
+# /boot/logs/ for that reason.
+mkdir -p /boot /data
+mount -t vfat /dev/mmcblk0p1 /boot 2>/dev/null || true
+mkdir -p /boot/logs
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+# Per-boot rotation. Everything goes under /boot/logs/ (FAT32) so you can
+# pull the SD and read the logs on any host.
+#   last-boot.log         — rcS output + anything to stderr from this script
+#   last-boot.prev.log    — previous boot's rcS log, rotated on each start
+#   dmesg.log             — kernel ring buffer, streamed live (-w)
+#   sysinfo.log           — one-shot snapshot of hardware state at boot
+#   errors.log            — filtered tail of every log: ERROR/WARN/FATAL/fail
+#   <service-name>.log    — per-service stderr/stdout (see service_manager.c)
+for _f in last-boot dmesg sysinfo errors; do
+    [ -f /boot/logs/${_f}.log ] && \
+        mv -f /boot/logs/${_f}.log /boot/logs/${_f}.prev.log 2>/dev/null || true
+done
+exec > /boot/logs/last-boot.log 2>&1
+
+# Stream the kernel ring buffer to disk. -w follows new messages, so this
+# captures everything from now until shutdown: USB enumerations, audio
+# driver chatter, OOM events, GPIO complaints. Backgrounded so rcS keeps
+# going. busybox dmesg doesn't take --color; util-linux dmesg does. Either
+# is fine — we just don't pass the flag.
+if command -v dmesg >/dev/null 2>&1; then
+    dmesg > /boot/logs/dmesg.log 2>/dev/null
+    dmesg -w >> /boot/logs/dmesg.log 2>/dev/null &
+fi
+
+# say: write to log AND tty1 so progress is visible on-screen without SSH
+say() { echo "$@"; printf '%s\n' "$@" > /dev/tty1 2>/dev/null || true; }
+say ">>> Black Hand OS starting..."
 
 # ── Display init ──────────────────────────────────────────────────────────────
 # Run before anything that can block.
@@ -41,7 +74,11 @@ modprobe usbserial 2>/dev/null || true
 modprobe option    2>/dev/null || true
 
 UDEVD=""
-for p in /sbin/udevd /usr/sbin/udevd /lib/systemd/systemd-udevd; do
+# eudev (BR2_PACKAGE_EUDEV) historically installed udevd to /sbin/udevd, but
+# newer builds move it under /lib/udev/ or /lib/systemd/. Probe all of them so
+# we don't fall back to the sweep just because the binary moved.
+for p in /sbin/udevd /usr/sbin/udevd /lib/udev/udevd \
+         /lib/systemd/systemd-udevd /usr/lib/systemd/systemd-udevd; do
     [ -x "$p" ] && UDEVD="$p" && break
 done
 if [ -n "$UDEVD" ]; then
@@ -50,9 +87,12 @@ if [ -n "$UDEVD" ]; then
     # started, so the modem symlink rule fires for already-present hardware.
     udevadm trigger --action=add 2>/dev/null || true
     udevadm settle --timeout=10  2>/dev/null || true
-    say "modem: udevd running, coldplug done"
+    say "modem: udevd running ($UDEVD), coldplug done"
 else
-    say "modem: WARNING — udevd not found, relying on ttyUSB* sweep only"
+    # blackhand-modem scans /dev/ttyUSB* itself, so the rule-driven
+    # /dev/ttyMODEM symlink is a convenience, not a requirement. Log INFO
+    # instead of WARNING so this stops looking like a real fault.
+    say "modem: INFO — udevd binary not present, modem daemon will sweep ttyUSB*"
 fi
 
 # ── Networking ────────────────────────────────────────────────────────────────
@@ -87,7 +127,7 @@ fi
 # serial console (ttyAMA0 is occupied by Bluetooth).
 ETH0_IP=$(/sbin/ifconfig eth0 2>/dev/null | grep 'inet ' | awk '{print $2}' | sed 's/addr://')
 if [ -n "$ETH0_IP" ]; then
-    say "ssh: eth0 = $ETH0_IP  →  ssh root@$ETH0_IP   (password: blackhand)"
+    say "ssh: eth0 = $ETH0_IP  →  ssh root@$ETH0_IP"
 else
     say "ssh: eth0 has no IP yet — SSH unavailable until ethernet is connected"
 fi
@@ -98,7 +138,10 @@ if [ -x /usr/sbin/dropbear ]; then
     # -R: generate host keys at runtime if absent (keys are normally baked in
     # by post-build.sh, but -R is a safety net for dev builds where HOST_DROPBEAR
     # was not yet enabled).
-    /usr/sbin/dropbear -R 2>&1
+    # -P: write a pid file. Without this dropbear runs fine but the readiness
+    # check below has nothing to read and falsely reports "did not start" on
+    # every boot, making it look like SSH is broken when it isn't.
+    /usr/sbin/dropbear -R -P /var/run/dropbear.pid 2>&1
 
     # Give the daemon a moment to bind port 22 then confirm it is running.
     sleep 0.3
@@ -117,32 +160,39 @@ if [ -x /usr/sbin/dropbear ]; then
             say "ssh: if refused with key-changed warning: ssh-keygen -R $ETH0_IP"
         fi
     else
-        say "ssh: WARNING — dropbear did not start (port 22 may be in use, check boot.log)"
+        say "ssh: WARNING — dropbear did not start (port 22 in use? check /boot/logs/last-boot.log)"
     fi
 else
     say "ssh: WARNING — /usr/sbin/dropbear not found — check BR2_PACKAGE_DROPBEAR=y"
 fi
 
 # ── Data directories ──────────────────────────────────────────────────────────
-mkdir -p /data /boot
 mkdir -p /data/voice-memos /data/notes /data/alarms /data/contacts /data/music
-chmod -R 755 /data
-
-# ── Boot partition ────────────────────────────────────────────────────────────
-mount -t vfat /dev/mmcblk0p1 /boot 2>/dev/null || true
+chmod -R 700 /data
 
 # ── Audio ─────────────────────────────────────────────────────────────────────
 modprobe snd_bcm2835   2>/dev/null || true
 modprobe snd_usb_audio 2>/dev/null || true
 
 # Detect USB audio card.
-# /proc/asound/cardN/usbbus only exists for USB audio devices.
+# /proc/asound/cardN/usbbus only exists for USB audio devices. USB
+# enumeration can lag the modprobe by several hundred ms — and on cold
+# boot with a powered hub it can take up to 3 s before the device shows
+# up. Without this wait, plugging earphones in *before* boot still
+# results in "no USB audio card found" because we scanned too early.
+say "audio: waiting for USB audio enumeration (up to 5 s)..."
 USB_CARD=""
-for n in 1 2 3 4 5 6 7; do
-    if [ -f "/proc/asound/card${n}/usbbus" ]; then
-        USB_CARD=$n
-        break
-    fi
+USB_WAIT=0
+while [ -z "$USB_CARD" ] && [ $USB_WAIT -lt 20 ]; do
+    for n in 1 2 3 4 5 6 7; do
+        if [ -f "/proc/asound/card${n}/usbbus" ]; then
+            USB_CARD=$n
+            break
+        fi
+    done
+    [ -n "$USB_CARD" ] && break
+    sleep 0.25
+    USB_WAIT=$((USB_WAIT + 1))
 done
 
 if [ -n "$USB_CARD" ]; then
@@ -292,3 +342,47 @@ fi
 
 say ">>> Black Hand OS ready"
 echo "fb0: $(cat /sys/class/graphics/fb0/virtual_size 2>/dev/null || echo 'not found')"
+
+# ── sysinfo snapshot ──────────────────────────────────────────────────────────
+# One-shot dump of hardware state for offline triage. If something is wrong
+# at boot — wrong USB card detected, no mic input on the audio card, weird
+# memory pressure — this file captures it without having to SSH in.
+{
+    echo "=== /proc/version ==="; cat /proc/version 2>/dev/null
+    echo; echo "=== /proc/cpuinfo (model) ==="; grep -i model /proc/cpuinfo 2>/dev/null
+    echo; echo "=== uptime ==="; cat /proc/uptime 2>/dev/null
+    echo; echo "=== /proc/meminfo (first 6 lines) ==="; head -6 /proc/meminfo 2>/dev/null
+    echo; echo "=== /proc/loadavg ==="; cat /proc/loadavg 2>/dev/null
+    echo; echo "=== /proc/mounts ==="; cat /proc/mounts 2>/dev/null
+    echo; echo "=== /proc/asound/cards ==="; cat /proc/asound/cards 2>/dev/null
+    echo; echo "=== /proc/asound/pcm ==="; cat /proc/asound/pcm 2>/dev/null
+    echo; echo "=== /proc/asound/devices ==="; cat /proc/asound/devices 2>/dev/null
+    echo; echo "=== aplay -l ==="; aplay -l 2>/dev/null
+    echo; echo "=== arecord -l ==="; arecord -l 2>/dev/null
+    echo; echo "=== /sys/bus/usb/devices ==="; ls -la /sys/bus/usb/devices 2>/dev/null
+    echo; echo "=== /proc/bus/input/devices ==="; cat /proc/bus/input/devices 2>/dev/null
+    echo; echo "=== ifconfig ==="; /sbin/ifconfig 2>/dev/null
+    echo; echo "=== ip route ==="; ip route 2>/dev/null
+    echo; echo "=== /tmp/bh-audio-card ==="; cat /tmp/bh-audio-card 2>/dev/null
+    echo; echo "=== /etc/asound.conf ==="; cat /etc/asound.conf 2>/dev/null
+    echo; echo "=== rfkill list ==="; rfkill list 2>/dev/null
+    echo; echo "=== /sys/class/bluetooth ==="; ls -la /sys/class/bluetooth 2>/dev/null
+    echo; echo "=== /data/voice-memos ==="; ls -la /data/voice-memos 2>/dev/null
+    echo; echo "=== ps ==="; ps 2>/dev/null
+} > /boot/logs/sysinfo.log 2>&1
+say "logs: sysinfo snapshot written to /boot/logs/sysinfo.log"
+
+# ── errors.log filter ─────────────────────────────────────────────────────────
+# Tails every log file in /boot/logs/ EXCEPT errors.log itself (would loop)
+# and writes any line that looks like a problem to /boot/logs/errors.log.
+# Backgrounded; never blocks boot.
+(
+    sleep 3  # let services write a few lines first so tail has files to follow
+    LOG_FILES=$(ls /boot/logs/*.log 2>/dev/null | grep -v errors.log | tr '\n' ' ')
+    if [ -n "$LOG_FILES" ]; then
+        tail -F -n 0 $LOG_FILES 2>/dev/null \
+            | grep --line-buffered -iE 'ERROR|WARN|FATAL|fail|unrecoverable|cannot|panic' \
+            >> /boot/logs/errors.log 2>/dev/null
+    fi
+) &
+say "logs: errors.log filter started"

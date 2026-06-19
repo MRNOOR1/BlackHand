@@ -210,16 +210,26 @@ Note *notes_service_create(const char *title, const char *content)
 		free(new_note);
 		return NULL;
 	}
-	insert_at_front(new_note);
-
-	/* Write content-only file */
+	/* Write content-only file BEFORE adding to the index. If the write
+	   fails, the caller gets NULL back and the note never appears in the
+	   list — that matches what they'd see on next boot anyway (since
+	   nothing was on disk). Old behaviour silently inserted into the
+	   in-memory index and the note would vanish on reboot. */
 	snprintf(filepath, sizeof(filepath), "%s/%s", NOTES_PATH, new_note->filename);
 	FILE *f = fopen(filepath, "w");
-	if (f) {
-		fprintf(f, "%s", new_note->content);
-		fclose(f);
+	if (!f) {
+		fprintf(stderr, "notes_service: cannot create %s: %s\n",
+		        filepath, strerror(errno));
+		free(new_note->filename);
+		free(new_note->title);
+		free(new_note->content);
+		free(new_note);
+		return NULL;
 	}
+	fprintf(f, "%s", new_note->content);
+	fclose(f);
 
+	insert_at_front(new_note);
 	return new_note;
 }
 
@@ -280,14 +290,16 @@ int notes_service_update_note(Note *n)
 				notes_index[0] = tmp;
 			}
 
-			/* Write content-only file */
 			char filepath[1024];
 			snprintf(filepath, sizeof(filepath), "%s/%s", NOTES_PATH, note->filename);
 			FILE *f = fopen(filepath, "w");
-			if (f) {
-				fprintf(f, "%s", note->content);
-				fclose(f);
+			if (!f) {
+				fprintf(stderr, "notes_service: cannot write %s: %s\n",
+				        filepath, strerror(errno));
+				return 1;
 			}
+			fprintf(f, "%s", note->content);
+			fclose(f);
 			return 0;
 		}
 	}

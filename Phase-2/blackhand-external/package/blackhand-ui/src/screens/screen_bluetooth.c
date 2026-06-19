@@ -442,8 +442,8 @@ screen_id screen_bluetooth_input(uint32_t key)
 {
     if (bt_state == BT_STATE_CONNECTING)
     {
-        if (key == 'q' || key == 'Q' || key == NCKEY_LEFT ||
-            key == KEY_SOFT_LEFT_ACTION)
+        if (key == KEY_SOFT_LEFT_ACTION || key == NCKEY_LEFT ||
+            key == KEY_ACTION_SECONDARY)
         {
             bt_state = BT_STATE_IDLE;
             return SCREEN_SETTINGS;
@@ -454,8 +454,8 @@ screen_id screen_bluetooth_input(uint32_t key)
     /* SCANNING */
     if (bt_state == BT_STATE_SCANNING)
     {
-        if (key == 'q' || key == 'Q' || key == NCKEY_LEFT ||
-            key == KEY_SOFT_LEFT_ACTION)
+        if (key == KEY_SOFT_LEFT_ACTION || key == NCKEY_LEFT ||
+            key == KEY_ACTION_SECONDARY)
         {
             bluetooth_service_scan_stop();
             bt_state = BT_STATE_IDLE;
@@ -470,7 +470,8 @@ screen_id screen_bluetooth_input(uint32_t key)
         switch (key)
         {
         case NCKEY_ENTER: case '\n':
-        case KEY_SOFT_RIGHT_ACTION:   /* [On] softkey — was dead before */
+        case KEY_SOFT_RIGHT_ACTION:
+        case KEY_ACTION_PRIMARY:           /* A = power on */
             bluetooth_service_set_power(1);
             s_bt_powered = 1;
             scan_tick    = 0;
@@ -478,7 +479,7 @@ screen_id screen_bluetooth_input(uint32_t key)
             bluetooth_service_scan_start();
             sel = 0; scroll = 0;
             return SCREEN_BLUETOOTH;
-        case 'q': case 'Q': case NCKEY_LEFT: case KEY_SOFT_LEFT_ACTION:
+        case NCKEY_LEFT: case KEY_SOFT_LEFT_ACTION: case KEY_ACTION_SECONDARY:
             bt_initialised = 0;
             return SCREEN_SETTINGS;
         default:
@@ -516,10 +517,36 @@ screen_id screen_bluetooth_input(uint32_t key)
                 bluetooth_service_remove(dev_mac);
                 build_named_device_list();
                 bt_state = BT_STATE_IDLE;
-                if (sel > (int)s_named_count) sel = (int)s_named_count;
+                /* After removal the list is shorter. Clamp sel into the
+                   new range — previously this used `>` instead of `>=`
+                   so sel could land on count (off-by-one) and the next
+                   draw would index past the end. */
+                if (s_named_count == 0) {
+                    sel = 0;
+                } else if (sel >= (int)s_named_count) {
+                    sel = (int)s_named_count - 1;
+                }
             }
             return SCREEN_BLUETOOTH;
-        case 'q': case 'Q': case NCKEY_LEFT: case KEY_SOFT_LEFT_ACTION:
+        case KEY_ACTION_PRIMARY:           /* A = connect/disconnect */
+            if (dev_connected)
+            {
+                bluetooth_service_disconnect(dev_mac);
+                dev_connected = 0;
+            }
+            else
+            {
+                bluetooth_service_connect_async(dev_mac);
+                bt_state = BT_STATE_CONNECTING;
+            }
+            return SCREEN_BLUETOOTH;
+        case KEY_ACTION_SECONDARY:         /* D = remove device */
+            bluetooth_service_remove(dev_mac);
+            build_named_device_list();
+            bt_state = BT_STATE_IDLE;
+            if (sel > (int)s_named_count) sel = (int)s_named_count;
+            return SCREEN_BLUETOOTH;
+        case NCKEY_LEFT: case KEY_SOFT_LEFT_ACTION:
             bt_state = BT_STATE_IDLE;
             return SCREEN_BLUETOOTH;
         default:
@@ -540,6 +567,7 @@ screen_id screen_bluetooth_input(uint32_t key)
         return SCREEN_BLUETOOTH;
 
     case NCKEY_ENTER: case '\n':
+    case KEY_ACTION_PRIMARY:           /* A = scan / open device */
         if (sel == 0)
         {
             scan_tick = 0;
@@ -566,14 +594,15 @@ screen_id screen_bluetooth_input(uint32_t key)
         return SCREEN_BLUETOOTH;
 
      /* LSK — back to settings (does NOT change BT power state) */
-    case 'q': case 'Q': case NCKEY_LEFT: case KEY_SOFT_LEFT_ACTION:
+    case NCKEY_LEFT: case KEY_SOFT_LEFT_ACTION:
         bluetooth_service_scan_stop();
         /* Reset initialization flag so paired devices are reloaded on re-entry */
         bt_initialised = 0;
         return SCREEN_SETTINGS;
 
-    /* RSK — power off */
+    /* RSK / D — power off */
     case KEY_SOFT_RIGHT_ACTION:
+    case KEY_ACTION_SECONDARY:         /* D = power off */
         bluetooth_service_set_power(0);
         s_bt_powered = 0;
         bt_state     = BT_STATE_OFF;

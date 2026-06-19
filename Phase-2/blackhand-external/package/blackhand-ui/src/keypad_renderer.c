@@ -21,8 +21,11 @@
  *             [ * ] [ 0 ] [ # ]
  *
  *  INPUT MAPPING (from config.h):
- *    KEY_BIND_SOFT_LEFT  = Left Soft Key (LSK)
- *    KEY_BIND_SOFT_RIGHT = Right Soft Key (RSK)
+ *    F1 = Left Soft Key (LSK)
+ *    F3 = Right Soft Key (RSK)
+ *    F4 = Primary action (call, send, save)
+ *    F6 = Secondary action (reject, delete, back)
+ *    F2 / F5 = Navigate up / down
  *    Arrow keys = D-pad directions
  *    Enter     = D-pad center / OK
  *    0-9, *, # = Numeric keypad

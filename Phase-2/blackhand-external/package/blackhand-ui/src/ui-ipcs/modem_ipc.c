@@ -109,13 +109,24 @@ int modem_ipc_ping(void)
 int modem_ipc_send_sms(const char *number, const char *body)
 {
     if (!number || !body) return -1;
-    char req[1024];
-    int n = snprintf(req, sizeof(req),
-        "{\"jsonrpc\":\"2.0\",\"method\":\"send_sms\","
-        "\"params\":{\"number\":\"%s\",\"body\":\"%s\"},\"id\":1}",
-        number, body);
-    if (n < 0 || (size_t)n >= sizeof(req)) return -1;
-    return simple_request(req);
+
+    cJSON *req = cJSON_CreateObject();
+    if (!req) return -1;
+    cJSON_AddStringToObject(req, "jsonrpc", "2.0");
+    cJSON_AddStringToObject(req, "method", "send_sms");
+    cJSON *params = cJSON_CreateObject();
+    if (!params) { cJSON_Delete(req); return -1; }
+    cJSON_AddStringToObject(params, "number", number);
+    cJSON_AddStringToObject(params, "body",   body);
+    cJSON_AddItemToObject(req, "params", params);
+    cJSON_AddNumberToObject(req, "id", 1);
+
+    char *json = cJSON_PrintUnformatted(req);
+    cJSON_Delete(req);
+    if (!json) return -1;
+    int result = simple_request(json);
+    free(json);
+    return result;
 }
 
 int modem_ipc_get_messages(char *buf, int buf_size)

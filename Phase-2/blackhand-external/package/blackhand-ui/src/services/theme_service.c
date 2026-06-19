@@ -1,145 +1,182 @@
-/*
- * theme_service.c — the 12 BlackHand themes (Design Pack v1.1).
- * Tokens match the interactive prototype exactly. Theme = data only.
- */
 #include "theme_service.h"
 #include "settings_service.h"
+#include "../config.h"
 
+/*
+ * The 12 BlackHand OS themes, in design-pack order. Hex values are the sRGB
+ * tokens from the UI Design Pack / interactive prototype. The renderer reads
+ * only from the active entry of this table -- there is no per-theme branching
+ * in the screens themselves; everything is expressed through the style enums.
+ */
 static const bh_theme_t k_themes[] = {
-    /* 1 — amber-ledger: avionics amber. The issued-equipment default. */
-    { .id="AMBER-LEDGER",  .bg=0x0B0B09, .fg_bright=0xFAC775, .fg_mid=0xBA7517,
-      .fg_dim=0x854F0B, .fg_deep=0x633806, .accent=0xFAC775, .accent2=0xFAC775,
-      .sel_bg=0xFAC775, .sel_fg=0x0B0B09,
-      .sel_style=SEL_INVERT, .div_style=DIV_SOLID,
-      .status_style=STATUS_GLYPH, .footer_style=FOOTER_WORDMARK },
+    /* 1 -- amber-ledger : military avionics amber phosphor on near-black */
+    { "amber-ledger", "Amber Ledger",
+      0x0B0B09, 0xFAC775, 0xBA7517, 0x854F0B, 0x633806,
+      0xFAC775, 0x0B0B09, 0xFAC775, 0xBA7517,
+      SEL_CURSOR, ST_GLYPH, DV_SOLID, FT_WORDMARK, 0,0,0,0 },
 
-    /* 2 — phosphor-index: green CRT registers. */
-    { .id="PHOSPHOR-INDEX", .bg=0x0A0D08, .fg_bright=0xC0DD97, .fg_mid=0x97C459,
-      .fg_dim=0x639922, .fg_deep=0x3B6D11, .accent=0xC0DD97, .accent2=0xC0DD97,
-      .sel_bg=0xC0DD97, .sel_fg=0x0A0D08,
-      .sel_style=SEL_INDEX, .div_style=DIV_SOLID,
-      .status_style=STATUS_TEXT, .footer_style=FOOTER_READOUT },
+    /* 2 -- phosphor-index : green CRT terminal, indexed registers */
+    { "phosphor-index", "Phosphor Index",
+      0x0A0D08, 0xC0DD97, 0x97C459, 0x639922, 0x3B6D11,
+      0x00, 0x00, 0xC0DD97, 0x97C459,
+      SEL_INDEX, ST_TEXT, DV_SOLID, FT_WORDMARK, 0,0,0,0 },
 
-    /* 3 — redline-mono: tactical HUD; red is a scalpel (≤6 chars/screen). */
-    { .id="REDLINE-MONO",  .bg=0x0B0B0B, .fg_bright=0xD3D1C7, .fg_mid=0x888780,
-      .fg_dim=0x5F5E5A, .fg_deep=0x444441, .accent=0xE24B4A, .accent2=0xF09595,
-      .sel_bg=0xA32D2D, .sel_fg=0xF09595,
-      .sel_style=SEL_BRACKET, .div_style=DIV_LABELED,
-      .status_style=STATUS_BARS, .footer_style=FOOTER_CORNERS },
+    /* 3 -- redline-mono : tactical HUD, warm gray with a red scalpel accent */
+    { "redline-mono", "Redline Mono",
+      0x0B0B0B, 0xD3D1C7, 0x888780, 0x5F5E5A, 0x444441,
+      0x00, 0x00, 0xE24B4A, 0xF09595,
+      SEL_BRACKET, ST_GLYPH, DV_LABEL, FT_REDLINE, 0,0,0,0 },
 
-    /* 4 — vale-signal: amber tuned for event screens. */
-    { .id="VALE-SIGNAL",   .bg=0x0B0B09, .fg_bright=0xFAC775, .fg_mid=0xBA7517,
-      .fg_dim=0x854F0B, .fg_deep=0x633806, .accent=0xFAC775, .accent2=0xFAC775,
-      .sel_bg=0xFAC775, .sel_fg=0x0B0B09,
-      .sel_style=SEL_INVERT, .div_style=DIV_SOLID,
-      .status_style=STATUS_GLYPH, .footer_style=FOOTER_WORDMARK },
+    /* 4 -- vale-signal : amber tuned for event screens (warmer accent + stamp) */
+    { "vale-signal", "Vale Signal",
+      0x0B0B09, 0xFFD9A0, 0xE08A3A, 0x9A5212, 0x5F3608,
+      0xFF8C42, 0x0B0B09, 0xFF8C42, 0xE08A3A,
+      SEL_CURSOR, ST_GLYPH, DV_LABEL, FT_REDLINE, 0,0,1,1 },
 
-    /* 5 — rushnyk: folk embroidery; ornament is ceremonial. */
-    { .id="RUSHNYK",       .bg=0x0C0A0A, .fg_bright=0xF7C1C1, .fg_mid=0xF09595,
-      .fg_dim=0xA32D2D, .fg_deep=0x791F1F, .accent=0xE24B4A, .accent2=0xF7C1C1,
-      .sel_bg=0xA32D2D, .sel_fg=0xF7C1C1,
-      .sel_style=SEL_DIAMOND, .div_style=DIV_ORNAMENT,
-      .status_style=STATUS_GLYPH, .footer_style=FOOTER_STAR },
+    /* 5 -- rushnyk : Slavic folk embroidery, red cross-stitch bands */
+    { "rushnyk", "Rushnyk",
+      0x0C0A0A, 0xF7C1C1, 0xF09595, 0xA32D2D, 0x791F1F,
+      0x00, 0x00, 0xE24B4A, 0xF09595,
+      SEL_DIAMOND, ST_GLYPH, DV_BAND, FT_DIAMOND, 0,0,0,0 },
 
-    /* 6 — thermal-index: heatmap; color = 24h usage. */
-    { .id="THERMAL-INDEX", .bg=0x0B0B0C, .fg_bright=0xD3D1C7, .fg_mid=0x888780,
-      .fg_dim=0x5F5E5A, .fg_deep=0x2C2C2A, .accent=0xE24B4A, .accent2=0xF09595,
-      .sel_bg=0xE24B4A, .sel_fg=0x0B0B0C,
-      .sel_style=SEL_HEAT, .div_style=DIV_SOLID,
-      .status_style=STATUS_THERMAL, .footer_style=FOOTER_HEAT },
+    /* 6 -- thermal-index : heatmap, color encodes 24h usage frequency */
+    { "thermal-index", "Thermal Index",
+      0x0B0B0C, 0xD3D1C7, 0x888780, 0x5F5E5A, 0x444441,
+      0x00, 0x00, 0xE24B4A, 0xEF9F27,
+      SEL_HEAT, ST_THERMAL, DV_SOLID, FT_WORDMARK, 0,1,0,0 },
 
-    /* 7 — instrument-bench: lab equipment, teal, registers + telemetry. */
-    { .id="INSTRUMENT",    .bg=0x0A0B0B, .fg_bright=0x9FE1CB, .fg_mid=0x5DCAA5,
-      .fg_dim=0x1D9E75, .fg_deep=0x0F6E56, .accent=0x5DCAA5, .accent2=0x9FE1CB,
-      .sel_bg=0x085041, .sel_fg=0xE1F5EE,
-      .sel_style=SEL_REG, .div_style=DIV_DOTTED,
-      .status_style=STATUS_INSTRUMENT, .footer_style=FOOTER_SPARK },
+    /* 7 -- instrument-bench : scientism, telemetry with units, registers */
+    { "instrument-bench", "Instrument",
+      0x0A0B0B, 0x9FE1CB, 0x5DCAA5, 0x1D9E75, 0x0F6E56,
+      0x085041, 0xE1F5EE, 0x5DCAA5, 0x1D9E75,
+      SEL_REG, ST_UTC, DV_DOT, FT_UTC, 0,0,0,0 },
 
-    /* 8 — boot-rite: rushnyk identity + instrument log (teal = doing). */
-    { .id="BOOT-RITE",     .bg=0x0C0A0A, .fg_bright=0xF7C1C1, .fg_mid=0xF09595,
-      .fg_dim=0xA32D2D, .fg_deep=0x791F1F, .accent=0x5DCAA5, .accent2=0x5DCAA5,
-      .sel_bg=0xA32D2D, .sel_fg=0xF7C1C1,
-      .sel_style=SEL_DIAMOND, .div_style=DIV_ORNAMENT,
-      .status_style=STATUS_RITE, .footer_style=FOOTER_RITE },
+    /* 8 -- boot-rite : rushnyk identity + instrument log, dual accent */
+    { "boot-rite", "Boot Rite",
+      0x080C0B, 0xC9E8DB, 0x9DBFAE, 0x5DCAA5, 0x2E6E5A,
+      0x00, 0x00, 0x5DCAA5, 0xA32D2D,
+      SEL_DIAMOND, ST_RITE, DV_BAND, FT_RITE, 0,0,0,0 },
 
-    /* 9 — blueprint: drawing on blue paper; selection is an outline. */
-    { .id="BLUEPRINT",     .bg=0x123A78, .fg_bright=0xEAF3FC, .fg_mid=0x7FB3E8,
-      .fg_dim=0x4A7BBF, .fg_deep=0x2C5CA0, .accent=0xEAF3FC, .accent2=0xEAF3FC,
-      .sel_bg=0xEAF3FC, .sel_fg=0x123A78,
-      .sel_style=SEL_BOX, .div_style=DIV_DIMENSION,
-      .status_style=STATUS_GLYPH, .footer_style=FOOTER_TITLEBLOCK },
+    /* 9 -- blueprint : technical drawing, the only colored background */
+    { "blueprint", "Blueprint",
+      0x123A78, 0xEAF3FC, 0x7FB3E8, 0x4A7BBF, 0x2C5CA0,
+      0x00, 0x00, 0x7FB3E8, 0x4A7BBF,
+      SEL_BOX, ST_GLYPH, DV_DIM, FT_WORDMARK, 0,0,0,0 },
 
-    /* 10 — dossier: the reference light theme. Ink on paper, red stamp. */
-    { .id="DOSSIER",       .bg=0xE9E3D1, .fg_bright=0x26241F, .fg_mid=0x3D3A33,
-      .fg_dim=0x6B665B, .fg_deep=0x9A937F, .accent=0xA32D2D, .accent2=0xA32D2D,
-      .sel_bg=0x26241F, .sel_fg=0xE9E3D1,
-      .sel_style=SEL_INK, .div_style=DIV_DOUBLE,
-      .status_style=STATUS_TEXT2, .footer_style=FOOTER_REF,
-      .light=1, .stamp=1 },
+    /* 10 -- dossier : the reference LIGHT theme, paper-tone field file */
+    { "dossier", "Dossier",
+      0xE9E3D1, 0x26241F, 0x3D3A33, 0x6B665B, 0x9A937F,
+      0x26241F, 0xE9E3D1, 0xA32D2D, 0x6B665B,
+      SEL_INK, ST_TEXT2, DV_DBL, FT_DOSSIER, 1,0,1,0 },
 
-    /* 11 — one-bit: black and white, nothing else. Power-saver mode. */
-    { .id="ONE-BIT",       .bg=0x000000, .fg_bright=0xFFFFFF, .fg_mid=0xFFFFFF,
-      .fg_dim=0xFFFFFF, .fg_deep=0xFFFFFF, .accent=0xFFFFFF, .accent2=0xFFFFFF,
-      .sel_bg=0xFFFFFF, .sel_fg=0x000000,
-      .sel_style=SEL_BIT, .div_style=DIV_CHECKER,
-      .status_style=STATUS_BITS, .footer_style=FOOTER_BIT },
+    /* 11 -- one-bit : pure black/white brutalism, power-saver mode */
+    { "one-bit", "One-Bit",
+      0x000000, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF,
+      0xFFFFFF, 0x000000, 0xFFFFFF, 0xFFFFFF,
+      SEL_BIT, ST_BITS, DV_CHK, FT_BIT, 0,0,0,0 },
 
-    /* 12 — polar-night: aurora over dark blue; ✶ ties to rushnyk star. */
-    { .id="POLAR-NIGHT",   .bg=0x0A0A16, .fg_bright=0xD8E6F2, .fg_mid=0x5F7390,
-      .fg_dim=0x5F7390, .fg_deep=0x2A3450, .accent=0xC77DDB, .accent2=0xFFFFFF,
-      .sel_bg=0x2A3450, .sel_fg=0xFFFFFF,
-      .sel_style=SEL_STAR, .div_style=DIV_AURORA,
-      .status_style=STATUS_GLYPH, .footer_style=FOOTER_COORDS },
+    /* 12 -- polar-night : deep indigo, aurora band, GPS footer */
+    { "polar-night", "Polar Night",
+      0x0A0A16, 0xD8E6F2, 0x5F7390, 0x5F7390, 0x2A3450,
+      0xFFFFFF, 0x0A0A16, 0xC77DDB, 0x5F7390,
+      SEL_STAR, ST_GLYPH, DV_AUR, FT_POLAR, 0,0,0,0 },
 };
 
-#define THEME_N ((int)(sizeof(k_themes) / sizeof(k_themes[0])))
+static const int k_count = (int)(sizeof(k_themes) / sizeof(k_themes[0]));
 
-static int g_active = 0;
+static int       g_index     = UI_DEFAULT_THEME_INDEX;
+static int       g_dark_mode = 0;
+static bh_theme_t g_dark_theme;
 
-static int clamp_idx(int idx)
-{
+static int clamp_index(int idx) {
     if (idx < 0) return 0;
-    if (idx >= THEME_N) return THEME_N - 1;
+    if (idx >= k_count) return k_count - 1;
     return idx;
 }
 
-void theme_service_init(void)               { theme_service_sync_from_settings(); }
-void theme_service_sync_from_settings(void) { g_active = clamp_idx(settings_service_get_light_theme()); }
-
-const bh_theme_t *theme_active(void) { return &k_themes[g_active]; }
-int               theme_count(void)  { return THEME_N; }
-
-const char *theme_id_at(int index)
-{
-    if (index < 0 || index >= THEME_N) return "";
-    return k_themes[index].id;
+/* Darken a single RGB color by 55%. 0 is a sentinel (meaning "inherit"),
+ * so it is passed through unchanged. */
+static uint32_t dark(uint32_t c) {
+    if (c == 0) return 0;
+    uint8_t r = (uint8_t)(((c >> 16) & 0xFF) * 55 / 100);
+    uint8_t g = (uint8_t)(((c >>  8) & 0xFF) * 55 / 100);
+    uint8_t b = (uint8_t)( (c        & 0xFF) * 55 / 100);
+    return ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
 }
 
-uint32_t       theme_fg_deep(void)      { return k_themes[g_active].fg_deep; }
-uint32_t       theme_accent(void)       { return k_themes[g_active].accent; }
-uint32_t       theme_accent2(void)      { return k_themes[g_active].accent2; }
-sel_style_t    theme_sel_style(void)    { return k_themes[g_active].sel_style; }
-div_style_t    theme_div_style(void)    { return k_themes[g_active].div_style; }
-status_style_t theme_status_style(void) { return k_themes[g_active].status_style; }
-footer_style_t theme_footer_style(void) { return k_themes[g_active].footer_style; }
-int            theme_is_light(void)     { return k_themes[g_active].light; }
+static void build_dark_theme(void) {
+    const bh_theme_t *s = &k_themes[clamp_index(g_index)];
+    g_dark_theme          = *s;            /* copy id, label, style enums, flags */
+    g_dark_theme.bg       = dark(s->bg);
+    g_dark_theme.bright   = dark(s->bright);
+    g_dark_theme.mid      = dark(s->mid);
+    g_dark_theme.dim      = dark(s->dim);
+    g_dark_theme.deep     = dark(s->deep);
+    g_dark_theme.sel_bg   = dark(s->sel_bg);
+    g_dark_theme.sel_fg   = dark(s->sel_fg);
+    g_dark_theme.accent   = dark(s->accent);
+    g_dark_theme.accent2  = dark(s->accent2);
+}
 
-uint32_t theme_bg(void)             { return k_themes[g_active].bg; }
-uint32_t theme_text_primary(void)   { return k_themes[g_active].fg_bright; }
-uint32_t theme_text_muted(void)     { return k_themes[g_active].fg_mid; }
-uint32_t theme_border(void)         { return k_themes[g_active].fg_dim; }
-uint32_t theme_selection_bg(void)   { return k_themes[g_active].sel_bg; }
-uint32_t theme_selection_text(void) { return k_themes[g_active].sel_fg; }
+void theme_service_init(void) {
+    theme_service_sync_from_settings();
+}
 
-const char *theme_rule_glyph(void)
-{
-    /* In-screen rules only — bands/checkers/auroras live in the frame
-     * divider; ornament is ceremonial, never wallpaper. */
-    switch (k_themes[g_active].div_style) {
-        case DIV_DOTTED: return "┄";
-        case DIV_DOUBLE: return "═";
-        default:         return "─";
+void theme_service_sync_from_settings(void) {
+    g_index    = clamp_index(settings_service_get_light_theme());
+    g_dark_mode = settings_service_get_bool(SETTINGS_KEY_NIGHT_MODE) ? 1 : 0;
+    if (g_dark_mode) build_dark_theme();
+}
+
+const bh_theme_t *theme_active(void) {
+    if (g_dark_mode) return &g_dark_theme;
+    return &k_themes[clamp_index(g_index)];
+}
+
+int theme_active_index(void) { return clamp_index(g_index); }
+int theme_count(void)        { return k_count; }
+
+const bh_theme_t *theme_at(int index) {
+    return &k_themes[clamp_index(index)];
+}
+
+uint32_t theme_bg(void)           { return theme_active()->bg; }
+uint32_t theme_text_primary(void) { return theme_active()->bright; }
+uint32_t theme_text_muted(void)   { return theme_active()->mid; }
+uint32_t theme_border(void)       { return theme_active()->deep; }
+uint32_t theme_dim(void)          { return theme_active()->dim; }
+uint32_t theme_deep(void)         { return theme_active()->deep; }
+
+uint32_t theme_accent(void) {
+    const bh_theme_t *t = theme_active();
+    return t->accent ? t->accent : t->bright;
+}
+
+uint32_t theme_selection_bg(void) {
+    const bh_theme_t *t = theme_active();
+    return t->sel_bg ? t->sel_bg : t->bright;
+}
+
+uint32_t theme_selection_text(void) {
+    const bh_theme_t *t = theme_active();
+    return t->sel_fg ? t->sel_fg : t->bg;
+}
+
+const char *theme_rule_glyph(void) {
+    /* Single-cell glyph used by screens that draw their own content rules. */
+    switch (theme_active()->div_style) {
+        case DV_DOT: return ".";
+        case DV_DBL: return "=";
+        default:     return "─"; /* light horizontal */
     }
 }
 
-int theme_service_is_dark(void) { return k_themes[g_active].light ? 0 : 1; }
+int theme_service_is_dark(void) {
+    return theme_active()->is_light ? 0 : 1;
+}
+
+/* ---- global semantic action colors (darken on the light theme) ----------- */
+uint32_t theme_affirm_border(void)   { return theme_active()->is_light ? 0x2F8A3D : 0x97C459; }
+uint32_t theme_affirm_text(void)     { return theme_active()->is_light ? 0x1F6B2E : 0xC0DD97; }
+uint32_t theme_destruct_border(void) { return 0xA32D2D; }
+uint32_t theme_destruct_text(void)   { return theme_active()->is_light ? 0x8E2424 : 0xF09595; }

@@ -6,14 +6,10 @@
 /*
  * voice_memo_service.h
  *
- * This service owns voice memo domain logic.
- * Filesystem is the source of truth.
- * Each memo is identified by its filename.
- *
- * Mock stage:
- * - No real audio recording yet
- * - Recording/playback are simulated using timers
- * - One file per memo in ./VoiceMemos
+ * UI-side voice memo state + filesystem index. Audio I/O is owned by
+ * the blackhand-audio daemon — this service only sends commands and
+ * polls status. Filesystem is the source of truth; each memo is
+ * identified by its filename in /data/voice-memos/.
  */
 
 typedef enum
@@ -58,8 +54,6 @@ int voice_memo_service_play_pause(void);
 int voice_memo_service_play_resume(void);
 int voice_memo_service_play_stop(void);
 int voice_memo_service_seek_relative(int delta_ms);
-void voice_memo_service_set_speed_percent(int speed_percent);
-int voice_memo_service_get_speed_percent(void);
 int voice_memo_service_next(void);
 int voice_memo_service_prev(void);
 void voice_memo_service_cycle_mode(void);

@@ -6,7 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-extern int fn;
+#include <pthread.h>
+extern volatile int fn;
 
 // Modem hardware presence — 1 once the AT port is open and configured.
 // IPC server runs regardless so the UI can ask "are you there?" and get a
@@ -23,6 +24,7 @@ typedef enum
 } CallState;
 
 extern CallState call_state;
+extern pthread_mutex_t call_state_mutex;
 
 // Incoming caller number, tracked from +CLIP URC.
 void modem_set_incoming_number(const char *num);

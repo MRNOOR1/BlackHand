@@ -13,6 +13,7 @@
 #include <sys/un.h>
 #include <arpa/inet.h>
 #include <stdint.h>
+#include <sys/time.h>
 #include "ipc.h"
 
 /* ── Internal helpers ────────────────────────────────────────────────────
@@ -114,6 +115,10 @@ int ipc_request(const char *path, const char *json, char *buf, size_t buf_size)
 
     int fd = ipc_client_connect(path);
     if (fd < 0) return fd;
+
+    /* Prevent the UI from blocking forever if a service hangs mid-response. */
+    struct timeval tv = { .tv_sec = 10, .tv_usec = 0 };
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
     if (send_msg(fd, json) != 0) {
         ipc_close(fd);

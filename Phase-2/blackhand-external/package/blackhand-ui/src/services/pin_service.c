@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 #define DEFAULT_PIN "0000"
-#define PIN_FILE "pin.conf"
+#define PIN_FILE "/data/pin.conf"
 
 static char g_pin[8] = DEFAULT_PIN;
 

@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 // Convenience guard: if the modem hardware isn't up, every modem-touching
 // handler should bail out fast with a clear error instead of writing to a
@@ -171,11 +172,15 @@ static void handle_modem_status(int fd, int id, cJSON *params)
 	REQUIRE_MODEM_OR_FAIL(fd, id);
 	cJSON *obj = cJSON_CreateObject();
 
+	pthread_mutex_lock(&call_state_mutex);
+	CallState cs = call_state;
+	pthread_mutex_unlock(&call_state_mutex);
+
 	cJSON_AddNumberToObject(obj, "signal",            modem_signal_cached());
-	cJSON_AddBoolToObject  (obj, "has_incoming_call", call_state == CALL_RINGING);
+	cJSON_AddBoolToObject  (obj, "has_incoming_call", cs == CALL_RINGING);
 
 	const char *state_str = "idle";
-	switch (call_state) {
+	switch (cs) {
 		case CALL_DIALLING: state_str = "dialling"; break;
 		case CALL_RINGING:  state_str = "ringing";  break;
 		case CALL_ACTIVE:   state_str = "active";   break;

@@ -502,8 +502,6 @@ static void *dispatch_thread(void *arg)
 {
     (void)arg;
 
-    dbus_threads_init_default();
-
     DBusError err;
     dbus_error_init(&err);
     /* Private connection so this thread owns dispatch exclusively */
@@ -595,6 +593,7 @@ static void *dispatch_thread(void *arg)
 
 void avrcp_service_init(void)
 {
+    dbus_threads_init_default();
     s_running        = 1;
     s_thread_created = 0;
     if (pthread_create(&s_thread, NULL, dispatch_thread, NULL) == 0)

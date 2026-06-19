@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdint.h>
 
 typedef struct
 {
@@ -23,7 +24,7 @@ MessageHandler handlers[] = {
 	{"VOICE CALL: END", handle_call_end}};
 
 static pthread_t urc_thread_id;
-static int urc_running = 0;
+static volatile int urc_running = 0;
 
 void *urc_thread_func(void *arg)
 {
@@ -71,7 +72,8 @@ void *urc_thread_func(void *arg)
 					offset += snprintf(accum_buffer + offset, BUFFERSIZE - offset, "%s\n", line);
 					// signal at_cmd() with accum_buffer
 					pthread_mutex_lock(&response_mutex);
-					strncpy(response_buffer, accum_buffer, BUFFERSIZE);
+					strncpy(response_buffer, accum_buffer, BUFFERSIZE - 1);
+					response_buffer[BUFFERSIZE - 1] = '\0';
 					response_ready = 1;
 					pthread_cond_signal(&response_cond);
 					pthread_mutex_unlock(&response_mutex);
@@ -126,9 +128,9 @@ void urc_stop()
 void handle_ring(const char *line)
 {
 	(void)line;
-	printf("Incoming call logic\n");
+	pthread_mutex_lock(&call_state_mutex);
 	call_state = CALL_RINGING;
-	// RING repeats — call_session_start ignores all but the first.
+	pthread_mutex_unlock(&call_state_mutex);
 	call_session_start(1, NULL);
 }
 
@@ -189,17 +191,19 @@ void handle_cmt(const char *line)
 void handle_no_carrier(const char *line)
 {
 	(void)line;
-	printf("Call ended logic\n");
+	pthread_mutex_lock(&call_state_mutex);
 	call_state = CALL_IDLE;
+	pthread_mutex_unlock(&call_state_mutex);
 	modem_clear_incoming_number();
-	call_session_end(NULL);   /* derive: answered / missed / no_answer */
+	call_session_end(NULL);
 }
 
 void handle_busy(const char *line)
 {
 	(void)line;
-	printf("Line busy logic\n");
+	pthread_mutex_lock(&call_state_mutex);
 	call_state = CALL_IDLE;
+	pthread_mutex_unlock(&call_state_mutex);
 	modem_clear_incoming_number();
 	call_session_end("busy");
 }
@@ -207,16 +211,18 @@ void handle_busy(const char *line)
 void handle_call_begin(const char *line)
 {
 	(void)line;
-	printf("Call connected logic\n");
+	pthread_mutex_lock(&call_state_mutex);
 	call_state = CALL_ACTIVE;
+	pthread_mutex_unlock(&call_state_mutex);
 	call_session_answered();
 }
 
 void handle_call_end(const char *line)
 {
 	(void)line;
-	printf("Call ended logic\n");
+	pthread_mutex_lock(&call_state_mutex);
 	call_state = CALL_IDLE;
+	pthread_mutex_unlock(&call_state_mutex);
 	modem_clear_incoming_number();
 	call_session_end(NULL);
 }
@@ -224,8 +230,9 @@ void handle_call_end(const char *line)
 void handle_missed_call(const char *line)
 {
 	(void)line;
-	printf("Missed call logic\n");
+	pthread_mutex_lock(&call_state_mutex);
 	call_state = CALL_IDLE;
+	pthread_mutex_unlock(&call_state_mutex);
 	modem_clear_incoming_number();
 	call_session_end("missed");
 }

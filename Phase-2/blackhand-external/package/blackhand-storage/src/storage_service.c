@@ -89,6 +89,7 @@ static void save_json(const char *path, cJSON *root)
     if (f) {
         fputs(str, f);
         fflush(f);
+        fsync(fileno(f));
         fclose(f);
         rename(tmp, path);   /* atomic replace */
     }
@@ -387,6 +388,48 @@ static void h_add_call(int fd, int id, cJSON *params)
     send_ok(fd, id);
 }
 
+static void h_calls_delete_entry(int fd, int id, cJSON *params)
+{
+    const char *number = param_str(params, "number");
+    double ts = param_num(params, "ts", -1.0);
+    if (!number || ts < 0) { send_err(fd, id, "missing number or ts"); return; }
+
+    char path[160];
+    if (number_file(number, "calls.json", path, sizeof(path), 0) != 0) {
+        send_err(fd, id, "bad number"); return;
+    }
+    cJSON *arr = load_json(path, 1);
+    int n = cJSON_GetArraySize(arr);
+    int removed = 0;
+    for (int i = 0; i < n; i++) {
+        cJSON *it = cJSON_GetArrayItem(arr, i);
+        double entry_ts = param_num(it, "ts", -1.0);
+        if (entry_ts >= 0 && entry_ts == ts) {
+            cJSON_DeleteItemFromArray(arr, i);
+            removed = 1;
+            break;
+        }
+    }
+    if (removed) save_json(path, arr);
+    cJSON_Delete(arr);
+    send_ok(fd, id);
+}
+
+static void h_messages_delete_thread(int fd, int id, cJSON *params)
+{
+    const char *number = param_str(params, "number");
+    if (!number) { send_err(fd, id, "missing number"); return; }
+
+    char path[160];
+    if (number_file(number, "sms.json", path, sizeof(path), 0) != 0) {
+        send_err(fd, id, "bad number"); return;
+    }
+    cJSON *empty = cJSON_CreateArray();
+    save_json(path, empty);
+    cJSON_Delete(empty);
+    send_ok(fd, id);
+}
+
 static void h_calls_list(int fd, int id, cJSON *params)
 {
     const char *number = param_str(params, "number");
@@ -481,19 +524,21 @@ static void h_ping(int fd, int id, cJSON *params)
 struct handler { const char *method; void (*fn)(int, int, cJSON *); };
 
 static const struct handler TABLE[] = {
-    { "ping",                 h_ping            },
-    { "contacts.list",        h_contacts_list   },
-    { "contacts.save",        h_contacts_save   },
-    { "contacts.delete",      h_contacts_delete },
-    { "history.add_sms",      h_add_sms         },
-    { "history.sms_list",     h_sms_list        },
-    { "history.sms_threads",  h_sms_threads     },
-    { "history.mark_read",    h_mark_read       },
-    { "history.add_call",     h_add_call        },
-    { "history.calls_list",   h_calls_list      },
-    { "history.calls_recent", h_calls_recent    },
-    { "settings.get",         h_settings_get    },
-    { "settings.set",         h_settings_set    },
+    { "ping",                          h_ping                  },
+    { "contacts.list",                 h_contacts_list         },
+    { "contacts.save",                 h_contacts_save         },
+    { "contacts.delete",               h_contacts_delete       },
+    { "history.add_sms",               h_add_sms              },
+    { "history.sms_list",              h_sms_list             },
+    { "history.sms_threads",           h_sms_threads          },
+    { "history.mark_read",             h_mark_read            },
+    { "history.add_call",              h_add_call             },
+    { "history.calls_list",            h_calls_list           },
+    { "history.calls_recent",          h_calls_recent         },
+    { "history.calls_delete_entry",    h_calls_delete_entry   },
+    { "history.messages_delete_thread",h_messages_delete_thread},
+    { "settings.get",                  h_settings_get         },
+    { "settings.set",                  h_settings_set         },
     { NULL, NULL }
 };
 

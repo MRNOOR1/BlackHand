@@ -101,12 +101,13 @@
 
 #include <stdio.h>    /* fopen, fgets, fclose, perror                       */
 #include <stdlib.h>   /* exit, EXIT_FAILURE, setenv                         */
-#include <unistd.h>   /* fork, execv, pause, write, dup2, close             */
+#include <unistd.h>   /* fork, execv, sleep, write, dup2, close             */
 #include <fcntl.h>    /* open, O_RDWR                                       */
 #include <signal.h>   /* sigaction, SIGCHLD, sig_atomic_t                   */
 #include <sys/wait.h> /* waitpid, WNOHANG                                   */
 #include <string.h>   /* memset, strncpy, strcspn, strcmp, strncmp, strchr  */
 #include <errno.h>    /* errno                                              */
+#include <time.h>     /* time, time_t                                       */
 
 /*
  * MAX_SERVICES — maximum number of services the config file can define.
@@ -148,8 +149,11 @@ typedef struct
 {
 	char name[64];
 	char path[256];
-	int  restart_on_failure;
+	int   restart_on_failure;
 	pid_t pid;
+	int   restart_count;
+	time_t last_start_time;
+	time_t next_restart_at;  /* 0 = not pending, >0 = restart after this time */
 } Service;
 
 /* Global service table — filled by parse_config(), used by everything else */
@@ -217,6 +221,9 @@ static void parse_config(void)
 			/* initialise slot to safe defaults before filling fields */
 			services[current].pid              = 0;
 			services[current].restart_on_failure = 0;
+			services[current].restart_count    = 0;
+			services[current].last_start_time  = 0;
+			services[current].next_restart_at  = 0;
 			services[current].name[0]          = '\0';
 			services[current].path[0]          = '\0';
 
@@ -305,6 +312,26 @@ static void start_service(Service *service)
 			}
 			setenv("TERM", "linux", 1);
 		}
+		else
+		{
+			/* Every other service has its stderr+stdout redirected to a
+			 * per-service log file on the FAT32 boot partition, e.g.
+			 * /boot/logs/blackhand-audio.log. That makes every daemon
+			 * inspectable from any host that can read the SD card —
+			 * no SSH, no ext4 driver. The redirect happens *before*
+			 * execv so the new image inherits the redirected fds. */
+			char logpath[128];
+			snprintf(logpath, sizeof(logpath),
+			         "/boot/logs/%s.log", service->name);
+			int logfd = open(logpath,
+			                 O_WRONLY | O_CREAT | O_APPEND, 0644);
+			if (logfd >= 0)
+			{
+				dup2(logfd, 1);
+				dup2(logfd, 2);
+				if (logfd > 2) close(logfd);
+			}
+		}
 
 		/* child process — replace with the service binary */
 		char *argv[] = { (char *)service->path, NULL };
@@ -316,8 +343,9 @@ static void start_service(Service *service)
 	}
 	else
 	{
-		/* parent process — record the child PID for future tracking */
 		service->pid = pid;
+		service->last_start_time = time(NULL);
+		service->next_restart_at = 0;
 		write(2, "service_manager: started ", 25);
 		write(2, service->name, strlen(service->name));
 		write(2, "\n", 1);
@@ -373,21 +401,42 @@ static void sigchld_handler(int sig)
 	(void)sig;
 	while (1)
 	{
-		pid_t pid = waitpid(-1, NULL, WNOHANG);
+		int wstatus = 0;
+		pid_t pid = waitpid(-1, &wstatus, WNOHANG);
 		if (pid <= 0)
-			break; /* 0 = no more zombies ready, -1 = error */
+			break;
 
 		Service *svc = find_by_pid(pid);
 		if (svc == NULL)
-			continue; /* not a tracked service — ignore */
+			continue;
 
-		if (svc->restart_on_failure == 1)
+		svc->pid = 0;
+
+		if (svc->restart_on_failure != 1)
+			continue;
+
+		time_t now = time(NULL);
+
+		/* Reset backoff counter if the service ran for at least 10 seconds. */
+		if (svc->last_start_time > 0 && (now - svc->last_start_time) >= 10)
+			svc->restart_count = 0;
+
+		/* Exponential backoff: 0 s, 1 s, 2 s, 4 s, 8 s, … capped at 30 s. */
+		int delay = 0;
+		if (svc->restart_count > 0)
 		{
-			write(2, "service_manager: restarting ", 28);
-			write(2, svc->name, strlen(svc->name));
-			write(2, "\n", 1);
-			start_service(svc); /* spawns new process, updates svc->pid */
+			delay = 1 << (svc->restart_count - 1);
+			if (delay > 30) delay = 30;
 		}
+		svc->restart_count++;
+		svc->next_restart_at = now + delay;
+
+		write(2, "service_manager: ", 17);
+		write(2, svc->name, strlen(svc->name));
+		if (delay > 0)
+			write(2, " died — scheduling restart with backoff\n", 40);
+		else
+			write(2, " died — restarting now\n", 23);
 	}
 }
 
@@ -428,9 +477,23 @@ int main(void)
 	for (int i = 0; i < num_services; i++)
 		start_service(&services[i]);
 
-	/* wait forever — sigchld_handler handles all ongoing work */
+	/* Process deferred restarts once per second. Using sleep(1) instead of
+	 * pause() so the backoff timer is checked even when no new signals arrive. */
 	for (;;)
-		pause();
+	{
+		sleep(1);
+		time_t now = time(NULL);
+		for (int i = 0; i < num_services; i++)
+		{
+			if (services[i].pid == 0 &&
+			    services[i].restart_on_failure &&
+			    services[i].next_restart_at > 0 &&
+			    now >= services[i].next_restart_at)
+			{
+				start_service(&services[i]);
+			}
+		}
+	}
 
 	return 0; /* never reached */
 }

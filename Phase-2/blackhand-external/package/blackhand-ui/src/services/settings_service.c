@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 
 typedef struct {
     const char *key;
@@ -28,6 +29,10 @@ static const char *g_themes[] = {
     "THERMAL-INDEX",
     "INSTRUMENT",
     "BOOT-RITE",
+    "BLUEPRINT",
+    "DOSSIER",
+    "ONE-BIT",
+    "POLAR-NIGHT",
 };
 
 static const int g_item_count = (int)(sizeof(g_items) / sizeof(g_items[0]));
@@ -88,8 +93,18 @@ static void settings_service_load(void) {
 }
 
 static void settings_service_save(void) {
-    FILE *f = fopen(SETTINGS_FILE, "w");
-    if (!f) return;
+    /* Write to a temp file first then rename — atomic on POSIX. Otherwise
+       a crash mid-write leaves a truncated/half-written settings file and
+       the next boot loses everything. */
+    char tmp[256];
+    snprintf(tmp, sizeof(tmp), "%s.tmp", SETTINGS_FILE);
+
+    FILE *f = fopen(tmp, "w");
+    if (!f) {
+        fprintf(stderr, "settings_service: cannot write %s: %s\n",
+                tmp, strerror(errno));
+        return;
+    }
 
     for (int i = 0; i < g_item_count; i++) {
         fprintf(f, "%s=%d\n", g_items[i].key, g_items[i].enabled ? 1 : 0);
@@ -99,7 +114,16 @@ static void settings_service_save(void) {
     fprintf(f, "%s=%d\n", SETTINGS_KEY_BRIGHTNESS, g_brightness);
     fprintf(f, "%s=%d\n", SETTINGS_KEY_TIMEOUT_SEC, g_timeout_sec);
 
-    fclose(f);
+    if (fflush(f) != 0 || fclose(f) != 0) {
+        fprintf(stderr, "settings_service: flush/close failed for %s\n", tmp);
+        remove(tmp);
+        return;
+    }
+    if (rename(tmp, SETTINGS_FILE) != 0) {
+        fprintf(stderr, "settings_service: rename %s -> %s: %s\n",
+                tmp, SETTINGS_FILE, strerror(errno));
+        remove(tmp);
+    }
 }
 
 void settings_service_init(void) {

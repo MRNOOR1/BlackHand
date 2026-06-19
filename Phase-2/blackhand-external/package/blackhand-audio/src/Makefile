@@ -19,7 +19,7 @@ CC     ?= $(CROSS_COMPILE)gcc
 override CFLAGS += -I$(STAGING_DIR)/usr/include/blackhand
 LIBS    = -L$(STAGING_DIR)/usr/lib -lblackhand-ipc -lasound
 
-SRCS = main.c audio_alsa.c ipc_dispatch.c
+SRCS = main.c audio_alsa.c ipc_dispatch.c bt_route.c
 
 all:
 	$(CC) $(CFLAGS) -o blackhand-audio $(SRCS) $(LIBS)

@@ -5,6 +5,7 @@
 
 #include "config.h"
 #include "draw_utils.h"
+#include "bh_skin.h"
 #include "services/comm_service.h"
 #include "services/contacts_service.h"
 #include "services/theme_service.h"
@@ -65,6 +66,7 @@ static void cycle_country(int delta)
 {
     size_t n = 0;
     country_table(&n);
+    if (n == 0) return;
     ensure_country();
     s_country_idx = (s_country_idx + delta + (int)n) % (int)n;
     storage_ipc_settings_set_str("country_iso", current_country()->iso);
@@ -294,7 +296,7 @@ void screen_contacts_draw(struct ncplane *phone) {
                 if (pf >= 'a' && pf <= 'z') pf -= 32;
                 if (pf != first) { meta[0] = first; meta[1] = '\0'; }
             }
-            ghost_list_row_meta(phone, top, (int)cols, idx, sel, label, meta);
+            bh_list_item(phone, top, CONTENT_COL, width, label, meta, sel, idx);
             (void)card_h;
         }
     }
@@ -333,10 +335,12 @@ screen_id screen_contacts_input(uint32_t key) {
                 if (s_edit_field == 1) cycle_country(+1);
                 return SCREEN_CONTACTS;
             case KEY_SOFT_LEFT_ACTION:
+            case KEY_ACTION_SECONDARY:     /* D = cancel edit */
                 multitap_reset(&s_mt);
                 s_mode = CONTACTS_MODE_LIST;
                 return SCREEN_CONTACTS;
             case KEY_SOFT_RIGHT_ACTION:
+            case KEY_ACTION_PRIMARY:       /* A = save */
                 multitap_reset(&s_mt);
                 save_contact();
                 return SCREEN_CONTACTS;
@@ -430,17 +434,16 @@ screen_id screen_contacts_input(uint32_t key) {
             return SCREEN_CONTACTS;
         }
         case NCKEY_ENTER:
-        case '\n': {
+        case '\n':
+        case KEY_ACTION_PRIMARY: {         /* A = open/execute selected action */
             if (s_mode == CONTACTS_MODE_PROFILE) {
                 if (count > 0 && contacts && contacts[s_selected]) {
                     const char *name  = contacts[s_selected]->name         ? contacts[s_selected]->name         : "Unknown";
                     const char *phone = contacts[s_selected]->phone_number ? contacts[s_selected]->phone_number : "";
                     if (s_action == 0) {
-                        // Dial via modem; screen_calls handles the rest.
                         screen_calls_start_outgoing(name, phone);
                         return SCREEN_CALLS;
                     }
-                    // Message action: open compose with number pre-filled.
                     screen_messages_start_compose(phone);
                     return SCREEN_MESSAGES;
                 }
@@ -453,8 +456,10 @@ screen_id screen_contacts_input(uint32_t key) {
             return SCREEN_CONTACTS;
         }
         case NCKEY_LEFT:
+        case KEY_ACTION_SECONDARY:         /* D = delete / back */
             if (s_mode == CONTACTS_MODE_PROFILE) {
-                if (s_action > 0) s_action--;
+                s_mode = CONTACTS_MODE_LIST;
+                s_action = 0;
                 return SCREEN_CONTACTS;
             }
             if (count == 0) return SCREEN_CONTACTS;

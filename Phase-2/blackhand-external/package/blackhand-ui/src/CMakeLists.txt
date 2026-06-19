@@ -9,6 +9,7 @@ pkg_check_modules(DBUS REQUIRED dbus-1)
 
 add_executable(blackhand-ui
   main.c
+  bh_skin.c
   draw_utils.c
   frame_renderer.c
   keypad_renderer.c
@@ -22,7 +23,6 @@ add_executable(blackhand-ui
   screens/screen_mp3.c
   screens/screen_voice_memo.c
   screens/screen_notes.c
-  screens/screen_alarm.c
   screens/screen_theme.c
   screens/screen_bluetooth.c
   screens/screen_gps.c
@@ -32,7 +32,6 @@ add_executable(blackhand-ui
   services/mp3_service.c
   services/voice_memo_service.c
   services/contacts_service.c
-  services/alarm_service.c
   services/comm_service.c
   services/multitap_service.c
   services/pin_service.c

@@ -25,6 +25,10 @@ int storage_ipc_mark_read(const char *number);
 
 /* call history (merged across numbers, newest first) */
 int storage_ipc_calls_recent(int limit, char *buf, int buf_size);
+int storage_ipc_calls_delete_entry(const char *number, double ts);
+
+/* SMS thread deletion */
+int storage_ipc_messages_delete_thread(const char *number);
 
 /* settings.json */
 int storage_ipc_settings_get_str(const char *key, char *buf, int buf_size);

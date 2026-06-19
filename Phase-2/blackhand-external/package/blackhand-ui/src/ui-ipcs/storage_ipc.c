@@ -124,6 +124,27 @@ int storage_ipc_mark_read(const char *number)
     return request_ok(req);
 }
 
+int storage_ipc_calls_delete_entry(const char *number, double ts)
+{
+    if (!number) return -1;
+    cJSON *p = cJSON_CreateObject();
+    cJSON_AddStringToObject(p, "number", number);
+    cJSON_AddNumberToObject(p, "ts", ts);
+    char req[512];
+    if (rpc("history.calls_delete_entry", p, req, sizeof(req)) != 0) return -1;
+    return request_ok(req);
+}
+
+int storage_ipc_messages_delete_thread(const char *number)
+{
+    if (!number) return -1;
+    cJSON *p = cJSON_CreateObject();
+    cJSON_AddStringToObject(p, "number", number);
+    char req[256];
+    if (rpc("history.messages_delete_thread", p, req, sizeof(req)) != 0) return -1;
+    return request_ok(req);
+}
+
 int storage_ipc_calls_recent(int limit, char *buf, int buf_size)
 {
     cJSON *p = cJSON_CreateObject();
@@ -148,6 +169,10 @@ int storage_ipc_settings_get_str(const char *key, char *buf, int buf_size)
     cJSON *result = cJSON_GetObjectItem(root, "result");
     int rc = -1;
     if (cJSON_IsString(result)) {
+        if ((int)strlen(result->valuestring) >= buf_size) {
+            cJSON_Delete(root);
+            return -1;
+        }
         snprintf(buf, (size_t)buf_size, "%s", result->valuestring);
         rc = 0;
     }

@@ -6,11 +6,13 @@
 
 #include "config.h"
 #include "draw_utils.h"
+#include "bh_skin.h"
 #include "services/comm_service.h"
 #include "services/contacts_service.h"
 #include "services/theme_service.h"
 #include "ui-ipcs/modem_ipc.h"
 #include "ui-ipcs/storage_ipc.h"
+#include "ui-ipcs/audio_ipc.h"
 #include "country_codes.h"
 #include "ui.h"
 
@@ -250,7 +252,7 @@ void screen_calls_draw(struct ncplane *phone)
             }
         }
 
-        ghost_action_cells(phone, "CALL", "CLR", s_act_focus);
+        bh_action_cells(phone, "CALL", "CLR", s_act_focus);
         return;
     }
 
@@ -271,7 +273,7 @@ void screen_calls_draw(struct ncplane *phone)
             ghost_text(phone, mid, ((int)cols - (int)strlen(masked)) / 2,
                        theme_border(), masked);
 
-        ghost_action_cells(phone, "ACPT", "REJ", s_act_focus);
+        bh_action_cells(phone, "ACPT", "REJ", s_act_focus);
         return;
     }
 
@@ -301,7 +303,7 @@ void screen_calls_draw(struct ncplane *phone)
                        theme_border(), masked);
 
         /* single destructive cell — END is the only decision here */
-        ghost_action_cells(phone, "", "END", 1);
+        bh_action_cells(phone, "", "END", 1);
         return;
     }
 
@@ -350,8 +352,8 @@ void screen_calls_draw(struct ncplane *phone)
         /* NAME (icon-prefixed, truncated) · time — themed selection style */
         char label[24];
         snprintf(label, sizeof(label), "%s %.10s", call->icon, call->name);
-        ghost_list_row_meta(phone, row, (int)cols, idx,
-                            (idx == s_selected), label, call->time);
+        bh_list_item(phone, row, CONTENT_COL, width, label, call->time,
+                     (idx == s_selected), idx);
     }
 
     ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(),
@@ -385,10 +387,12 @@ screen_id screen_calls_input(uint32_t key)
                 }
                 return SCREEN_CALLS;
             case KEY_SOFT_RIGHT_ACTION:     /* E = call, always */
+            case KEY_ACTION_PRIMARY:        /* A = call */
                 if (s_dial_buffer[0]) {
                     screen_calls_start_outgoing("", s_dial_buffer);
                 }
                 return SCREEN_CALLS;
+            case KEY_ACTION_SECONDARY:      /* D = backspace */
             case NCKEY_BACKSPACE: case 127: case '\b': {
                 size_t len = strlen(s_dial_buffer);
                 if (len > 0) s_dial_buffer[len - 1] = '\0';
@@ -426,10 +430,12 @@ screen_id screen_calls_input(uint32_t key)
                 }
                 return SCREEN_CALLS;
             case KEY_SOFT_LEFT_ACTION:
+            case KEY_ACTION_SECONDARY:      /* D = reject */
                 modem_ipc_reject();
                 enter_log();
                 return SCREEN_CALLS;
             case KEY_SOFT_RIGHT_ACTION:
+            case KEY_ACTION_PRIMARY:        /* A = answer */
                 if (modem_ipc_answer() == 0) {
                     s_state      = CALLS_ACTIVE;
                     s_call_start = time(NULL);
@@ -445,7 +451,7 @@ screen_id screen_calls_input(uint32_t key)
         switch (key) {
             case KEY_SOFT_LEFT_ACTION:
             case NCKEY_LEFT:
-            case NCKEY_ENTER: case '\n': {
+            case KEY_ACTION_SECONDARY: {   /* D = hangup */
                 int dur = (s_call_start > 0) ? (int)(time(NULL) - s_call_start) : 0;
                 modem_ipc_hangup();
                 comm_service_call_add_full(
@@ -453,8 +459,17 @@ screen_id screen_calls_input(uint32_t key)
                 enter_log();
                 return SCREEN_CALLS;
             }
+            case '+': {
+                int vol = audio_ipc_get_volume();
+                if (vol >= 0) audio_ipc_volume(vol + 5 > 100 ? 100 : vol + 5);
+                return SCREEN_CALLS;
+            }
+            case '-': {
+                int vol = audio_ipc_get_volume();
+                if (vol > 0) audio_ipc_volume(vol - 5 < 0 ? 0 : vol - 5);
+                return SCREEN_CALLS;
+            }
             default:
-                // screen_calls_tick() handles auto-transitions; ignore other keys.
                 return SCREEN_CALLS;
         }
     }
@@ -490,8 +505,8 @@ screen_id screen_calls_input(uint32_t key)
         case NCKEY_DOWN:
             if (s_selected < (int)comm_service_call_count() - 1) s_selected++;
             return SCREEN_CALLS;
-        case NCKEY_ENTER: case '\n': {
-            /* Dial the selected log entry. */
+        case NCKEY_ENTER: case '\n':
+        case KEY_ACTION_PRIMARY: {         /* A = call selected */
             const CommCall *c = comm_service_call_at((size_t)s_selected);
             if (c && c->phone[0]) {
                 screen_calls_start_outgoing(c->name, c->phone);
@@ -499,6 +514,7 @@ screen_id screen_calls_input(uint32_t key)
             return SCREEN_CALLS;
         }
         case NCKEY_LEFT:
+        case KEY_ACTION_SECONDARY:         /* D = delete prompt */
             if (comm_service_call_count() > 0) {
                 s_delete_prompt = 1;
                 s_delete_yes    = 0;
@@ -507,13 +523,9 @@ screen_id screen_calls_input(uint32_t key)
         case KEY_SOFT_LEFT_ACTION:
             return SCREEN_HOME;
         case KEY_SOFT_RIGHT_ACTION:
-            /* Right soft from the log opens the dial pad with an empty buffer. */
             enter_dial(0);
             return SCREEN_CALLS;
         default:
-            /* Typing any digit / + / * / # from the log auto-enters the dial
-             * pad with that character as the first digit — dumbphone idiom.
-             * (Main loop polls modem_status for incoming calls.) */
             if (is_dial_char(key)) {
                 enter_dial((char)key);
             }

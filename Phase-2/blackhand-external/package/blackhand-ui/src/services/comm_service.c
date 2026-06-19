@@ -140,7 +140,8 @@ void comm_service_sync(void)
                           obj_str(item, "outcome", ""),
                           c->type, sizeof(c->type));
                 snprintf(c->icon, sizeof(c->icon), "%s", call_icon(c->type));
-                format_ts(obj_num(item, "ts", 0), c->time, sizeof(c->time));
+                c->ts_raw       = obj_num(item, "ts", 0);
+                format_ts(c->ts_raw, c->time, sizeof(c->time));
                 c->duration_sec = (int)obj_num(item, "duration", 0);
                 s_call_count++;
             }
@@ -164,7 +165,8 @@ void comm_service_sync(void)
                 resolve_name(number, m->sender, sizeof(m->sender));
                 snprintf(m->body, sizeof(m->body), "%s",
                          obj_str(item, "last_body", ""));
-                format_ts(obj_num(item, "last_ts", 0), m->stamp, sizeof(m->stamp));
+                m->ts_raw      = obj_num(item, "last_ts", 0);
+                format_ts(m->ts_raw, m->stamp, sizeof(m->stamp));
                 int unread     = (int)obj_num(item, "unread", 0);
                 m->read        = (unread == 0);
                 m->storage_id  = unread;        /* repurposed: unread count */
@@ -274,8 +276,14 @@ int comm_service_call_add_full(const char *name, const char *phone,
 
 int comm_service_call_delete(size_t index)
 {
-    (void)index;
-    return -1;   /* per-entry delete not supported in per-number layout */
+    if (index >= s_call_count) return -1;
+    if (storage_ipc_calls_delete_entry(s_calls[index].phone,
+                                       s_calls[index].ts_raw) != 0)
+        return -1;
+    for (size_t i = index; i + 1 < s_call_count; i++)
+        s_calls[i] = s_calls[i + 1];
+    s_call_count--;
+    return 0;
 }
 
 int comm_service_message_add(const char *sender, const char *body)
@@ -295,6 +303,11 @@ int comm_service_message_add_full(const char *sender, const char *phone,
 
 int comm_service_message_delete(size_t index)
 {
-    (void)index;
-    return -1;
+    if (index >= s_thread_count) return -1;
+    if (storage_ipc_messages_delete_thread(s_threads[index].phone) != 0)
+        return -1;
+    for (size_t i = index; i + 1 < s_thread_count; i++)
+        s_threads[i] = s_threads[i + 1];
+    s_thread_count--;
+    return 0;
 }

@@ -696,11 +696,7 @@ int main(void)
 	klog("init: registering signal handlers\n");
 	ksetup_signals();
 
-	/* 5. Interactive shell on tty1 (the display) */
-	klog("init: spawning shell on tty1\n");
-	kspawn_shell();
-
-	/* 6. Service manager */
+	/* 5. Service manager */
 	klog("init: spawning service manager\n");
 	kspawn_services();
 

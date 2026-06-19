@@ -136,10 +136,9 @@ typedef enum {
     SCREEN_MP3,         /* Music player screen (= 5) */
     SCREEN_VOICE_MEMO,  /* Voice recording screen (= 6) */
     SCREEN_NOTES,       /* Notes/text editor screen (= 7) */
-    SCREEN_ALARM,       /* Alarm screen (= 8) */
-    SCREEN_THEME,       /* Theme selection (= 9) */
-    SCREEN_BLUETOOTH,   /* Bluetooth manager (= 10) */
-    SCREEN_GPS          /* GPS location screen (= 11) */
+    SCREEN_THEME,       /* Theme selection (= 8) */
+    SCREEN_BLUETOOTH,   /* Bluetooth manager (= 9) */
+    SCREEN_GPS          /* GPS location screen (= 10) */
 } screen_id;
 
 
@@ -238,10 +237,6 @@ int screen_voice_memo_is_text_entry_mode(void);
 void screen_notes_draw(struct ncplane *phone);
 screen_id screen_notes_input(uint32_t key);
 int screen_notes_is_edit_mode(void);
-
-void screen_alarm_draw(struct ncplane *phone);
-screen_id screen_alarm_input(uint32_t key);
-int screen_alarm_is_time_entry_mode(void);
 
 void screen_theme_draw(struct ncplane *phone);
 screen_id screen_theme_input(uint32_t key);

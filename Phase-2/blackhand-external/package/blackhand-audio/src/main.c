@@ -14,7 +14,7 @@
 #include "ipc_dispatch.h"
 #include "audio_alsa.h"
 #define SOCKET_PATH "/run/bh-audio.sock"
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 8192
 
 int main()
 {
@@ -38,7 +38,8 @@ int main()
 	struct sockaddr_un addr;
 	memset(&addr, 0, sizeof(addr));
 	addr.sun_family = AF_UNIX;
-	strcpy(addr.sun_path, SOCKET_PATH);
+	strncpy(addr.sun_path, SOCKET_PATH, sizeof(addr.sun_path) - 1);
+	addr.sun_path[sizeof(addr.sun_path) - 1] = '\0';
 
 	if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
 	{

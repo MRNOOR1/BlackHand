@@ -37,6 +37,10 @@ static int thread_running = 0;
 static int stop_requested = 0;
 static pthread_mutex_t mp3_lock = PTHREAD_MUTEX_INITIALIZER;
 
+/* Serialises next/prev/play so the AVRCP thread and the main-thread update
+ * loop can never both call stop_thread() + pthread_join() concurrently. */
+static pthread_mutex_t s_nav_lock = PTHREAD_MUTEX_INITIALIZER;
+
 static float viz_levels[MP3_VIZ_BINS] = {0};
 
 /* ── Helper: title from filename ─────────────────────────────────────── */
@@ -425,7 +429,7 @@ int mp3_service_rescan(const char *audio_root) {
     if (!root || root[0] == '\0') return -1;
 
     if (mp3_service_get_state() != MP3_STOPPED) {
-        return 0;
+        return -1;
     }
 
     mp3_service_shutdown();
@@ -526,11 +530,21 @@ static int start_playback_thread(const char *path) {
     args->path = strdup(path);
     if (!args->path) { free(args); return -1; }
 
+    /* Use pre-scanned duration to avoid blocking the caller with file I/O. */
+    unsigned dur = 0;
+    if (cur_is_direct) {
+        const Mp3Track *t = mp3_service_get_direct_track(cur_cat, cur_track);
+        if (t) dur = t->duration;
+    } else {
+        const Mp3Track *t = mp3_service_get_track(cur_cat, cur_col, cur_track);
+        if (t) dur = t->duration;
+    }
+
     pthread_mutex_lock(&mp3_lock);
     state = MP3_PLAYING;
     start_time = time(NULL);
     pause_offset = 0;
-    total_duration = duration_from_mp3(path);
+    total_duration = dur;
     stop_requested = 0;
     finished_naturally = 0;
     clear_visualizer();
@@ -550,26 +564,31 @@ static int start_playback_thread(const char *path) {
 }
 
 int mp3_service_play(size_t cat_idx, size_t col_idx, size_t track_idx, int is_direct) {
+    pthread_mutex_lock(&s_nav_lock);
     stop_thread();
 
     const char *path = NULL;
     if (is_direct) {
         const Mp3Track *t = mp3_service_get_direct_track(cat_idx, track_idx);
-        if (!t) return -1;
+        if (!t) { pthread_mutex_unlock(&s_nav_lock); return -1; }
         path = t->path;
     } else {
         const Mp3Track *t = mp3_service_get_track(cat_idx, col_idx, track_idx);
-        if (!t) return -1;
+        if (!t) { pthread_mutex_unlock(&s_nav_lock); return -1; }
         path = t->path;
     }
-    if (!path) return -1;
+    if (!path) { pthread_mutex_unlock(&s_nav_lock); return -1; }
 
+    pthread_mutex_lock(&mp3_lock);
     cur_cat = cat_idx;
     cur_col = col_idx;
     cur_track = track_idx;
     cur_is_direct = is_direct;
+    pthread_mutex_unlock(&mp3_lock);
 
-    return start_playback_thread(path);
+    int r = start_playback_thread(path);
+    pthread_mutex_unlock(&s_nav_lock);
+    return r;
 }
 
 void mp3_service_pause(void) {
@@ -595,32 +614,54 @@ void mp3_service_stop(void) {
 }
 
 int mp3_service_next(void) {
-    size_t queue_size = get_current_queue_size();
-    if (cur_track + 1 >= queue_size) return -1; /* last track, do nothing */
+    pthread_mutex_lock(&s_nav_lock);
 
-    stop_thread();
+    pthread_mutex_lock(&mp3_lock);
+    size_t queue_size = get_current_queue_size();
+    if (cur_track + 1 >= queue_size) {
+        pthread_mutex_unlock(&mp3_lock);
+        pthread_mutex_unlock(&s_nav_lock);
+        return -1;
+    }
     cur_track++;
-    const char *path = get_current_track_path();
-    if (!path) return -1;
-    return start_playback_thread(path);
+    const char *raw = get_current_track_path();
+    char path[1024] = {0};
+    if (raw) snprintf(path, sizeof(path), "%s", raw);
+    pthread_mutex_unlock(&mp3_lock);
+
+    if (!path[0]) { pthread_mutex_unlock(&s_nav_lock); return -1; }
+    stop_thread();
+    int r = start_playback_thread(path);
+    pthread_mutex_unlock(&s_nav_lock);
+    return r;
 }
 
 int mp3_service_prev(void) {
+    pthread_mutex_lock(&s_nav_lock);
     unsigned elapsed = mp3_service_get_elapsed();
 
+    pthread_mutex_lock(&mp3_lock);
     if (cur_track == 0 || elapsed > 3) {
         /* Restart current track: either first in queue or > 3 s played */
+        const char *raw = get_current_track_path();
+        char path[1024] = {0};
+        if (raw) snprintf(path, sizeof(path), "%s", raw);
+        pthread_mutex_unlock(&mp3_lock);
         stop_thread();
-        const char *path = get_current_track_path();
-        if (!path) return -1;
-        return start_playback_thread(path);
+        int r = path[0] ? start_playback_thread(path) : -1;
+        pthread_mutex_unlock(&s_nav_lock);
+        return r;
     }
+    cur_track--;
+    const char *raw = get_current_track_path();
+    char path[1024] = {0};
+    if (raw) snprintf(path, sizeof(path), "%s", raw);
+    pthread_mutex_unlock(&mp3_lock);
 
     stop_thread();
-    cur_track--;
-    const char *path = get_current_track_path();
-    if (!path) return -1;
-    return start_playback_thread(path);
+    int r = path[0] ? start_playback_thread(path) : -1;
+    pthread_mutex_unlock(&s_nav_lock);
+    return r;
 }
 
 mp3_playback_state mp3_service_get_state(void) {
@@ -687,23 +728,38 @@ size_t mp3_service_get_visualizer(unsigned char *out_levels, size_t max_levels) 
 }
 
 const char *mp3_service_current_track_name(void) {
+    pthread_mutex_lock(&mp3_lock);
+    const char *result;
     if (cur_is_direct) {
         const Mp3Track *t = mp3_service_get_direct_track(cur_cat, cur_track);
-        return t ? t->title : "Unknown";
+        result = t ? t->title : "Unknown";
+    } else {
+        const Mp3Track *t = mp3_service_get_track(cur_cat, cur_col, cur_track);
+        result = t ? t->title : "Unknown";
     }
-    const Mp3Track *t = mp3_service_get_track(cur_cat, cur_col, cur_track);
-    return t ? t->title : "Unknown";
+    pthread_mutex_unlock(&mp3_lock);
+    return result;
 }
 
 const char *mp3_service_current_collection_name(void) {
-    if (cur_is_direct) return "";
-    const Mp3Collection *c = mp3_service_get_collection(cur_cat, cur_col);
-    return c ? c->name : "Unknown";
+    pthread_mutex_lock(&mp3_lock);
+    const char *result;
+    if (cur_is_direct) {
+        result = "";
+    } else {
+        const Mp3Collection *c = mp3_service_get_collection(cur_cat, cur_col);
+        result = c ? c->name : "Unknown";
+    }
+    pthread_mutex_unlock(&mp3_lock);
+    return result;
 }
 
 const char *mp3_service_current_category_name(void) {
+    pthread_mutex_lock(&mp3_lock);
     const Mp3Category *c = mp3_service_get_category(cur_cat);
-    return c ? c->name : "Unknown";
+    const char *result = c ? c->name : "Unknown";
+    pthread_mutex_unlock(&mp3_lock);
+    return result;
 }
 
 int mp3_service_get_volume(void) {

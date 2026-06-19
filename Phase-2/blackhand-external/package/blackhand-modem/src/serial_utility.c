@@ -12,9 +12,12 @@
 #include "serial_utility.h"
 
 pthread_mutex_t response_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t response_cond = PTHREAD_COND_INITIALIZER;
-char response_buffer[BUFFERSIZE];
-int response_ready = 0;
+pthread_cond_t  response_cond  = PTHREAD_COND_INITIALIZER;
+char            response_buffer[BUFFERSIZE];
+int             response_ready = 0;
+
+/* Serialises concurrent at_cmd() callers (bringup thread + dispatch thread). */
+static pthread_mutex_t at_cmd_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // We try this list of candidates at boot. Order matters — SIM7600's AT port
 // is ttyUSB2 in a stock layout; the symlink is a hopeful fallback in case
@@ -195,12 +198,10 @@ int read_line(int fd, char *buf, int max, int timeout_ms)
 	int pos = 0;
 	struct timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
-	long current_time = ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
-	long deadline = current_time + timeout_ms;
+	long deadline = ts.tv_sec * 1000 + ts.tv_nsec / 1000000 + timeout_ms;
 
 	while (1)
 	{
-		struct timespec ts;
 		clock_gettime(CLOCK_MONOTONIC, &ts);
 		long current_time = ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
 
@@ -246,7 +247,9 @@ int read_line(int fd, char *buf, int max, int timeout_ms)
 
 const char *at_cmd(int fd, const char *cmd, int timeout_ms)
 {
-	static char buffer[BUFFERSIZE];
+	static __thread char buffer[BUFFERSIZE];
+
+	pthread_mutex_lock(&at_cmd_mutex);
 	memset(buffer, 0, BUFFERSIZE);
 	char full_cmd[256];
 	snprintf(full_cmd, sizeof(full_cmd), "%s\r", cmd);
@@ -279,33 +282,9 @@ const char *at_cmd(int fd, const char *cmd, int timeout_ms)
 		rc = pthread_cond_timedwait(&response_cond, &response_mutex, &deadline);
 
 	if (response_ready)
-		strncpy(buffer, response_buffer, BUFFERSIZE);
-	// on timeout (rc == ETIMEDOUT), buffer stays zeroed — callers' strstr() returns NULL
+		strncpy(buffer, response_buffer, BUFFERSIZE - 1);
+	buffer[BUFFERSIZE - 1] = '\0';
 	pthread_mutex_unlock(&response_mutex);
-	// while (1)
-	// {
-	// 	char line[256];
-	// 	int n = read_line(fd, line, sizeof(line), timeout_ms);
-
-	// 	if (n < 0)
-	// 		break;
-	// 	if (n == 0)
-	// 		continue;
-
-	// 	if (strcmp(line, cmd) == 0)
-	// 		continue;
-
-	// 	// 🔹 termination conditions
-	// 	if (strcmp(line, "OK") == 0 ||
-	// 		strcmp(line, "ERROR") == 0 ||
-	// 		strcmp(line, "ABORTED") == 0 ||
-	// 		strncmp(line, "+CME ERROR", 10) == 0 ||
-	// 		strncmp(line, "+CMS ERROR", 10) == 0)
-	// 	{
-	// 		break;
-	// 	}
-
-	// 	offset += snprintf(buffer + offset, BUFFERSIZE - offset, "%s\n", line);
-	// }
+	pthread_mutex_unlock(&at_cmd_mutex);
 	return buffer;
 }

@@ -12,7 +12,7 @@
 static int          s_gps_on    = 0;
 static GpsLocation  s_loc       = {0};
 static int          s_has_loc   = 0;
-static int          s_poll_tick = 0;
+static int          s_draw_tick = 0;
 
 /* ── draw ─────────────────────────────────────────────────────────────────── */
 
@@ -33,6 +33,13 @@ void screen_gps_draw(struct ncplane *phone)
     for (int x = 0; x < width && CONTENT_COL + x < (int)cols - 1; x++)
         ncplane_putstr_yx(phone, CONTENT_START_ROW + 1, CONTENT_COL + x,
                           (rule && rule[0]) ? rule : "-");
+
+    /* Poll location every ~10 draw calls (~2.5s at 250ms idle cadence) */
+    if (s_gps_on && ++s_draw_tick >= 10) {
+        s_draw_tick = 0;
+        if (modem_ipc_get_location(&s_loc) == 0)
+            s_has_loc = 1;
+    }
 
     int top = CONTENT_START_ROW + 3;
 
@@ -77,14 +84,17 @@ screen_id screen_gps_input(uint32_t key)
 {
     switch (key) {
         case KEY_SOFT_LEFT_ACTION:
+        case KEY_ACTION_SECONDARY:         /* D = back to home */
             return SCREEN_HOME;
 
         case KEY_SOFT_RIGHT_ACTION:
+        case KEY_ACTION_PRIMARY:           /* A = toggle GPS */
         case NCKEY_ENTER: case '\n':
             if (s_gps_on) {
                 modem_ipc_gps_disable();
-                s_gps_on  = 0;
-                s_has_loc = 0;
+                s_gps_on    = 0;
+                s_has_loc   = 0;
+                s_draw_tick = 0;
             } else {
                 if (modem_ipc_gps_enable() == 0)
                     s_gps_on = 1;
@@ -92,13 +102,6 @@ screen_id screen_gps_input(uint32_t key)
             return SCREEN_GPS;
 
         default:
-            /* Poll location every ~10 frames (~330ms at 30fps) */
-            s_poll_tick++;
-            if (s_gps_on && s_poll_tick >= 10) {
-                s_poll_tick = 0;
-                if (modem_ipc_get_location(&s_loc) == 0)
-                    s_has_loc = 1;
-            }
             return SCREEN_GPS;
     }
 }

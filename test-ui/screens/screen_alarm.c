@@ -5,6 +5,7 @@
 
 #include "config.h"
 #include "draw_utils.h"
+#include "bh_skin.h"
 #include "services/alarm_service.h"
 #include "services/theme_service.h"
 #include "ui.h"
@@ -159,15 +160,11 @@ void screen_alarm_draw(struct ncplane *phone) {
         int selected = (idx == s_selected);
         const Alarm *a = alarms[idx];
 
-        /* blueprint WAKE row: HH:MM (left) · ON/OFF/DAILY (right) */
-        char label[16], meta[12];
-        snprintf(label, sizeof(label), "%02d:%02d", a->hour, a->minute);
-        const char *rep = repeat_label(a->repeat);
-        if (a->enabled && rep && strstr(rep, "Daily"))
-            snprintf(meta, sizeof(meta), "DAILY");
-        else
-            snprintf(meta, sizeof(meta), "%s", a->enabled ? "ON" : "OFF");
-        ghost_list_row_meta(phone, row, (int)cols, idx, selected, label, meta);
+        /* HH:MM (left) · ON/OFF/DAILY state (right) per the WAKE blueprint */
+        char tm[16];
+        snprintf(tm, sizeof(tm), "%02d:%02d", a->hour, a->minute);
+        const char *state = !a->enabled ? "OFF" : repeat_label(a->repeat);
+        bh_list_item(phone, row, CONTENT_COL, width, tm, state, selected, idx);
     }
 
     ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(),

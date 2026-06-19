@@ -25,6 +25,7 @@
 #define RETRY_MS     2000    /* ms between device re-scan tries */
 
 static pthread_t     g_thread;
+static int           g_thread_started = 0;
 static volatile int  g_stop  = 0;
 static int           g_vol   = 80; /* shadow volume for +/- */
 
@@ -216,11 +217,17 @@ static void *thread_fn(void *arg) {
 
 void headphone_input_init(void) {
     g_stop = 0;
-    if (pthread_create(&g_thread, NULL, thread_fn, NULL) != 0)
+    g_thread_started = 0;
+    if (pthread_create(&g_thread, NULL, thread_fn, NULL) == 0)
+        g_thread_started = 1;
+    else
         fprintf(stderr, "headphone_input: failed to start thread\n");
 }
 
 void headphone_input_shutdown(void) {
     g_stop = 1;
-    pthread_join(g_thread, NULL);
+    if (g_thread_started) {
+        pthread_join(g_thread, NULL);
+        g_thread_started = 0;
+    }
 }

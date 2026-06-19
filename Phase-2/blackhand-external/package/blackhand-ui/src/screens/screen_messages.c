@@ -5,6 +5,7 @@
 
 #include "config.h"
 #include "draw_utils.h"
+#include "bh_skin.h"
 #include "services/comm_service.h"
 #include "services/theme_service.h"
 #include "services/multitap_service.h"
@@ -136,7 +137,7 @@ void screen_messages_draw(struct ncplane *phone)
         ghost_text(phone, footer - 2, (int)cols - CONTENT_COL - (int)strlen(counter),
                    theme_border(), counter);
 
-        ghost_action_cells(phone, "SEND", "CLR", -1);
+        bh_action_cells(phone, "SEND", "CLR", -1);
         return;
     }
 
@@ -182,7 +183,7 @@ void screen_messages_draw(struct ncplane *phone)
             ncplane_putstr_yx(phone, list_start + i, CONTENT_COL, line);
         }
 
-        ghost_action_cells(phone, "REPLY", "", 0);
+        bh_action_cells(phone, "REPLY", "", 0);
         return;
     }
 
@@ -233,7 +234,7 @@ void screen_messages_draw(struct ncplane *phone)
             snprintf(label, sizeof(label), "%.10s", msg->sender);
             snprintf(meta, sizeof(meta), "%s%s",
                      msg->read ? "" : "● ", msg->stamp);
-            ghost_list_row_meta(phone, row, (int)cols, idx, sel, label, meta);
+            bh_list_item(phone, row, CONTENT_COL, width, label, meta, sel, idx);
         }
     }
 
@@ -266,7 +267,8 @@ screen_id screen_messages_input(uint32_t key)
                 multitap_reset(&s_mt);
                 s_state = MSG_INBOX;
                 return SCREEN_MESSAGES;
-            case KEY_SOFT_RIGHT_ACTION: {
+            case KEY_SOFT_RIGHT_ACTION:
+            case KEY_ACTION_PRIMARY: {     /* A = send */
                 /* Send */
                 if (s_compose_number[0] && s_compose_body[0]) {
                     /* Normalise to E.164 with the user's selected country so
@@ -304,6 +306,7 @@ screen_id screen_messages_input(uint32_t key)
                     multitap_set_field(&s_mt, 1);
                 }
                 return SCREEN_MESSAGES;
+            case KEY_ACTION_SECONDARY:     /* D = backspace */
             case NCKEY_BACKSPACE: case 127:
                 multitap_backspace(&s_mt, s_compose_field, active);
                 return SCREEN_MESSAGES;
@@ -344,11 +347,13 @@ screen_id screen_messages_input(uint32_t key)
                 return SCREEN_MESSAGES;
             case KEY_SOFT_RIGHT_ACTION:
             case NCKEY_ENTER: case '\n':
+            case KEY_ACTION_PRIMARY:       /* A = reply */
                 enter_compose(comm_service_thread_number());
                 return SCREEN_MESSAGES;
             case KEY_SOFT_LEFT_ACTION:
             case NCKEY_LEFT:
-                comm_service_sync();   /* refresh unread counts */
+            case KEY_ACTION_SECONDARY:     /* D = back to inbox */
+                comm_service_sync();
                 s_state = MSG_INBOX;
                 return SCREEN_MESSAGES;
             default:
@@ -391,16 +396,22 @@ screen_id screen_messages_input(uint32_t key)
         case KEY_SOFT_RIGHT_ACTION:
             enter_compose(NULL);
             return SCREEN_MESSAGES;
-        case NCKEY_ENTER: case '\n': {
-            /* open the conversation; scroll to the newest message */
+        case NCKEY_ENTER: case '\n':
+        case KEY_ACTION_PRIMARY: {         /* A = open conversation */
             const CommMessage *m = comm_service_message_at((size_t)s_selected);
             if (m && comm_service_thread_open(m->phone) == 0) {
-                s_thread_scroll = 1 << 20;   /* clamped to bottom in draw */
+                /* Open the conversation scrolled to the bottom (most recent
+                   message). The draw loop clamps to [0, count - visible],
+                   so a large value is fine, but it's clearer to compute
+                   the real end of the list. */
+                size_t n = comm_service_thread_count();
+                s_thread_scroll = (n > 0) ? (int)n - 1 : 0;
                 s_state = MSG_THREAD;
             }
             return SCREEN_MESSAGES;
         }
         case NCKEY_LEFT:
+        case KEY_ACTION_SECONDARY:         /* D = delete prompt */
             if (comm_service_message_count() > 0) {
                 s_delete_prompt = 1;
                 s_delete_yes    = 0;

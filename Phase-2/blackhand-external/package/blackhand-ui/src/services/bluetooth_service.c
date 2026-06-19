@@ -42,15 +42,14 @@ static int read_command(const char *cmd, char *out, size_t out_sz)
 
 static void run_command(const char *cmd)
 {
-    if (cmd) system(cmd);
+    if (cmd) (void)system(cmd);
 }
 
-/* Fire-and-forget via a detached thread — avoids child processes entirely
- * so BusyBox init never prints "reaping zombie" messages. */
+/* Fire-and-forget via a detached thread. */
 static void *bg_cmd_thread(void *arg)
 {
     char *cmd = (char *)arg;
-    system(cmd);
+    (void)system(cmd);
     free(cmd);
     return NULL;
 }
@@ -69,6 +68,7 @@ static void run_command_bg(const char *cmd)
     pthread_detach(t);
 }
 
+
 /* ── ALSA routing ────────────────────────────────────────────────────── */
 
 /* Read the physical card number that rcS chose at boot */
@@ -76,7 +76,7 @@ static int read_boot_card(void)
 {
     int card = 0;
     FILE *cf = fopen("/tmp/bh-audio-card", "r");
-    if (cf) { fscanf(cf, "%d", &card); fclose(cf); }
+    if (cf) { (void)fscanf(cf, "%d", &card); fclose(cf); }
     return card;
 }
 
@@ -126,6 +126,35 @@ static void restore_alsa_default(void)
         "}\n",
         card, card);
     fclose(f);
+}
+
+/* Disconnect then restore ALSA — runs in a background thread so ALSA is only
+ * rerouted to local AFTER the BT link has closed, not before. */
+static void *disconnect_and_restore_thread_fn(void *arg)
+{
+    char *cmd = (char *)arg;
+    (void)system(cmd);
+    free(cmd);
+    restore_alsa_default();
+    return NULL;
+}
+
+static void run_disconnect_bg(const char *cmd)
+{
+    if (!cmd) return;
+    char *copy = strdup(cmd);
+    if (!copy) {
+        restore_alsa_default();
+        return;
+    }
+    pthread_t t;
+    if (pthread_create(&t, NULL, disconnect_and_restore_thread_fn, copy) != 0)
+    {
+        free(copy);
+        restore_alsa_default();
+        return;
+    }
+    pthread_detach(t);
 }
 
 /* ── ANSI escape stripper ────────────────────────────────────────────── */
@@ -475,15 +504,9 @@ int bluetooth_service_is_available(void)
 int bluetooth_service_set_power(int on)
 {
     if (!s_available) return -1;
-    if (on)
-    {
-        if (system("bluetoothctl --timeout 4 power on >/dev/null 2>&1") != 0)
-            return -1;
-    }
-    else
-    {
-        run_command_bg("bluetoothctl --timeout 4 power off >/dev/null 2>&1");
-    }
+    run_command_bg(on
+        ? "bluetoothctl --timeout 4 power on >/dev/null 2>&1"
+        : "bluetoothctl --timeout 4 power off >/dev/null 2>&1");
     return 0;
 }
 
@@ -592,7 +615,7 @@ static void *connect_thread_fn(void *arg)
                  "bluetoothctl --timeout 8  connect %s >/dev/null 2>&1",
                  s_connect_mac, s_connect_mac, s_connect_mac);
     }
-    system(cmd);
+    (void)system(cmd);
 
     /* Give BlueALSA time to negotiate the A2DP codec and open the stream
      * before we route ALSA to it. Without this sleep the bluealsa PCM may
@@ -705,10 +728,10 @@ int bluetooth_service_disconnect(const char *mac)
     char cmd[256];
     snprintf(cmd, sizeof(cmd),
              "bluetoothctl --timeout 3 disconnect %s >/dev/null 2>&1", mac);
-    run_command_bg(cmd);
     if (strcmp(s_connected_mac, mac) == 0)
         s_connected_mac[0] = '\0';
-    restore_alsa_default();
+    /* ALSA is restored inside the thread, after the BT link closes. */
+    run_disconnect_bg(cmd);
 
     /* Optimistic update — the UI reflects disconnected immediately */
     for (size_t i = 0; i < s_count; i++)

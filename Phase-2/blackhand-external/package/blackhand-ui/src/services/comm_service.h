@@ -21,8 +21,9 @@ typedef struct {
     char time[24];    /* formatted from ts                           */
     char type[16];    /* incoming | outgoing | missed | rejected | busy | no_answer */
     char icon[8];
-    int  duration_sec;
-    int  storage_id;  /* unused in per-number layout (kept for ABI)  */
+    int    duration_sec;
+    int    storage_id;  /* unused in per-number layout (kept for ABI)  */
+    double ts_raw;      /* Unix timestamp from storage JSON, for deletion */
 } CommCall;
 
 typedef struct {
@@ -30,9 +31,10 @@ typedef struct {
     char phone[32];
     char body[160];   /* thread list: last message; thread view: the body  */
     char stamp[24];
-    int  is_outgoing;
-    int  read;        /* thread list: 1 when NO unread in conversation     */
-    int  storage_id;  /* thread list: unread count (repurposed)            */
+    int    is_outgoing;
+    int    read;        /* thread list: 1 when NO unread in conversation     */
+    int    storage_id;  /* thread list: unread count (repurposed)            */
+    double ts_raw;      /* Unix timestamp from storage JSON, for deletion */
 } CommMessage;
 
 void comm_service_init(void);

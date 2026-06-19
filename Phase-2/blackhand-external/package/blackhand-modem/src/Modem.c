@@ -16,7 +16,8 @@
 #include <pthread.h>
 
 CallState call_state = CALL_IDLE;
-int fn = -1;
+pthread_mutex_t call_state_mutex = PTHREAD_MUTEX_INITIALIZER;
+volatile int fn = -1;
 int  modem_present = 0;
 char modem_error[128] = "";
 
@@ -235,9 +236,11 @@ int modem_select_port(const char *port)
 	pthread_mutex_lock(&bringup_lock);
 
 	if (modem_present) {
-		modem_present = 0;          // gate dispatch handlers first
-		call_state    = CALL_IDLE;
-		urc_stop();                 // joins the URC thread (≤2s read timeout)
+		modem_present = 0;
+		pthread_mutex_lock(&call_state_mutex);
+		call_state = CALL_IDLE;
+		pthread_mutex_unlock(&call_state_mutex);
+		urc_stop();
 		close_port(fn);
 		fn = -1;
 		modem_clear_incoming_number();
@@ -272,7 +275,7 @@ int modem_configure()
 	at_cmd(fn, "AT+CMGF=1", 2000);
 	at_cmd(fn, "AT+CNMI=2,2,0,0,0", 2000);
 	at_cmd(fn, "AT+CLIP=1", 2000);
-	return 1;
+	return 0;
 }
 
 /* Cached CSQ — refreshed by the background thread every ~5s. The UI polls
@@ -299,14 +302,14 @@ int modem_signal()
 		return -1;
 	start += 5;
 	char *end = strchr(start, ',');
-	static char strength[16];
+	char strength[16] = {0};
 	if (end != NULL)
 	{
 		size_t length = end - start;
+		if (length >= sizeof(strength)) length = sizeof(strength) - 1;
 		strncpy(strength, start, length);
 		strength[length] = '\0';
 	}
-	printf("Signal strength: %s\n", strength);
 	return atoi(strength);
 }
 
@@ -317,77 +320,82 @@ int modem_registered()
 	if (start == NULL)
 		return -1;
 	start += 1;
-	static char stats[8];
+	char stats[4] = {0};
 	strncpy(stats, start, 1);
 	stats[1] = '\0';
 	int stat = atoi(stats);
 	if (stat == 1 || stat == 5)
-	{
 		return 1;
-	}
 	return -1;
 }
 
 int modem_dial(const char *number)
 {
-	if (call_state != CALL_IDLE)
+	pthread_mutex_lock(&call_state_mutex);
+	int busy = (call_state != CALL_IDLE);
+	pthread_mutex_unlock(&call_state_mutex);
+	if (busy)
 		return -1;
 
 	char cmd[64];
 	snprintf(cmd, sizeof(cmd), "ATD%s;", number);
 	const char *response = at_cmd(fn, cmd, 10000);
 
-	// "OK" means the modem accepted the dial command. The transition to
-	// CALL_ACTIVE happens later when the URC thread sees VOICE CALL: BEGIN.
 	if (strstr(response, "OK") != NULL)
 	{
+		pthread_mutex_lock(&call_state_mutex);
 		call_state = CALL_DIALLING;
+		pthread_mutex_unlock(&call_state_mutex);
 		call_session_start(0, number);
 		return 1;
 	}
+	pthread_mutex_lock(&call_state_mutex);
 	call_state = CALL_IDLE;
+	pthread_mutex_unlock(&call_state_mutex);
 	return -1;
 }
 
 int modem_answer()
 {
-	if (call_state == CALL_RINGING)
+	pthread_mutex_lock(&call_state_mutex);
+	int ringing = (call_state == CALL_RINGING);
+	pthread_mutex_unlock(&call_state_mutex);
+	if (!ringing)
+		return -1;
+
+	const char *response = at_cmd(fn, "ATA", 2000);
+	if (strstr(response, "OK") != NULL)
 	{
-		const char *response = at_cmd(fn, "ATA", 2000);
-		if (strstr(response, "OK") != NULL)
-		{
-			call_state = CALL_ACTIVE;
-			// Belt and braces: VOICE CALL: BEGIN also marks answered, but
-			// some firmware skips it for mobile-terminated calls.
-			call_session_answered();
-			return 1;
-		}
+		pthread_mutex_lock(&call_state_mutex);
+		call_state = CALL_ACTIVE;
+		pthread_mutex_unlock(&call_state_mutex);
+		call_session_answered();
+		return 1;
 	}
 	return -1;
 }
 int modem_hangup()
 {
-	if (call_state != CALL_IDLE)
-	{
-		// Hanging up a ringing incoming call = rejecting it. Decide the
-		// outcome BEFORE sending CHUP, while call_state still tells us why.
-		const char *outcome = NULL;   /* NULL = derive (answered/no_answer) */
-		if (call_state == CALL_RINGING)
-			outcome = "rejected";
+	pthread_mutex_lock(&call_state_mutex);
+	CallState cs = call_state;
+	pthread_mutex_unlock(&call_state_mutex);
 
-		// AT+CHUP is the voice-call hangup on SIM7600 — ATH is only
-		// guaranteed for data calls and silently no-ops on voice in some
-		// firmware. Keep ATH as a fallback for older firmware.
-		const char *response = at_cmd(fn, "AT+CHUP", 3000);
-		if (strstr(response, "OK") == NULL)
-			response = at_cmd(fn, "ATH", 2000);
-		if (strstr(response, "OK") != NULL)
-		{
-			call_state = CALL_IDLE;
-			modem_clear_incoming_number();
-			call_session_end(outcome);
-			return 1;
-		}
+	if (cs == CALL_IDLE)
+		return 1;   /* already idle — no-op, not an error */
+
+	const char *outcome = (cs == CALL_RINGING) ? "rejected" : NULL;
+
+	const char *response = at_cmd(fn, "AT+CHUP", 3000);
+	if (strstr(response, "OK") == NULL)
+		response = at_cmd(fn, "ATH", 2000);
+	if (strstr(response, "OK") != NULL)
+	{
+		pthread_mutex_lock(&call_state_mutex);
+		call_state = CALL_IDLE;
+		pthread_mutex_unlock(&call_state_mutex);
+		modem_clear_incoming_number();
+		call_session_end(outcome);
+		return 1;
 	}
 	return -1;
 }
@@ -397,18 +405,10 @@ int modem_sms_send(const char *number, const char *message)
 	char cmd[64];
 	snprintf(cmd, sizeof(cmd), "AT+CMGS=\"%s\"", number);
 
-	// Phase 1: send the command, wait for "> " prompt via the URC thread.
 	const char *response = at_cmd(fn, cmd, 5000);
 	if (strstr(response, ">") == NULL)
 		return -1;
 
-	// Capture the body up front — the write loop below advances `message`,
-	// and storage_record_sms needs the original pointer.
-	const char *body_for_log = message;
-
-	// Phase 2: send body + Ctrl-Z, wait for final +CMGS:/OK or +CMS ERROR.
-	// Lock and reset response_ready BEFORE writing so the URC thread can't
-	// publish the final response between our write and our cond_wait.
 	pthread_mutex_lock(&response_mutex);
 	response_ready = 0;
 
@@ -441,10 +441,7 @@ int modem_sms_send(const char *number, const char *message)
 
 	if (strstr(buffer, "+CMS ERROR") != NULL)
 		return -1;
-	if (strstr(buffer, "+CMGS:") != NULL) {
-		// Persist to storage before returning so the UI's next sync finds it.
-		storage_record_sms(number, "out", body_for_log);
+	if (strstr(buffer, "+CMGS:") != NULL)
 		return 1;
-	}
 	return -1;
 }

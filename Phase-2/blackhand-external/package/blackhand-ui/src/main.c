@@ -157,7 +157,6 @@
  *    snprintf(buffer, size, fmt, ...)   format a string into a char array   */
 
 #include <string.h>
-#include <ctype.h>
 /*  String functions.  Used here:
  *    strlen(str)          count bytes in str (not counting '\0')
  *    strcat(dest, src)    append src to dest (dest must have room!)          */
@@ -210,7 +209,6 @@
 #include "services/mp3_service.h"
 #include "services/voice_memo_service.h"
 #include "services/contacts_service.h"
-#include "services/alarm_service.h"
 #include "services/comm_service.h"
 #include "services/pin_service.h"
 #include "services/bluetooth_service.h"
@@ -320,36 +318,24 @@ static struct ncplane *create_screen_plane(struct ncplane *phone) {
     return ncplane_create(phone, &opts);
 }
 
-static int key_matches_binding(uint32_t key, uint32_t binding) {
-    if (key == binding) {
-        return 1;
-    }
-
-    if (key <= 0x7f && binding <= 0x7f) {
-        unsigned char key_ch = (unsigned char)key;
-        unsigned char bind_ch = (unsigned char)binding;
-        if (isalpha(key_ch) && isalpha(bind_ch) &&
-            tolower(key_ch) == tolower(bind_ch)) {
-            return 1;
-        }
-    }
-
-    return 0;
-}
-
 static uint32_t normalize_control_key(uint32_t key) {
+    /* Controls are F-keys, arrows, Enter, and digits only. Letter keys are
+     * always passed through as text input (multitap, dial, notes), so q/e/a/d
+     * /w/s never trigger soft actions or navigation. */
+    if (key == KEY_BIND_UP)     return NCKEY_UP;
+    if (key == KEY_BIND_DOWN)   return NCKEY_DOWN;
+    if (key == KEY_BIND_LEFT)   return NCKEY_LEFT;
+    if (key == KEY_BIND_RIGHT)  return NCKEY_RIGHT;
+    if (key == KEY_BIND_SELECT) return NCKEY_ENTER;
 
-    if (key_matches_binding(key, KEY_BIND_UP)) return NCKEY_UP;
-    if (key_matches_binding(key, KEY_BIND_DOWN)) return NCKEY_DOWN;
-    if (key_matches_binding(key, KEY_BIND_LEFT)) return NCKEY_LEFT;
-    if (key_matches_binding(key, KEY_BIND_RIGHT)) return NCKEY_RIGHT;
-    if (key_matches_binding(key, KEY_BIND_SELECT)) return NCKEY_ENTER;
-    if (key_matches_binding(key, KEY_BIND_SOFT_LEFT)) return KEY_SOFT_LEFT_ACTION;
-    if (key_matches_binding(key, KEY_BIND_SOFT_RIGHT)) return KEY_SOFT_RIGHT_ACTION;
-    if (key_matches_binding(key, KEY_BIND_SOFT_LEFT_ALT_1)) return KEY_SOFT_LEFT_ACTION;
-    if (key_matches_binding(key, KEY_BIND_SOFT_LEFT_ALT_2)) return KEY_SOFT_LEFT_ACTION;
-    if (key_matches_binding(key, KEY_BIND_SOFT_RIGHT_ALT_1)) return KEY_SOFT_RIGHT_ACTION;
-    if (key_matches_binding(key, KEY_BIND_SOFT_RIGHT_ALT_2)) return KEY_SOFT_RIGHT_ACTION;
+    if (key == KEY_BIND_SOFT_LEFT_ALT_1 ||
+        key == KEY_BIND_SOFT_LEFT_ALT_2)  return KEY_SOFT_LEFT_ACTION;
+    if (key == KEY_BIND_SOFT_RIGHT_ALT_1 ||
+        key == KEY_BIND_SOFT_RIGHT_ALT_2) return KEY_SOFT_RIGHT_ACTION;
+    if (key == KEY_BIND_ACTION_PRIMARY_ALT)   return KEY_ACTION_PRIMARY;
+    if (key == KEY_BIND_ACTION_SECONDARY_ALT) return KEY_ACTION_SECONDARY;
+    if (key == KEY_BIND_UP_ALT)   return NCKEY_UP;
+    if (key == KEY_BIND_DOWN_ALT) return NCKEY_DOWN;
     return key;
 }
 
@@ -418,7 +404,6 @@ int main(void) {
     headphone_input_init();
     voice_memo_service_init();
     contact_service_init();
-    alarm_service_init();
     comm_service_init();
     bluetooth_service_init();
     avrcp_service_init();
@@ -547,7 +532,6 @@ int main(void) {
             case SCREEN_MP3:      screen_name = "PLAY";  break;
             case SCREEN_VOICE_MEMO: screen_name = "MEMO"; break;
             case SCREEN_NOTES:    screen_name = "NOTE";  break;
-            case SCREEN_ALARM:    screen_name = "WAKE";  break;
             case SCREEN_THEME:    screen_name = "THEME"; break;
             case SCREEN_BLUETOOTH:screen_name = "CONN";  break;
             case SCREEN_GPS:      screen_name = "GPS";   break;
@@ -570,12 +554,6 @@ int main(void) {
         tick++;
         voice_memo_service_tick();
         mp3_service_update();
-        if (alarm_service_tick()) {
-            if (mp3_service_get_state() == MP3_PLAYING) {
-                mp3_service_pause();
-            }
-            current_screen = SCREEN_ALARM;
-        }
 
         /* ── Modem polling ────────────────────────────────────────────────
          * The modem URC thread tracks state; we just sample it.
@@ -656,7 +634,6 @@ int main(void) {
                 case SCREEN_MP3:        screen_mp3_draw(screen);        break;
                 case SCREEN_VOICE_MEMO: screen_voice_memo_draw(screen); break;
                 case SCREEN_NOTES:      screen_notes_draw(screen);      break;
-                case SCREEN_ALARM:      screen_alarm_draw(screen);      break;
                 case SCREEN_THEME:      screen_theme_draw(screen);      break;
                 case SCREEN_BLUETOOTH:  screen_bluetooth_draw(screen);  break;
                 case SCREEN_GPS:        screen_gps_draw(screen);        break;
@@ -680,13 +657,6 @@ int main(void) {
         }
         ui_dirty = 1;   /* input → redraw on the next loop */
 
-        /* Held W/S auto-repeats for list scrolling (audit Part 0);
-         * repeats of every other key are still dropped. */
-        if (ni.evtype == NCTYPE_REPEAT &&
-            !(key == NCKEY_UP || key == NCKEY_DOWN)) {
-            continue;
-        }
-
         /* ── Touchscreen / mouse: map tap position to a key code ─────── */
         /*
          * Accept NCKEY_BUTTON1 on PRESS (mouse click) or RELEASE (touch
@@ -703,32 +673,15 @@ int main(void) {
             continue;
         }
 
-        /* ── Numeric key → arrow key mapping (dumbphone navigation) ── */
-        /*
-         * On fbcon, arrow keys may not produce NCKEY_UP/DOWN/LEFT/RIGHT
-         * if the terminal isn't properly configured.  Map numeric keys
-         * as a fallback so the on-screen keypad always works:
-         *   2 = UP,  8 = DOWN,  4 = LEFT,  6 = RIGHT,  5 = ENTER
-         *
-         * This ONLY applies when NOT on a text editing screen (notes edit
-         * mode uses number keys for multi-tap text entry).
-         */
-        if (!((current_screen == SCREEN_NOTES && screen_notes_is_edit_mode()) ||
-              (current_screen == SCREEN_CONTACTS && screen_contacts_is_edit_mode()) ||
-              (current_screen == SCREEN_VOICE_MEMO && screen_voice_memo_is_text_entry_mode()) ||
-              (current_screen == SCREEN_SETTINGS && screen_settings_is_pin_entry_mode()) ||
-              (current_screen == SCREEN_ALARM && screen_alarm_is_time_entry_mode()) ||
-              (current_screen == SCREEN_CALLS && screen_calls_is_dial_mode()) ||
-              (current_screen == SCREEN_MESSAGES && screen_messages_is_compose_mode()))) {
-            switch (key) {
-                case KEY_BIND_NUMPAD_UP: key = KEY_BIND_UP; break;
-                case KEY_BIND_NUMPAD_DOWN: key = KEY_BIND_DOWN; break;
-                case KEY_BIND_NUMPAD_LEFT: key = KEY_BIND_LEFT; break;
-                case KEY_BIND_NUMPAD_RIGHT: key = KEY_BIND_RIGHT; break;
-                case KEY_BIND_NUMPAD_SELECT: key = KEY_BIND_SELECT; break;
-                default: break;
-            }
+        /* Held W/S (→ NCKEY_UP/DOWN after normalize) auto-repeat for list
+         * scrolling. Repeats of every other key are dropped. */
+        if (ni.evtype == NCTYPE_REPEAT &&
+            !(key == NCKEY_UP || key == NCKEY_DOWN)) {
+            continue;
         }
+
+        /* Digit keys are reserved for text input (dial, T9, PIN). They never
+         * navigate. Navigation is arrow cluster + F2/F5 only — see config.h §9. */
 
         struct timespec now_ts;
         clock_gettime(CLOCK_MONOTONIC, &now_ts);
@@ -767,10 +720,6 @@ int main(void) {
 
             continue;
         }
-        if (current_screen == SCREEN_HOME && key == KEY_BIND_APP_QUIT) {
-            break;
-        }
-
         /* ── SCREEN-SPECIFIC INPUT ROUTING ───────────────────────────── */
         screen_id prev_screen = current_screen;
         switch (current_screen) {
@@ -782,7 +731,6 @@ int main(void) {
             case SCREEN_MP3:        current_screen = screen_mp3_input(key);        break;
             case SCREEN_VOICE_MEMO: current_screen = screen_voice_memo_input(key); break;
             case SCREEN_NOTES:      current_screen = screen_notes_input(key);      break;
-            case SCREEN_ALARM:      current_screen = screen_alarm_input(key);      break;
             case SCREEN_THEME:      current_screen = screen_theme_input(key);      break;
             case SCREEN_BLUETOOTH:  current_screen = screen_bluetooth_input(key);  break;
             case SCREEN_GPS:        current_screen = screen_gps_input(key);        break;
@@ -827,7 +775,6 @@ int main(void) {
     mp3_service_shutdown();
     voice_memo_service_shutdown();
     contact_service_shutdown();
-    alarm_service_shutdown();
     comm_service_shutdown();
     avrcp_service_shutdown();
     bluetooth_service_shutdown();
