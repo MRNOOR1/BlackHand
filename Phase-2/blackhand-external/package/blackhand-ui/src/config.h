@@ -24,8 +24,17 @@
 #include <notcurses/notcurses.h>
 
 /* ── 1. Phone dimensions ───────────────────────────────────────────────── */
-#define PHONE_COLS        40
-#define PHONE_SCREEN_ROWS 15
+#define PHONE_COLS        30
+/* 30 x 17 is the exact console grid of the 1.83in panel with the VGA8x16
+ * kernel font (larger, more legible than ProFont6x11):
+ *   240 px / 8 px  = 30 columns  (VGA8x16, widest 8px-wide built-in)
+ *   284 px / 16 px = 17 rows     (272 px used, ~12 px unlit at the bottom)
+ * Kernel cmdline sets `fbcon=font:VGA8x16`; confirm on hardware with
+ * `stty -F /dev/tty1 size` -> "17 30".
+ *
+ * Screens read their own extent via ncplane_dim_yx(), so they pick up the
+ * new geometry without per-screen changes. */
+#define PHONE_SCREEN_ROWS 17
 #define KEYPAD_ROWS       0
 #define PHONE_ROWS        (PHONE_SCREEN_ROWS + KEYPAD_ROWS)
 
@@ -58,10 +67,10 @@
 #define HOME_PIN_POPUP_HEIGHT       6
 #define NOTES_SAVE_POPUP_HEIGHT     7
 #define VOICE_MEMO_NAME_POPUP_HEIGHT 7
-#define ALARM_TIME_POPUP_WIDTH      32
+#define ALARM_TIME_POPUP_WIDTH      28
 #define ALARM_TIME_POPUP_HEIGHT     7
-#define ALARM_TIME_POPUP_MIN_LEFT   2
-#define ALARM_RING_POPUP_WIDTH      34
+#define ALARM_TIME_POPUP_MIN_LEFT   1
+#define ALARM_RING_POPUP_WIDTH      28
 #define ALARM_RING_POPUP_HEIGHT     8
 
 /* ── 3. Colors used outside the theme engine ───────────────────────────── */

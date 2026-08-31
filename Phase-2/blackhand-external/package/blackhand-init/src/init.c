@@ -465,9 +465,10 @@ static pid_t kspawn(const char *path)
  * is the only waitpid in flight — no conflict.
  *
  * rcS on BlackHand should:
- *   - Run hyperpixel4-init (DPI pin mux + LCD controller init + backlight)
+ *   - modprobe panel-mipi-dbi (brings up the SPI LCD and, with it, the
+ *     framebuffer console — must happen after the rootfs is mounted because
+ *     the driver loads /lib/firmware/panel.bin at probe time)
  *   - modprobe snd_bcm2835
- *   - Start GPM (touchscreen daemon)
  */
 static void krun_sysinit(void)
 {

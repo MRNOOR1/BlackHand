@@ -52,8 +52,8 @@ echo "── 2. Boot Partition ──"
 
 if [ -f "${IMAGES_DIR}/config.txt" ]; then
     pass "config.txt"
-    grep -q "enable_dpi_lcd=1" "${IMAGES_DIR}/config.txt" && pass "DPI LCD enabled" || fail "enable_dpi_lcd=1 missing"
-    grep -q "dpi_timings=" "${IMAGES_DIR}/config.txt" && pass "DPI timings set" || fail "dpi_timings missing"
+    # Display checks live in section 5 — this panel is driven by the kernel
+    # over SPI, not by the VideoCore's DPI block.
     grep -q "arm_64bit=1" "${IMAGES_DIR}/config.txt" && pass "arm_64bit=1" || fail "arm_64bit=1 missing"
 else
     fail "config.txt NOT FOUND"
@@ -64,6 +64,20 @@ fi
 for f in start4.elf fixup4.dat; do
     [ -f "${IMAGES_DIR}/${f}" ] && pass "${f}" || fail "${f} NOT FOUND — Pi won't boot"
 done
+
+# gpu_mem<32 requires the cutdown GPU firmware (start4cd.elf / fixup4cd.dat).
+# Without them the VideoCore silently refuses to boot — no HDMI, no serial,
+# no LEDs, no SSH. Buildroot's rpi-firmware package does NOT install the cd
+# variants, so lowering gpu_mem also means adding a fetch step in
+# post-build.sh (mirror the BCM4345C0.hcd pattern). Keep gpu_mem>=64 unless
+# you have done that.
+GPU_MEM=$(grep -E '^\s*gpu_mem\s*=' "${IMAGES_DIR}/config.txt" 2>/dev/null | tail -1 | sed -E 's/.*=[[:space:]]*([0-9]+).*/\1/')
+if [ -n "${GPU_MEM}" ] && [ "${GPU_MEM}" -lt 32 ] 2>/dev/null; then
+    for f in start4cd.elf fixup4cd.dat; do
+        [ -f "${IMAGES_DIR}/${f}" ] && pass "${f} (required by gpu_mem=${GPU_MEM})" \
+            || fail "${f} NOT FOUND — gpu_mem=${GPU_MEM} REQUIRES it or Pi silently halts"
+    done
+fi
 
 # 3. DTB symbols
 echo ""
@@ -90,7 +104,10 @@ echo "── 4. Rootfs — Init & Binaries ──"
 [ -f "${TARGET_DIR}/etc/init.d/rcS" ] && [ -x "${TARGET_DIR}/etc/init.d/rcS" ] \
     && pass "rcS (executable)" || fail "rcS missing or not executable"
 
-for bin in /sbin/init /bin/sh /usr/sbin/dropbear /usr/bin/fbv; do
+# fbv (framebuffer image viewer) was used to render the HyperPixel splash.
+# Nothing draws splash images now — the panel is initialised by
+# panel-mipi-dbi and the first thing on-screen is the notcurses UI.
+for bin in /sbin/init /bin/sh /usr/sbin/dropbear; do
     if [ -e "${TARGET_DIR}${bin}" ] || [ -L "${TARGET_DIR}${bin}" ]; then
         pass "$(basename ${bin})"
     else
@@ -98,20 +115,100 @@ for bin in /sbin/init /bin/sh /usr/sbin/dropbear /usr/bin/fbv; do
     fi
 done
 
-# 5. HyperPixel init tool
+# 5. SPI panel (Waveshare 1.83inch, 240x284 ST7789P)
 echo ""
-echo "── 5. HyperPixel Init ──"
+echo "── 5. SPI Panel ──"
 
-if [ -e "${TARGET_DIR}/usr/bin/hyperpixel4-init" ]; then
-    pass "hyperpixel4-init binary installed"
+CFG="${IMAGES_DIR}/config.txt"
+CMD="${IMAGES_DIR}/cmdline.txt"
+
+if [ -f "${CFG}" ]; then
+    grep -q "dtoverlay=mipi-dbi-spi" "${CFG}" \
+        && pass "config.txt loads mipi-dbi-spi overlay" \
+        || fail "no mipi-dbi-spi overlay in config.txt — panel will not probe"
+
+    # MISO is not brought out on this module. Without write-only the driver
+    # tries to read the controller ID back and fails probe.
+    grep -q "write-only" "${CFG}" \
+        && pass "write-only set (module has no MISO)" \
+        || fail "write-only MISSING — driver will try to read the panel and fail"
+
+    grep -q "width=240" "${CFG}" && grep -q "height=284" "${CFG}" \
+        && pass "panel geometry 240x284" \
+        || fail "panel geometry is not 240x284"
+
+    grep -q "y-offset=" "${CFG}" \
+        && pass "y-offset set ($(grep -o 'y-offset=[0-9]*' "${CFG}" | head -1))" \
+        || warn "no y-offset — a 284-row panel inside 320-row GRAM will sit misaligned"
+
+    grep -q "dtparam=spi=on" "${CFG}" \
+        && pass "SPI0 enabled" \
+        || fail "dtparam=spi=on missing"
+
+    # Strip comment lines before matching — the SPI panel's config.txt
+    # legitimately mentions "HyperPixel" in the header comments explaining
+    # what was replaced. We only care about live directives.
+    if grep -vE '^\s*(#|$)' "${CFG}" | grep -qiE '(dtoverlay=hyperpixel|enable_dpi_lcd|dpi_timings)'; then
+        fail "HyperPixel/DPI leftovers still active in config.txt"
+    else
+        pass "no HyperPixel/DPI directives in config.txt"
+    fi
 else
-    fail "hyperpixel4-init NOT FOUND — display will stay black"
+    fail "config.txt NOT FOUND in images dir"
 fi
 
-if [ -f "${TARGET_DIR}/etc/init.d/rcS" ] && grep -q "hyperpixel4-init" "${TARGET_DIR}/etc/init.d/rcS"; then
-    pass "rcS calls hyperpixel4-init"
+# The init blob. Without it panel-mipi-dbi probes and immediately fails.
+if [ -f "${TARGET_DIR}/lib/firmware/panel.bin" ]; then
+    if head -c 8 "${TARGET_DIR}/lib/firmware/panel.bin" | grep -q "MIPI DBI"; then
+        pass "panel.bin present and has valid magic ($(wc -c < "${TARGET_DIR}/lib/firmware/panel.bin") bytes)"
+    else
+        fail "panel.bin present but magic is wrong — regenerate with board/blackhand/panel/mkpanelbin.py"
+    fi
 else
-    fail "rcS does NOT call hyperpixel4-init"
+    fail "panel.bin MISSING from rootfs — panel will not initialise"
+fi
+
+# The panel driver is BUILT IN (=y), not a module — see the long note in
+# bcm2711.config. So assert the opposite of what you might expect: a
+# panel-mipi-dbi.ko on the target means the fragment did not take effect.
+if find "${TARGET_DIR}/lib/modules" -name 'panel-mipi-dbi.ko*' 2>/dev/null | grep -q .; then
+    fail "panel-mipi-dbi is a MODULE — expected built-in (CONFIG_DRM_PANEL_MIPI_DBI=y)"
+else
+    pass "panel-mipi-dbi is not a module (built in, as intended)"
+fi
+
+# Any compressed module is unloadable: busybox insmod cannot decompress, and
+# the host depmod could not index .ko.xz files — which is what silently broke
+# the panel driver when it was still a module.
+if find "${TARGET_DIR}/lib/modules" -name '*.ko.xz' -o -name '*.ko.zst' -o -name '*.ko.gz' 2>/dev/null | grep -q .; then
+    fail "compressed modules present — busybox cannot load them (need CONFIG_MODULE_COMPRESS_NONE=y)"
+else
+    pass "kernel modules are uncompressed"
+fi
+
+if [ -f "${TARGET_DIR}/etc/init.d/rcS" ] && grep -q "modprobe panel-mipi-dbi" "${TARGET_DIR}/etc/init.d/rcS"; then
+    pass "rcS loads the panel driver"
+else
+    fail "rcS does NOT modprobe panel-mipi-dbi — screen will stay dark"
+fi
+
+if [ -x "${TARGET_DIR}/usr/bin/panel-doctor" ]; then
+    pass "panel-doctor installed (blank-screen triage without a screen)"
+else
+    warn "panel-doctor not installed — a blank panel will be much harder to diagnose"
+fi
+
+# The UI needs a 40-column grid; 240px / 6px-wide font = 40 cols exactly.
+if [ -f "${CMD}" ]; then
+    if grep -q "fbcon=font:ProFont6x11" "${CMD}"; then
+        pass "console font ProFont6x11 → 40 cols x 25 rows"
+    elif grep -q "fbcon=font:" "${CMD}"; then
+        warn "console font is $(grep -o 'fbcon=font:[A-Za-z0-9]*' "${CMD}") — UI needs >= 40 columns"
+    else
+        warn "no fbcon=font: set — kernel default may not give 40 columns"
+    fi
+else
+    fail "cmdline.txt NOT FOUND in images dir"
 fi
 
 # 6. BlackHand init system

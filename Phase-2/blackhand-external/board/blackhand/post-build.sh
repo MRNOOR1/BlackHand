@@ -47,11 +47,6 @@ compile_overlay() {
 }
 
 compile_overlay \
-    "${BR2_EXTERNAL_BLACKHAND_PATH}/board/blackhand/dt-overlays/hyperpixel4-touch-overlay.dts" \
-    "${OVERLAY_DIR}/hyperpixel4-touch.dtbo" \
-    "hyperpixel4-touch"
-
-compile_overlay \
     "${BR2_EXTERNAL_BLACKHAND_PATH}/board/blackhand/dt-overlays/blackhand-fixes-overlay.dts" \
     "${OVERLAY_DIR}/blackhand-fixes.dtbo" \
     "blackhand-fixes"

@@ -1,33 +1,100 @@
-# Black Hand OS — HyperPixel 4.0
+# Black Hand OS — Waveshare 1.83inch LCD Module
 #
-# Display: firmware-driven DPI (not KMS — avoids circular dep on kernel 6.6)
-# Touch:   i2c-gpio overlay for Goodix GT911 on pins 10/11
-# Panel init: hyperpixel4-init userspace tool (SPI bit-bang)
+# Display: 240x284 IPS, ST7789P, 4-wire SPI, driven by the kernel's
+#          panel-mipi-dbi DRM driver (NOT the VideoCore firmware).
+# Touch:   NOT USED. The module's CST816D is left unwired — no I2C bus,
+#          no touch overlay, no GT911.
+#
+# Replaces the HyperPixel 4.0 DPI panel. Nothing about the old path carried
+# over: DPI was driven by the VC firmware over GPIO 0-27 with hand-tuned
+# dpi_timings; this panel is driven by Linux over SPI0 with an init blob at
+# /lib/firmware/panel.bin. See Phase-2/LCD-INTEGRATION-PLAN.md.
 
 arm_64bit=1
 kernel=Image
-gpu_mem=256
 
-# ── Firmware-driven DPI — exact Pimoroni Pi 4 values ──
-# Panel is natively 480x800 (portrait).
-enable_dpi_lcd=1
-dpi_group=2
-dpi_mode=87
-dpi_output_format=0x7f216
-dpi_timings=480 0 10 16 59 800 0 15 113 15 0 0 0 60 0 32000000 6
+# The VideoCore now drives nothing — no DPI panel, no HDMI console, no 3D.
+#
+# 64 MB (not the documented 16 MB minimum) is deliberate: gpu_mem<32 forces
+# the firmware to use start4cd.elf/fixup4cd.dat (the "cutdown" GPU blobs),
+# and Buildroot's rpi-firmware package does NOT install the cd variants —
+# it ships only start4.elf/fixup4.dat. With gpu_mem=16 the firmware silently
+# halts before Linux loads (no HDMI, no serial, no LEDs, no SSH — cost me
+# an evening once).
+#
+# The 48 MB "savings" from gpu_mem=16 on a 4 GB Pi are 1.2 % of RAM. Not
+# worth a build-time GitHub fetch of the cd firmware. If you ever DO want
+# gpu_mem=16, add a curl step to post-build.sh mirroring the BCM4345C0.hcd
+# pattern and put the cd blobs in overlay/boot/.
+gpu_mem=64
 
-# Match the native panel resolution (portrait)
-framebuffer_width=480
-framebuffer_height=800
+# ── POWER ─────────────────────────────────────────────────────────────────
+# VCC MUST be 3.3V (physical pin 1 or 17), NOT 5V.
+# Waveshare: "Please ensure that the supply voltage and logic voltage are
+# consistent, otherwise, it may fail to function properly." The Pi's GPIOs
+# are 3.3V logic, so the module has to be supplied at 3.3V. Their own
+# Raspberry Pi wiring table specifies 3.3V.
 
-# Rotate 180 degrees (flip both axes)
-display_rotate=2
+# ── SPI0 ──────────────────────────────────────────────────────────────────
+# Must come BEFORE the dtoverlay line: a dtparam after a dtoverlay is
+# interpreted as a parameter OF that overlay, and mipi-dbi-spi has no
+# 'spi' parameter, so the firmware would reject it.
+dtparam=spi=on
 
-# NO vc4 overlay — let firmware own the display entirely.
+# ── Panel ─────────────────────────────────────────────────────────────────
+# panel-mipi-dbi reads its init sequence from /lib/firmware/panel.bin
+# (generated from board/blackhand/panel/panel.txt by mkpanelbin.py).
+# Init commands are clocked at 10 MHz regardless of the speed below; only
+# pixel data runs at full rate, so pushing 'speed' cannot corrupt setup.
+#
+# SPEED: Waveshare's own Raspberry Pi demo runs this panel at 7.8 MHz
+# (bcm2835 divider 32) or 25 MHz (wiringPi/lgpio) — never above 25. The
+# module has an onboard level shifter, which adds propagation delay and is
+# the usual reason these panels top out well below the controller's rating.
+# 8 MHz matches the vendor's most conservative setting; raise it only once
+# the panel is known good. Note panel-mipi-dbi always clocks INIT commands
+# at 10 MHz regardless of this value — only pixel data uses it.
+dtoverlay=mipi-dbi-spi,spi0-0,speed=8000000
 
-# enable_uart=1 fixes the VPU core_freq to 250 MHz so the mini-UART baud
-# rate is stable. It does NOT swap the UARTs on Pi 4 — PL011 (ttyAMA0)
-# stays on Bluetooth. Without this, mini-UART baud drifts at load.
+# write-only is REQUIRED — MISO is not brought out on this module's header.
+# Without it the driver tries to read back the controller ID and fails probe.
+dtparam=write-only
+
+# 240x284 panel inside the ST7789's 240x320 GRAM.
+# y-offset 0 — CONFIRMED ON HARDWARE. This panel's visible area starts at
+# controller RAM row 0, so no offset is needed.
+#
+# It was 18, derived from (320 - height + 1) / 2 — the arithmetic Waveshare's
+# fbtft driver uses for the OTHER revision of this panel. That was wrong here:
+# it pushed the image down 18 px, leaving stale RAM showing as a bright bar
+# along the top edge and dropping the bottom 18 px off the panel. Setting it
+# to 0 removed the top bar.
+dtparam=width=240,height=284
+dtparam=x-offset=0,y-offset=0
+
+# GPIO assignments — see LCD-INTEGRATION-PLAN.md section 3 for the wiring.
+dtparam=reset-gpio=27,dc-gpio=25
+
+# Backlight on GPIO 18 (physical pin 12) — this is Waveshare's own Raspberry
+# Pi pin assignment for this module, so it matches their wiring diagrams and
+# every demo they publish.
+#
+# I originally put this on GPIO 24 to avoid PWM0 (GPIO 18), because a
+# pwm-backlight would disable the Pi's onboard headphone output — both use
+# the same PWM block. That reasoning was wrong: this is gpio-backlight, which
+# drives GPIO 18 as a plain output and never touches the PWM peripheral.
+# Onboard audio is unaffected.
+#
+# WATCH OUT: Waveshare's BL is BCM 18 = physical pin 12. My earlier table said
+# BCM 24 = physical pin 18. The numbers 18 and 24 swap roles between the two
+# schemes, which is very easy to mis-wire. BL goes in PHYSICAL PIN 12.
+dtparam=backlight-gpio=18
+
+# Enable onboard audio (headphone jack / HDMI)
+dtparam=audio=on
+
+# enable_uart=1 fixes the VPU core_freq so the mini-UART baud rate is stable.
+# It does NOT swap the UARTs on Pi 4 — PL011 (ttyAMA0) stays on Bluetooth.
 #
 # krnbt=on is intentionally ABSENT. With krnbt=on the VideoCore firmware
 # skips its own UART initialisation and hands the BCM43455 directly to
@@ -39,24 +106,5 @@ display_rotate=2
 # so hci0 still appears automatically without the krnbt flag.
 enable_uart=1
 
-# ── I2C-GPIO bus for touchscreen ──
-# The Goodix GT911 touch controller sits on GPIO 10 (SDA) / GPIO 11 (SCL).
-# We create a bit-banged I2C bus (bus 3) using the i2c-gpio overlay.
-dtoverlay=i2c-gpio,bus=3,i2c_gpio_sda=10,i2c_gpio_scl=11,i2c_gpio_delay_us=4
-
-# ── Goodix touchscreen on the I2C-GPIO bus ──
-# Custom overlay that defines the GT911 at addresses 0x14 and 0x5d
-# with interrupt on GPIO 27.
-dtoverlay=hyperpixel4-touch
-
-# Enable onboard audio (headphone jack / HDMI)
-dtparam=audio=on
-
-# ── Silence cosmetic dmesg warnings (UART pinctrl + BT regulator) ──
-# Declares what the Pi firmware already configured at power-on so Linux
-# stops logging "no valid maps for state default" and "supply not found".
-dtoverlay=blackhand-fixes
-
 disable_splash=1
 boot_delay=0
-

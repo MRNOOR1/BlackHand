@@ -98,10 +98,16 @@ void screen_home_draw(struct ncplane *phone)
     int width   = (int)cols - 6;
     int start   = HOME_CONTENT_START_ROW;
     int footer  = (int)rows - 3;
-    int spacing = ((footer - start) >= item_count * 2) ? 2 : 1;
+    /* Spread the menu items evenly across [start, footer). Item 0 sits on
+     * `start`, item item_count-1 sits on `footer - 1`, the rest interpolate.
+     * The old formula was `spacing = 1 or 2`, which filled 15-row canvases
+     * but left the bottom of a 25-row canvas empty. */
+    int usable  = footer - start;
 
     for (int i = 0; i < item_count; i++) {
-        int row = start + i * spacing;
+        int row = (item_count > 1)
+                  ? start + (i * (usable - 1)) / (item_count - 1)
+                  : start + usable / 2;
         if (row >= (int)rows - 3) break;
         int sel = (i == selected);
 

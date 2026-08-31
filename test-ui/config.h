@@ -88,34 +88,37 @@ Nav bar
  *    - PHONE_ROWS should be at least 10 for status bar + content + footer
  */
 
-/* ─── Target panel: D200N2415V1 — 2.0" IPS, 480×360, ST7701S ──────────────
+/* ─── Target panel: Waveshare 1.83" Touch LCD Module ──────────────────────
  *
- * The product display is 480×360 (4:3) used in LANDSCAPE orientation.
- * Mapping pixels → character grid with a 12×24 px monospace cell:
- *     480 / 12 = 40 columns
- *     360 / 24 = 15 rows
- * A 12×24 cell is a 1:2 (w:h) ratio, which matches a typical terminal cell,
- * so the host preview keeps the panel's real 4:3 proportions.
- * Configure on the Pi with (e.g. /etc/default/console-setup):
- *     FONTFACE="Iosevka Term"
- *     FONTSIZE="12x24"
+ * Panel:      240 × 284 IPS, ST7789P, 4-wire SPI (portrait native)
+ * Framebuffer: 240 × 284 via kernel panel-mipi-dbi + DRM_FBDEV_EMULATION
+ * Console:    fbcon on tty1 with the kernel's VGA8x16 (8 × 16 px cell) —
+ *             larger and more legible than the previous ProFont6x11.
  *
- * The skeleton fills these 18 rows:
- *     row 0       status strip
- *     row 1       divider (carries the screen tag)
- *     rows 2..15  content (menu list, player, dialer, detail view)
- *     rows 16..17 footer (theme footer, or action cells on decision screens)
+ * Mapping pixels → character grid:
+ *     240 px / 8  = 30 columns  (VGA8x16, widest 8-px-wide built-in)
+ *     284 px / 16 = 17 rows     (uses 272 px, leaves 12 px black at bottom —
+ *                                unavoidable, 16 does not divide 284)
  *
- * The display is split into two zones:
+ * The 12-px stripe is an fbcon leftover, not a bug and not something the UI
+ * can paint into: fbcon top-aligns whole character cells inside the fb.
+ *
+ * The panel is portrait — the terminal grid is TALL (17 rows tall × 30 cols
+ * wide; that's ~240×272 px in pixels, near-square visually).
+ *
+ * The 30×17 canvas is split into two zones:
  *   PHONE_SCREEN_ROWS  — the "display" (status, content, footer)
- *   KEYPAD_ROWS        — optional visual on-screen keypad (disabled here)
+ *   KEYPAD_ROWS        — on-screen keypad (0 here; a physical keypad is used)
+ *
+ * Kept in sync with package/blackhand-ui/src/config.h — note these two
+ * trees have otherwise diverged; the package tree is what builds.
  */
 
-/* Width of the phone plane in character cells (480 px / 12) */
-#define PHONE_COLS 40
+/* Width of the phone plane in character cells (240 px / 8 = 30) */
+#define PHONE_COLS 30
 
-/* Height of the screen portion in character cells (360 px / 24) */
-#define PHONE_SCREEN_ROWS 15
+/* Height of the phone plane in character cells (284 px / 16 = 17). */
+#define PHONE_SCREEN_ROWS 17
 
 /* Keypad has been removed from the UI-focused layout */
 #define KEYPAD_ROWS 0
@@ -265,10 +268,10 @@ Nav bar
 #define HOME_PIN_POPUP_HEIGHT 6
 #define NOTES_SAVE_POPUP_HEIGHT 7
 #define VOICE_MEMO_NAME_POPUP_HEIGHT 7
-#define ALARM_TIME_POPUP_WIDTH 32
+#define ALARM_TIME_POPUP_WIDTH 28
 #define ALARM_TIME_POPUP_HEIGHT 7
-#define ALARM_TIME_POPUP_MIN_LEFT 2
-#define ALARM_RING_POPUP_WIDTH 34
+#define ALARM_TIME_POPUP_MIN_LEFT 1
+#define ALARM_RING_POPUP_WIDTH 28
 #define ALARM_RING_POPUP_HEIGHT 8
 
 /* ═══════════════════════════════════════════════════════════════════════════

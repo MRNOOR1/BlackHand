@@ -1,0 +1,212 @@
+#!/bin/sh
+# ─────────────────────────────────────────────────────────────────────────────
+# panel-doctor — why is the screen blank?
+#
+#   panel-doctor            run every check, print a verdict
+#   panel-doctor --pattern  additionally paint the framebuffer (visual test)
+#
+# A blank SPI panel has ~6 distinct causes that all look identical from the
+# outside. This walks them in dependency order and stops being useful as soon
+# as one fails — read the FIRST failure, not the last.
+#
+# rcS runs this automatically into /boot/logs/panel-doctor.log when the
+# framebuffer does not appear, so the answer is on the SD card even with no
+# network and no screen.
+# ─────────────────────────────────────────────────────────────────────────────
+
+P=0; F=0; W=0
+ok()   { echo "  [ OK ] $1"; P=$((P+1)); }
+bad()  { echo "  [FAIL] $1"; F=$((F+1)); }
+warn() { echo "  [WARN] $1"; W=$((W+1)); }
+hdr()  { echo; echo "── $1 ──"; }
+
+echo "==================================================="
+echo " panel-doctor — Waveshare 1.83in / ST7789P / SPI0"
+echo " $(date 2>/dev/null)  uptime $(cut -d' ' -f1 /proc/uptime 2>/dev/null)s"
+echo "==================================================="
+
+# ── 1. Is the driver even present? ───────────────────────────────────────────
+hdr "1. Driver"
+KVER=$(uname -r)
+MODPATH="/lib/modules/${KVER}"
+if [ -d "$MODPATH" ]; then
+    ok "module tree exists (${KVER})"
+    KO=$(find "$MODPATH" -name 'panel-mipi-dbi.ko' -o -name 'panel-mipi-dbi.ko.*' 2>/dev/null | head -1)
+    if [ -n "$KO" ]; then
+        ok "panel-mipi-dbi module installed: ${KO}"
+        # A compressed module is unloadable here: busybox insmod has no
+        # decompressor, and busybox modprobe strips ".ko" to get the name, so
+        # "…​.ko.xz" never matches and it claims the module is missing from
+        # modules.dep. Check CONFIG_MODULE_COMPRESS_NONE=y in the fragment.
+        case "$KO" in
+            *.ko) ok "module is uncompressed (busybox can load it)" ;;
+            *)    bad "MODULE IS COMPRESSED (${KO##*.}) — busybox cannot load this."
+                  bad "  This is why modprobe says 'not found in modules.dep'."
+                  bad "  Fix: CONFIG_MODULE_COMPRESS_NONE=y in bcm2711.config" ;;
+        esac
+    else
+        bad "panel-mipi-dbi.ko NOT INSTALLED — kernel built without CONFIG_DRM_PANEL_MIPI_DBI=m"
+    fi
+    if [ -f "${MODPATH}/modules.dep" ]; then
+        ok "modules.dep present ($(wc -l < "${MODPATH}/modules.dep") entries)"
+        # THE check. A .ko on disk that modules.dep does not list is invisible
+        # to modprobe — which is exactly how this failed the first time.
+        if grep -q 'panel-mipi-dbi\.ko' "${MODPATH}/modules.dep" 2>/dev/null; then
+            ok "panel-mipi-dbi IS indexed in modules.dep"
+        else
+            bad "panel-mipi-dbi.ko exists but is NOT in modules.dep — modprobe cannot see it."
+            bad "  depmod did not index it. Load it directly instead:"
+            bad "    insmod \$(find /lib/modules -name drm_mipi_dbi.ko)"
+            bad "    insmod \$(find /lib/modules -name panel-mipi-dbi.ko)"
+        fi
+    else
+        bad "modules.dep MISSING — modprobe cannot resolve anything"
+    fi
+else
+    bad "no /lib/modules/${KVER} — kernel and rootfs are out of sync (stale image?)"
+fi
+
+# The driver is expected to be BUILT IN. /proc/modules only lists loadable
+# modules, so absence there is normal and proves nothing — check for the
+# driver actually binding instead (section 4).
+if grep -q panel_mipi_dbi /proc/modules 2>/dev/null; then
+    warn "panel_mipi_dbi is loaded as a MODULE — expected built-in"
+elif [ -d /sys/bus/spi/drivers/panel-mipi-dbi ]; then
+    ok "panel-mipi-dbi driver registered (built in)"
+else
+    bad "panel-mipi-dbi driver is NOT registered — not built in and not loaded."
+    bad "  Check CONFIG_DRM_PANEL_MIPI_DBI=y in board/blackhand/linux/bcm2711.config"
+fi
+
+# ── 2. The init blob ─────────────────────────────────────────────────────────
+hdr "2. Firmware blob"
+FW=/lib/firmware/panel.bin
+if [ -f "$FW" ]; then
+    ok "panel.bin present ($(wc -c < "$FW") bytes)"
+    if head -c 8 "$FW" 2>/dev/null | grep -q "MIPI DBI"; then
+        ok "magic is valid"
+    else
+        bad "magic is WRONG — regenerate with board/blackhand/panel/mkpanelbin.py"
+    fi
+else
+    bad "panel.bin MISSING — driver probe will fail with -ENOENT and never retry"
+fi
+
+# ── 3. SPI bus ───────────────────────────────────────────────────────────────
+hdr "3. SPI bus"
+if [ -d /sys/bus/spi/devices ] && ls /sys/bus/spi/devices 2>/dev/null | grep -q .; then
+    for d in /sys/bus/spi/devices/*; do
+        echo "         $(basename "$d") -> $(cat "$d/modalias" 2>/dev/null)"
+    done
+    ok "SPI device(s) enumerated"
+else
+    bad "NO SPI devices — dtparam=spi=on missing, or the overlay did not load"
+fi
+
+# ── 4. DRM + framebuffer ─────────────────────────────────────────────────────
+hdr "4. DRM / framebuffer"
+if ls /sys/class/drm/card* >/dev/null 2>&1; then
+    ok "DRM card present: $(ls -d /sys/class/drm/card* 2>/dev/null | xargs -n1 basename | tr '\n' ' ')"
+else
+    bad "NO DRM card — the panel driver never bound to the SPI device"
+fi
+
+FB_FOUND=0
+for fb in /sys/class/graphics/fb*; do
+    [ -d "$fb" ] || continue
+    # /sys/class/graphics/fbcon is fbcon's control node, not a framebuffer.
+    [ "$(basename "$fb")" = "fbcon" ] && continue
+    FB_FOUND=1
+    NAME=$(cat "$fb/name" 2>/dev/null)
+    SIZE=$(cat "$fb/virtual_size" 2>/dev/null)
+    echo "         $(basename "$fb"): name='${NAME}' size=${SIZE}"
+    case "$SIZE" in
+        240,284) ok "$(basename "$fb") is the panel (240x284)" ;;
+    esac
+    case "$NAME" in
+        *BCM2708*|*bcm2708*)
+            warn "$(basename "$fb") is the VideoCore firmware framebuffer — it should be GONE." ;;
+    esac
+done
+[ "$FB_FOUND" = 1 ] || bad "NO framebuffer at all — nothing for fbcon or notcurses to draw on"
+
+# ── 5. Backlight ─────────────────────────────────────────────────────────────
+hdr "5. Backlight"
+BL_FOUND=0
+for bl in /sys/class/backlight/*; do
+    [ -d "$bl" ] || continue
+    BL_FOUND=1
+    BR=$(cat "$bl/brightness" 2>/dev/null)
+    PW=$(cat "$bl/bl_power" 2>/dev/null)
+    echo "         $(basename "$bl"): brightness=${BR} bl_power=${PW}"
+    # Both must be right: brightness > 0 AND bl_power = 0 (FB_BLANK_UNBLANK).
+    # bl_power stays at 4 (FB_BLANK_POWERDOWN) until a display pipeline
+    # enables it, so a driver that never bound leaves a dark panel even
+    # though brightness reads 1.
+    if [ "$BR" = "0" ]; then
+        warn "brightness is 0 — panel is dark regardless of what is rendered"
+        warn "  echo 1 > $bl/brightness"
+    elif [ -n "$PW" ] && [ "$PW" != "0" ]; then
+        warn "bl_power=${PW} (not 0) — backlight is BLANKED despite brightness=${BR}."
+        warn "  Usually means no display pipeline is driving it, i.e. the panel"
+        warn "  driver never bound. Force it with: echo 0 > $bl/bl_power"
+    else
+        ok "backlight is on (brightness=${BR}, bl_power=0)"
+    fi
+done
+[ "$BL_FOUND" = 1 ] || bad "no backlight device — check dtparam=backlight-gpio and CONFIG_BACKLIGHT_GPIO=y"
+
+# ── 6. Console binding ───────────────────────────────────────────────────────
+hdr "6. Console"
+if [ -d /sys/class/vtconsole ]; then
+    for v in /sys/class/vtconsole/*; do
+        echo "         $(basename "$v"): $(cat "$v/name" 2>/dev/null) bound=$(cat "$v/bind" 2>/dev/null)"
+    done
+    if grep -lq 'frame buffer device' /sys/class/vtconsole/*/name 2>/dev/null; then
+        ok "fbcon is registered"
+    else
+        bad "fbcon NOT registered — CONFIG_FRAMEBUFFER_CONSOLE missing?"
+    fi
+else
+    bad "no /sys/class/vtconsole"
+fi
+
+# ── 7. What the kernel actually said ─────────────────────────────────────────
+hdr "7. dmesg (panel / spi / drm / firmware)"
+dmesg 2>/dev/null | grep -iE 'panel|mipi|dbi|st7789|spi|drm|backlight|firmware' | tail -30 \
+    || echo "         (dmesg unavailable)"
+
+# ── 8. Boot config as actually flashed ───────────────────────────────────────
+hdr "8. /boot/config.txt (display lines)"
+if [ -f /boot/config.txt ]; then
+    grep -E 'spi|dbi|dtparam|dtoverlay|gpu_mem' /boot/config.txt 2>/dev/null
+else
+    warn "/boot not mounted — cannot confirm the flashed config"
+fi
+
+# ── 9. Optional visual test ──────────────────────────────────────────────────
+if [ "$1" = "--pattern" ]; then
+    hdr "9. Pixel test"
+    TARGET=""
+    for fb in /sys/class/graphics/fb*; do
+        [ "$(cat "$fb/virtual_size" 2>/dev/null)" = "240,284" ] && TARGET=/dev/$(basename "$fb")
+    done
+    [ -z "$TARGET" ] && [ -e /dev/fb0 ] && TARGET=/dev/fb0
+    if [ -n "$TARGET" ]; then
+        echo "         painting noise to ${TARGET} ..."
+        dd if=/dev/urandom of="$TARGET" bs=136320 count=1 2>/dev/null
+        echo "         LOOK AT THE PANEL NOW."
+        echo "           noise, correct edges      -> panel + wiring + init all good"
+        echo "           noise shifted / wrapping  -> wrong y-offset (try 0 / 18 / 36)"
+        echo "           nothing at all            -> backlight, wiring, or init sequence"
+    else
+        bad "no framebuffer to paint"
+    fi
+fi
+
+echo
+echo "==================================================="
+echo " OK: ${P}   FAIL: ${F}   WARN: ${W}"
+echo "==================================================="
+[ "$F" -gt 0 ] && echo " Read the FIRST failure above — later ones are usually consequences."
+exit 0

@@ -113,10 +113,11 @@ BR2_PACKAGE_ALSA_UTILS=y
 BR2_PACKAGE_ALSA_UTILS_ARECORD=y
 BR2_PACKAGE_ALSA_UTILS_APLAY=y
 
-# HyperPixel panel init (SPI bit-bang to wake LCD controller)
-# NOTE: The vc4-kms-dpi-hyperpixel4 overlay handles panel init via
-# kernel SPI-GPIO, so this may be redundant. Kept as fallback.
-BR2_PACKAGE_HYPERPIXEL4_INIT=y
+# Display: Waveshare 1.83inch 240x284 ST7789P on SPI0.
+# No userspace init package is needed — unlike the HyperPixel, this panel is
+# brought up entirely by the kernel's panel-mipi-dbi driver using the init
+# blob at /lib/firmware/panel.bin (shipped via the rootfs overlay, generated
+# from board/blackhand/panel/panel.txt).
 
 # Debug tools (remove before final image)
 BR2_PACKAGE_EVTEST=y

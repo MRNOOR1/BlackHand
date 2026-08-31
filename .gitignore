@@ -33,3 +33,13 @@ buildroot/
 .LSOverride
 
 # ── Documents / generated reports ────────────────────────────────────
+
+# The panel init blob is a build INPUT, not an artifact: the kernel's
+# panel-mipi-dbi driver loads it from /lib/firmware/panel.bin at probe time
+# and the display stays dark without it. The blanket *.bin rule above would
+# otherwise drop it from the repo, so a fresh clone would build a dark image.
+# Regenerate with board/blackhand/panel/mkpanelbin.py after editing panel.txt.
+!Phase-2/blackhand-external/board/blackhand/overlay/lib/firmware/panel.bin
+
+# Buildroot source-tarball cache (see Phase-2/setup.sh)
+Phase-2/dl/

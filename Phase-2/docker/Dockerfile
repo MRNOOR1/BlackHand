@@ -36,4 +36,4 @@ ENV LC_ALL=en_US.UTF-8
 
 WORKDIR /work
 
-ENTRYPOINT ["bash", "-lc", "BUILDROOT_REPO=${BUILDROOT_REPO:-https://github.com/buildroot/buildroot.git}; BUILDROOT_BRANCH=${BUILDROOT_BRANCH:-master}; BUILDROOT_DIR=${BUILDROOT_DIR:-/work/buildroot}; if [[ ! -d \"${BUILDROOT_DIR}\" ]]; then git clone --depth 1 --branch \"${BUILDROOT_BRANCH}\" \"${BUILDROOT_REPO}\" \"${BUILDROOT_DIR}\"; fi; cd \"${BUILDROOT_DIR}\"; exec bash"]
+ENTRYPOINT ["bash", "-lc", "BUILDROOT_REPO=${BUILDROOT_REPO:-https://github.com/buildroot/buildroot.git}; BUILDROOT_BRANCH=${BUILDROOT_BRANCH:-master}; BUILDROOT_DIR=${BUILDROOT_DIR:-/work/buildroot}; if [[ ! -f \"${BUILDROOT_DIR}/Makefile\" ]]; then git clone --depth 1 --branch \"${BUILDROOT_BRANCH}\" \"${BUILDROOT_REPO}\" \"${BUILDROOT_DIR}\"; fi; cd \"${BUILDROOT_DIR}\"; exec bash"]

@@ -1,0 +1,59 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# NV3030B init sequence — 1.83inch LCD Module **Rev1** (240x280)
+#
+# NOT ACTIVE BY DEFAULT. panel.txt (ST7789P, Rev2, 240x284) is what builds.
+# Use this only if the module turns out to be Rev1. See README.md here.
+#
+# PROVENANCE: transcribed verbatim from Waveshare's own Raspberry Pi driver,
+# LCD_1IN83_InitReg() in RaspberryPi/c/lib/LCD/LCD_1in83.c of
+# https://files.waveshare.com/wiki/1.83inch-LCD-Module/LCD_1.83_Code.zip
+#
+# This is a completely different controller from ST7789P — note the 0x61-0x68
+# and 0xE0-0xEc register banks, which have no ST7789 equivalent. The two are
+# not interchangeable in any way; Waveshare: "Demos of different versions are
+# not compatible."
+#
+# Hardware reset, windowing and backlight are the driver's job — not here.
+# ─────────────────────────────────────────────────────────────────────────────
+
+command 0xfd 0x06 0x08
+command 0x61 0x07 0x04
+command 0x62 0x00 0x44 0x45
+command 0x63 0x41 0x07 0x12 0x12
+command 0x64 0x37
+command 0x65 0x09 0x10 0x21                      # VSP
+command 0x66 0x09 0x10 0x21                      # VSN
+command 0x67 0x20 0x40                           # source_neg_time
+command 0x68 0x90 0x4c 0x7C 0x66                 # gamma vap/van
+command 0xb1 0x0F 0x02 0x01
+command 0xB4 0x01
+command 0xB5 0x02 0x02 0x0a 0x14                 # porch
+command 0xB6 0x04 0x01 0x9f 0x00 0x02
+command 0xdf 0x11                                # gamma sel
+
+# Gamma banks
+command 0xE2 0x13 0x00 0x00 0x30 0x33 0x3f       # vrp0..5
+command 0xE5 0x3f 0x33 0x30 0x00 0x00 0x13       # vrn0..5
+command 0xE1 0x00 0x57                           # prp0..1
+command 0xE4 0x58 0x00                           # prn0..1
+command 0xE0 0x01 0x03 0x0e 0x0e 0x0c 0x15 0x19  # pkp0..7
+command 0xE3 0x1a 0x16 0x0C 0x0f 0x0e 0x0d 0x02 0x01  # pkn0..7
+
+command 0xE6 0x00 0xff                           # SC_EN_START
+command 0xE7 0x01 0x04 0x03 0x03 0x00 0x12       # CS / PREC timing
+command 0xE8 0x00 0x70 0x00                      # source
+command 0xEc 0x52                                # gate
+command 0xF1 0x01 0x01 0x02
+command 0xF6 0x09 0x10 0x00 0x00
+command 0xfd 0xfa 0xfc
+
+command 0x3a 0x05                                # COLMOD — RGB565
+command 0x35 0x00                                # TE on
+command 0x21                                     # INVON
+command 0x11                                     # SLPOUT
+delay   200
+command 0x29                                     # DISPON
+delay   10
+command 0x36 0x08                                # MADCTL — portrait, BGR
+                                                 #   vendor uses 0x08 portrait,
+                                                 #   0x78 landscape

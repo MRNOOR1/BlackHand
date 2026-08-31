@@ -31,6 +31,28 @@ mkdir -p /boot/logs
 #   sysinfo.log           — one-shot snapshot of hardware state at boot
 #   errors.log            — filtered tail of every log: ERROR/WARN/FATAL/fail
 #   <service-name>.log    — per-service stderr/stdout (see service_manager.c)
+# ── Log budget ────────────────────────────────────────────────────────────────
+# /boot is the 128 MB FAT partition the VideoCore firmware must read in order
+# to boot at all. Logging here is deliberate — pull the SD card and read it on
+# any machine — but nothing bounded the growth. Observed on hardware: a
+# service stuck in an error loop wrote a 105 MB blackhand-audio.log and took
+# /boot to 100%, after which even `sed -i /boot/config.txt` failed with
+# "write error". A full or corrupted /boot is a far worse failure than lost
+# logs: it can stop the Pi booting entirely.
+#
+# Truncate rather than delete — a writer holding the file open with O_APPEND
+# keeps the blocks allocated through an unlink, but truncation frees them
+# immediately.
+LOG_MAX_BYTES=4194304   # 4 MB per file
+
+log_reap() {
+    for _lf in /boot/logs/*.log; do
+        [ -f "$_lf" ] || continue
+        [ "$(wc -c < "$_lf" 2>/dev/null || echo 0)" -gt "$LOG_MAX_BYTES" ] && : > "$_lf"
+    done
+}
+log_reap
+
 for _f in last-boot dmesg sysinfo errors; do
     [ -f /boot/logs/${_f}.log ] && \
         mv -f /boot/logs/${_f}.log /boot/logs/${_f}.prev.log 2>/dev/null || true
@@ -52,9 +74,165 @@ say() { echo "$@"; printf '%s\n' "$@" > /dev/tty1 2>/dev/null || true; }
 say ">>> Black Hand OS starting..."
 
 # ── Display init ──────────────────────────────────────────────────────────────
-# Run before anything that can block.
-if [ -x /usr/bin/hyperpixel4-init ]; then
-    /usr/bin/hyperpixel4-init
+# Waveshare 1.83inch LCD (240x284 ST7789P) on SPI0, via DRM panel-mipi-dbi.
+#
+# The driver is a MODULE on purpose. It calls request_firmware() for
+# /lib/firmware/panel.bin at probe time, and a built-in driver probes before
+# the ext4 rootfs is mounted — it would get -ENOENT and never retry, leaving
+# the panel dark. Loading it here, after the rootfs is up, is the ordering
+# that works. (See LCD-INTEGRATION-PLAN.md C2 for the built-in alternative.)
+#
+# No con2fbmap / fbcon=map: is needed. bcm2708_fb is gone from the kernel
+# config, so this panel is the only framebuffer in the system and fbcon
+# takes the console over automatically when it registers.
+#
+# Run before anything that can block — this is the only output device.
+say "display: loading panel driver..."
+
+# Look for a framebuffer whose geometry is actually the panel's. Testing for
+# "fb0 exists" is not enough — if CONFIG_FB_BCM2708 ever creeps back in, the
+# VideoCore's firmware framebuffer claims fb0 and the check passes while the
+# panel stays dark. Match on 240,284 instead.
+panel_fb() {
+    for _fb in /sys/class/graphics/fb*; do
+        [ -d "$_fb" ] || continue
+        [ "$(cat "$_fb/virtual_size" 2>/dev/null)" = "240,284" ] && {
+            basename "$_fb"; return 0; }
+    done
+    return 1
+}
+
+# Load the panel driver, tolerating a modules.dep that does not list it.
+#
+# Observed on hardware: panel-mipi-dbi.ko was installed under
+# /lib/modules/$(uname -r)/ and modules.dep existed, but modprobe still said
+# "module panel-mipi-dbi not found in modules.dep" — the index was stale.
+# insmod takes an absolute path and never consults the index, so it works
+# regardless; it just will not resolve dependencies, hence loading the MIPI
+# DBI core before the panel driver. Anything already built in simply is not
+# found by find and is skipped.
+load_panel_driver() {
+    if modprobe panel-mipi-dbi 2>&1; then
+        return 0
+    fi
+
+    # modprobe failed. Resolve the dependency chain from modules.dep by hand.
+    #
+    # insmod does NOT resolve dependencies — loading panel-mipi-dbi alone
+    # fails with "unknown symbol in module" because it needs drm_mipi_dbi,
+    # drm_kms_helper and the GEM DMA helper first. modules.dep already
+    # records that chain, so read it rather than hardcoding a module list
+    # that will drift the next time the kernel config changes.
+    say "display: modprobe failed — resolving modules.dep by hand"
+    _md="/lib/modules/$(uname -r)"
+    _line=$(grep -m1 'panel-mipi-dbi\.ko' "$_md/modules.dep" 2>/dev/null)
+    if [ -z "$_line" ]; then
+        say "display: panel-mipi-dbi is absent from modules.dep entirely"
+        return 1
+    fi
+
+    mkdir -p /tmp/panelmod
+    # Format: "path/target.ko: path/dep1.ko path/dep2.ko"
+    # Dependencies load right-to-left, then the target last.
+    _target=${_line%%:*}
+    _ordered=""
+    for _d in ${_line#*:}; do _ordered="$_d $_ordered"; done
+
+    for _rel in $_ordered $_target; do
+        [ -f "$_md/$_rel" ] || continue
+        _b=$(basename "$_rel")
+        cp "$_md/$_rel" /tmp/panelmod/ || continue
+        # busybox insmod has no decompressor; expand into tmpfs first.
+        case "$_b" in
+            *.ko.xz)  unxz   -f "/tmp/panelmod/$_b" && _b=${_b%.xz}  ;;
+            *.ko.gz)  gunzip -f "/tmp/panelmod/$_b" && _b=${_b%.gz}  ;;
+            *.ko.zst) unzstd -f "/tmp/panelmod/$_b" && _b=${_b%.zst} ;;
+        esac
+        insmod "/tmp/panelmod/$_b" 2>&1
+    done
+    return 0
+}
+
+if ! panel_fb >/dev/null; then
+    load_panel_driver
+    DISP_WAIT=0
+    until panel_fb >/dev/null || [ $DISP_WAIT -ge 30 ]; do
+        sleep 0.1
+        DISP_WAIT=$((DISP_WAIT + 1))
+    done
+fi
+
+PANEL_FB="$(panel_fb 2>/dev/null)"
+if [ -n "$PANEL_FB" ]; then
+    # With no network, /boot/logs is the only way to read the device's own
+    # view of its geometry. Log everything needed to reason about layout.
+    say "display: ${PANEL_FB} up, fb=$(cat /sys/class/graphics/${PANEL_FB}/virtual_size 2>/dev/null)"
+    say "display: console grid (rows cols) = $(stty -F /dev/tty1 size 2>/dev/null)"
+    say "display: stride=$(cat /sys/class/graphics/${PANEL_FB}/stride 2>/dev/null) bpp=$(cat /sys/class/graphics/${PANEL_FB}/bits_per_pixel 2>/dev/null)"
+    say "display: dt geometry: $(grep -hoE '(width|height|x-offset|y-offset)=[0-9]+' /boot/config.txt 2>/dev/null | tr '\n' ' ')"
+else
+    # No screen to report this on, so capture everything to the FAT32 boot
+    # partition — pull the SD card and read it on any machine.
+    say "display: ERROR — panel framebuffer never appeared."
+    say "display: running panel-doctor -> /boot/logs/panel-doctor.log"
+    if [ -x /usr/bin/panel-doctor ]; then
+        /usr/bin/panel-doctor > /boot/logs/panel-doctor.log 2>&1 || true
+        # Surface the first failure on tty1 in case a console does exist.
+        grep -m1 '\[FAIL\]' /boot/logs/panel-doctor.log 2>/dev/null \
+            | while read -r _l; do say "display: $_l"; done
+    else
+        say "display: panel-doctor not installed; check dmesg and /lib/firmware/panel.bin"
+    fi
+fi
+
+# Backlight full on. gpio-backlight is on/off only (see config.txt for why
+# this is not PWM), so brightness is 0 or 1.
+for _bl in /sys/class/backlight/*; do
+    [ -d "$_bl" ] || continue
+    # bl_power must be 0 (FB_BLANK_UNBLANK). It sits at 4 (FB_BLANK_POWERDOWN)
+    # until a display pipeline enables it, and a nonzero brightness with
+    # bl_power=4 is still a dark panel — which is exactly how this looked on
+    # hardware when the driver failed to load.
+    [ -w "$_bl/bl_power" ]   && echo 0 > "$_bl/bl_power"   2>/dev/null
+    [ -w "$_bl/brightness" ] && echo 1 > "$_bl/brightness" 2>/dev/null
+done
+
+# ── Panel geometry test pattern ───────────────────────────────────────────────
+# Enable by creating an empty file /boot/PANELTEST on the FAT partition (from
+# macOS: touch "/Volumes/NO NAME/PANELTEST"). Delete it to turn the test off.
+# No rebuild either way — this exists because with no network the panel is the
+# only output device, and boot text is a poor test pattern.
+#
+# Draws a 10px WHITE bar at framebuffer row 0 and another at row 274 (the last
+# 10 rows), with black between. What you see tells you the geometry directly:
+#
+#   bar hugging BOTH extreme edges  -> framebuffer maps 1:1 onto the panel
+#   top bar missing / noise above it-> y-offset too LARGE (try a smaller one)
+#   bottom bar missing              -> y-offset too SMALL, or height too big
+#
+# 240 x 284 x 2 bytes = 136320. 10 rows = 4800 bytes, middle 264 rows = 126720.
+if [ -f /boot/PANELTEST ] && [ -e /dev/fb0 ]; then
+    # Read the REAL geometry rather than assuming 240x284x2 = 136320 bytes.
+    # A framebuffer's line length (stride) can be padded beyond width*bpp/8;
+    # if it is, a fill sized from width alone writes short and leaves the
+    # bottom rows untouched — which looks identical to a panel whose lower
+    # portion is broken.
+    _fbw=$(cut -d, -f1 /sys/class/graphics/fb0/virtual_size 2>/dev/null)
+    _fbh=$(cut -d, -f2 /sys/class/graphics/fb0/virtual_size 2>/dev/null)
+    _str=$(cat /sys/class/graphics/fb0/stride 2>/dev/null)
+    : "${_fbw:=240}" "${_fbh:=284}" "${_str:=$((_fbw * 2))}"
+
+    _bar=$(( _str * 10 ))                 # 10 rows
+    _mid=$(( _str * (_fbh - 20) ))        # everything between the two bars
+
+    say "display: PANELTEST ${_fbw}x${_fbh} stride=${_str} total=$(( _str * _fbh ))B"
+    say "display: white bars = first and last 10 rows; 6s"
+    {
+        tr '\000' '\377' < /dev/zero | head -c "$_bar"
+        head -c "$_mid" /dev/zero
+        tr '\000' '\377' < /dev/zero | head -c "$_bar"
+    } > /dev/fb0 2>/dev/null
+    sleep 6
 fi
 
 # Disable console blanking so the screen stays lit.
@@ -141,7 +319,14 @@ if [ -x /usr/sbin/dropbear ]; then
     # -P: write a pid file. Without this dropbear runs fine but the readiness
     # check below has nothing to read and falsely reports "did not start" on
     # every boot, making it look like SSH is broken when it isn't.
-    /usr/sbin/dropbear -R -P /var/run/dropbear.pid 2>&1
+    # -E -F: log to stderr and stay in the foreground so the shell redirect
+    # below actually captures the log. Without -F dropbear daemonises and
+    # closes stderr, and without -E it logs to syslog — which is not running
+    # on this system. Either way its errors vanish, and a dropbear that
+    # accepts TCP then drops the session ("Connection closed by <ip> port 22")
+    # gives the client nothing to go on. Backgrounded with & so rcS proceeds.
+    setsid /usr/sbin/dropbear -R -E -F -P /var/run/dropbear.pid \
+        >> /boot/logs/dropbear.log 2>&1 &
 
     # Give the daemon a moment to bind port 22 then confirm it is running.
     sleep 0.3
@@ -386,3 +571,19 @@ say "logs: sysinfo snapshot written to /boot/logs/sysinfo.log"
     fi
 ) &
 say "logs: errors.log filter started"
+
+# Periodic reaper. The boot-time pass above cannot help against a service that
+# starts spewing *after* boot — which is exactly what filled the partition.
+(
+    while :; do
+        sleep 60
+        for _lf in /boot/logs/*.log; do
+            [ -f "$_lf" ] || continue
+            if [ "$(wc -c < "$_lf" 2>/dev/null || echo 0)" -gt "$LOG_MAX_BYTES" ]; then
+                : > "$_lf"
+                echo "[log-reaper] truncated $_lf (over 4 MB)" >> /boot/logs/last-boot.log
+            fi
+        done
+    done
+) &
+say "logs: reaper running (4 MB cap per file)"

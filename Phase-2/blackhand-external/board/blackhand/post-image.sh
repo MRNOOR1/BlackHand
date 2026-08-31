@@ -18,12 +18,27 @@ if [ -f "${BOARD_DIR}/rpi-firmware/cmdline.txt" ]; then
     echo ">>> Copied cmdline.txt"
 fi
 
-# Copy firmware files (.elf, .dat)
-if [ -d "${BINARIES_DIR}/rpi-firmware" ]; then
-    cp "${BINARIES_DIR}/rpi-firmware/"*.elf "${BINARIES_DIR}/" 2>/dev/null || true
-    cp "${BINARIES_DIR}/rpi-firmware/"*.dat "${BINARIES_DIR}/" 2>/dev/null || true
-    echo ">>> Copied firmware files"
+# Copy VideoCore firmware.
+#
+# Buildroot's rpi-firmware package installs start4.elf/fixup4.dat into
+# ${BINARIES_DIR}/rpi-firmware/. genimage packs them into boot.vfat by name,
+# so we must copy them up one directory first. Fail loudly if they are
+# missing — genimage's own error ("input file not found") does not name
+# the file clearly.
+if [ ! -d "${BINARIES_DIR}/rpi-firmware" ]; then
+    echo ">>> ERROR: ${BINARIES_DIR}/rpi-firmware not found — is BR2_PACKAGE_RPI_FIRMWARE=y?"
+    exit 1
 fi
+cp "${BINARIES_DIR}/rpi-firmware/"*.elf "${BINARIES_DIR}/"
+cp "${BINARIES_DIR}/rpi-firmware/"*.dat "${BINARIES_DIR}/"
+for _need in start4.elf fixup4.dat; do
+    if [ ! -f "${BINARIES_DIR}/${_need}" ]; then
+        echo ">>> ERROR: ${_need} missing from ${BINARIES_DIR}/rpi-firmware/"
+        echo ">>>        Check BR2_PACKAGE_RPI_FIRMWARE_VARIANT_PI4=y in the defconfig."
+        exit 1
+    fi
+done
+echo ">>> Copied firmware files (start4.elf, fixup4.dat)"
 
 # ============================================================
 # CRITICAL FIX: Copy ALL overlays from Buildroot's rpi-firmware
