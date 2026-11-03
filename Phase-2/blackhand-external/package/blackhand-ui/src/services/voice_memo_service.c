@@ -1,3 +1,5 @@
+#include <openssl/rand.h>
+#include "services/audio_policy.h"
 /*
  * voice_memo_service.c — UI-side memo metadata + thin daemon facade.
  *
@@ -36,8 +38,8 @@ static size_t memos_count = 0;
 static size_t memos_capacity = 0;
 
 static VMState   current_state = VM_IDLE;
+static int recording_failed;
 static VoiceMemo *current_memo = NULL;
-static unsigned  memo_serial = 0;
 static VMPlayMode play_mode = VM_PLAYMODE_NORMAL;
 
 /* Last elapsed values polled from the daemon, cached so the UI can
@@ -86,7 +88,10 @@ static char *make_timestamp_filename(void) {
     char name[64];
     strftime(name, sizeof(name), "memo_%Y%m%d_%H%M%S", &tmv);
     char final_name[80];
-    snprintf(final_name, sizeof(final_name), "%s_%u.wav", name, memo_serial++);
+    unsigned char random[8];
+    if (RAND_bytes(random, sizeof(random)) != 1) return NULL;
+    snprintf(final_name, sizeof(final_name), "%s_%02x%02x%02x%02x%02x%02x%02x%02x.wav", name,
+             random[0], random[1], random[2], random[3], random[4], random[5], random[6], random[7]);
     return strdup(final_name);
 }
 
@@ -220,6 +225,7 @@ const VoiceMemo *voice_memo_service_get_by_filename(const char *filename) {
 /* ───────────────────────── recording ───────────────────────── */
 
 int voice_memo_service_record_start(void) {
+    if (audio_policy_call_active()) return -1;
     pthread_mutex_lock(&s_lock);
     if (current_state != VM_IDLE) { pthread_mutex_unlock(&s_lock); return -1; }
     pthread_mutex_unlock(&s_lock);
@@ -237,6 +243,7 @@ int voice_memo_service_record_start(void) {
     pthread_mutex_lock(&s_lock);
     snprintf(active_record_filename, sizeof(active_record_filename), "%s", fname);
     free(fname);
+    recording_failed = 0;
     current_state = VM_RECORDING;
     current_memo = NULL;
     cached_record_elapsed_ms = 0;
@@ -260,6 +267,7 @@ int voice_memo_service_record_pause(void) {
 }
 
 int voice_memo_service_record_resume(void) {
+    if (audio_policy_call_active()) return -1;
     pthread_mutex_lock(&s_lock);
     if (current_state != VM_RECORDING_PAUSED) { pthread_mutex_unlock(&s_lock); return -1; }
     pthread_mutex_unlock(&s_lock);
@@ -316,8 +324,9 @@ int voice_memo_service_record_stop(const char *title_optional) {
     active_record_filename[0] = '\0';
     pthread_mutex_unlock(&s_lock);
 
-    /* Daemon flushes WAV header and closes the file. */
-    audio_ipc_record_stop();
+    /* Daemon reports whether it saved a complete or partial recording. */
+    int stop_rc = audio_ipc_record_stop();
+    pthread_mutex_lock(&s_lock); recording_failed = stop_rc != 0; pthread_mutex_unlock(&s_lock);
 
     VoiceMemo *memo = malloc(sizeof(VoiceMemo));
     if (!memo) return -1;
@@ -370,12 +379,13 @@ int voice_memo_service_record_stop(const char *title_optional) {
     pthread_mutex_lock(&s_lock);
     insert_at_front(memo);
     pthread_mutex_unlock(&s_lock);
-    return 0;
+    return stop_rc;
 }
 
 /* ───────────────────────── playback ───────────────────────── */
 
 int voice_memo_service_play_start(const char *filename) {
+    if (audio_policy_call_active()) return -1;
     if (!filename) return -1;
 
     pthread_mutex_lock(&s_lock);
@@ -415,6 +425,7 @@ int voice_memo_service_play_pause(void) {
 }
 
 int voice_memo_service_play_resume(void) {
+    if (audio_policy_call_active()) return -1;
     pthread_mutex_lock(&s_lock);
     if (current_state != VM_PAUSED) { pthread_mutex_unlock(&s_lock); return -1; }
     pthread_mutex_unlock(&s_lock);
@@ -547,12 +558,25 @@ int voice_memo_service_rename(const char *old_filename, const char *new_title) {
 /* ───────────────────────── tick / status ───────────────────────── */
 
 int voice_memo_service_tick(void) {
-    /* Poll the daemon once per tick. This is the single point of truth
-       for "is anything still happening?" — no local timer math.
-       Daemon reports playing=true synchronously after play_start, so
-       there's no startup race and no grace window needed. */
+    /* Only poll the daemon while a memo is actually playing/paused. When idle
+       or recording the status result is unused, so skip the ~30 Hz IPC round
+       trip + ALSA mixer poll entirely — a big idle-power win. The authoritative
+       state check still happens under the lock below. */
+    pthread_mutex_lock(&s_lock);
+    VMState st = current_state;
+    pthread_mutex_unlock(&s_lock);
+    if (st != VM_PLAYING && st != VM_PAUSED && st != VM_RECORDING) return 0;
+    static int64_t next_poll;
+    int64_t now = monotonic_ms();
+    if (now < next_poll) return 0;
+    next_poll = now + 250;
+
     int playing = 0, paused = 0, recording = 0, elapsed = 0;
     int ipc_ok = (audio_ipc_status_full(&playing, &paused, &recording, &elapsed, NULL) == 0);
+
+    if (ipc_ok && st == VM_RECORDING && !recording) {
+        return voice_memo_service_record_stop(NULL);
+    }
 
     int do_next = 0;
     int do_repeat = 0;
@@ -599,6 +623,27 @@ int voice_memo_service_elapsed_ms(void) {
 int voice_memo_service_total_ms(void) {
     if (!current_memo) return 0;
     return current_memo->duration_ms;
+}
+
+/* Whether a microphone (capture device) is available.
+   Returns 1 if present, 0 if none, -1 if the audio daemon is unreachable
+   (distinct from "none" — the UI must not invite the user to record when
+   it doesn't know whether a mic exists). Cached and re-queried at most
+   once per second so a hot-plugged USB mic is picked up without spamming
+   the daemon from the draw loop.
+   The previous version only overwrote `cached` on a successful probe, so
+   once the daemon had answered once, a later outage kept reporting the
+   old (possibly "present") answer forever instead of surfacing -1. Always
+   take the fresh result, success or failure. */
+int voice_memo_service_capture_available(void) {
+    static int cached = -1;
+    static int64_t last_query_ms = 0;
+    int64_t now = monotonic_ms();
+    if (cached < 0 || now - last_query_ms >= 1000) {
+        cached = audio_ipc_capture_available();
+        last_query_ms = now;
+    }
+    return cached;
 }
 
 /* ───────────────────────── navigation / mode ───────────────────────── */
@@ -668,4 +713,9 @@ const char *voice_memo_service_mode_label(void) {
         case VM_PLAYMODE_SHUFFLE:    return "SHUFFLE";
         default:                      return "NORMAL";
     }
+}
+
+int voice_memo_service_record_failed(void) {
+    pthread_mutex_lock(&s_lock); int failed = recording_failed; pthread_mutex_unlock(&s_lock);
+    return failed;
 }

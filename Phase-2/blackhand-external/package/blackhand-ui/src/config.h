@@ -24,8 +24,12 @@
 #include <notcurses/notcurses.h>
 
 /* ── 1. Phone dimensions ───────────────────────────────────────────────── */
-#define PHONE_COLS        40
-#define PHONE_SCREEN_ROWS 15
+/* Waveshare 1.83" SPI panel: 240x280 px visible (measured). With the VGA8x16
+ * console font the grid is 30 cols x 17 rows (240/8 = 30, 280/16 = 17 rows
+ * using 272 of 280 px; the ~8 px strip at the bottom is unlit and covered by
+ * a boot-time framebuffer fill). See Phase-2/DISPLAY-SETUP-BRIEF.md §6.1. */
+#define PHONE_COLS        30
+#define PHONE_SCREEN_ROWS 17
 #define KEYPAD_ROWS       0
 #define PHONE_ROWS        (PHONE_SCREEN_ROWS + KEYPAD_ROWS)
 
@@ -52,16 +56,22 @@
 #define UI_POPUP_INPUT_ROW_OFFSET 3
 #define UI_POPUP_HINT_ROW_OFFSET  5
 
+/* Popup widths must be <= 28 to fit the 30-col panel with a 1-col margin each
+ * side; also keeps popups inside the panel's rounded corners on rows 0 and 16
+ * (see DISPLAY-SETUP-BRIEF.md §6.3). */
 #define SETTINGS_PIN_POPUP_WIDTH    28
 #define SETTINGS_PIN_POPUP_HEIGHT   7
-#define HOME_PIN_POPUP_WIDTH        26
+#define HOME_PIN_POPUP_WIDTH        28
 #define HOME_PIN_POPUP_HEIGHT       6
 #define NOTES_SAVE_POPUP_HEIGHT     7
 #define VOICE_MEMO_NAME_POPUP_HEIGHT 7
-#define ALARM_TIME_POPUP_WIDTH      32
+/* NOTE: the alarm feature was removed from the shipped tree; these constants
+ * have no consumer (cleanup candidate). Widths are still capped <= 28 so they
+ * cannot overflow the 30-col panel if the feature is ever revived. */
+#define ALARM_TIME_POPUP_WIDTH      28
 #define ALARM_TIME_POPUP_HEIGHT     7
 #define ALARM_TIME_POPUP_MIN_LEFT   2
-#define ALARM_RING_POPUP_WIDTH      34
+#define ALARM_RING_POPUP_WIDTH      28
 #define ALARM_RING_POPUP_HEIGHT     8
 
 /* ── 3. Colors used outside the theme engine ───────────────────────────── */
@@ -77,12 +87,7 @@
 #define MENU_CURSOR_BLANK ""
 
 /* ── 5. Storage paths (FAT-safe / read from any host) ──────────────────── */
-#define APP_PATH_SETTINGS_FILE   "/data/settings.conf"
-#define APP_PATH_NOTES_DIR       "/data/notes"
-#define APP_PATH_CONTACTS_DIR    "/data/contacts"
-#define APP_PATH_ALARMS_DIR      "/data/alarms"
-#define APP_PATH_VOICE_MEMOS_DIR "/data/voice-memos"
-#define APP_PATH_MUSIC_DIR       "/data/music"
+#include "app_paths.h"
 
 /* ── 6. Settings: keys / labels / defaults / ranges ────────────────────── */
 #define SETTINGS_KEY_NIGHT_MODE  "night_mode"

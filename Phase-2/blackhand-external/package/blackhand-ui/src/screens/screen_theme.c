@@ -26,7 +26,7 @@ void screen_theme_draw(struct ncplane *phone) {
         ncplane_putstr_yx(phone, CONTENT_START_ROW + 1, CONTENT_COL + x, (rule && rule[0]) ? rule : "-");
     }
 
-    ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL, theme_dim(), "CENTER APPLIES INSTANTLY");
+    ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL, theme_dim(), "A:APPLY Q:CANCEL");
 
     int count = theme_count();
     int active_idx = theme_active_index();
@@ -62,11 +62,14 @@ screen_id screen_theme_input(uint32_t key) {
     switch (key) {
         case NCKEY_UP:
             if (s_selected > 0) s_selected--;
+            theme_service_preview(s_selected);
             return SCREEN_THEME;
         case NCKEY_DOWN:
             if (s_selected < count - 1) s_selected++;
+            theme_service_preview(s_selected);
             return SCREEN_THEME;
         case NCKEY_LEFT:
+            theme_service_sync_from_settings();
             return SCREEN_SETTINGS;
         case NCKEY_RIGHT:
             settings_service_set_light_theme(s_selected);
@@ -74,11 +77,13 @@ screen_id screen_theme_input(uint32_t key) {
             return SCREEN_THEME;
         case NCKEY_ENTER:
         case '\n':
-        case KEY_SOFT_RIGHT_ACTION:
+        case KEY_SOFT_RIGHT_ACTION:      /* E = apply */
+        case KEY_ACTION_PRIMARY:         /* A = apply */
             settings_service_set_light_theme(s_selected);
             theme_service_sync_from_settings();
             return SCREEN_THEME;
-        case KEY_SOFT_LEFT_ACTION:
+        case KEY_SOFT_LEFT_ACTION:       /* Q = back */
+            theme_service_sync_from_settings();
             return SCREEN_SETTINGS;
         default:
             return SCREEN_THEME;

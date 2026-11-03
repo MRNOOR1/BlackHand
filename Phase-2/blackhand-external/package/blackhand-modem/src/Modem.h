@@ -49,6 +49,10 @@ void modem_clear_pending_sms(void);
 int modem_init();
 // One locked probe attempt — used by the background bring-up thread.
 int modem_attempt_bringup(void);
+// Called by the URC reader on an fd error to tear the modem down so bring-up
+// re-probes. Returns 1 if this caller owned the teardown, 0 if a concurrent
+// port switch already owns it (see Modem.c).
+int modem_reader_teardown(void);
 // Pin + switch to a specific port ("auto" = resume sweep). 0 = modem up.
 int modem_select_port(const char *port);
 int modem_configure();										 // done

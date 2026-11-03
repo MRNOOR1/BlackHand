@@ -20,4 +20,6 @@ int bt_route_find_a2dp_sink(char *out_mac, size_t mac_size);
    fills out_mac and returns 1. Otherwise 0. */
 int bt_route_find_hfp_mic(char *out_mac, size_t mac_size);
 
+int bt_route_set_default(const char *mac);
+
 #endif

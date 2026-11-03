@@ -1,9 +1,9 @@
+#include "bt_route.h"
 /*
  * ipc_dispatch.c — blackhand-audio service dispatch table.
  *
  * JSON-RPC methods exposed by this service:
  *   ping            — returns "pong"
- *   echo            — returns a test string
  *   play_start      — start playing a WAV file ({"file": "..."})
  *   play_pause      — pause current playback (real pause, byte-offset held)
  *   play_resume     — resume from where pause held
@@ -31,7 +31,7 @@
 #include "audio_alsa.h"
 
 /* Mirror of audio_alsa.c's dlog. Defined separately here so dispatch can log
-   every incoming IPC call to /boot/logs/audio.log without needing to expose
+   every incoming IPC call to /var/log/blackhand/audio.log without needing to expose
    the static log handle. Different FILE* than the engine — they're both
    appending, and FAT32 writes are line-buffered with fflush, so interleaving
    is fine. */
@@ -40,8 +40,8 @@ static pthread_mutex_t g_dispatch_lock = PTHREAD_MUTEX_INITIALIZER;
 static void ipclog(const char *line) {
     pthread_mutex_lock(&g_dispatch_lock);
     if (!g_dispatch_log) {
-        mkdir("/boot/logs", 0755);
-        g_dispatch_log = fopen("/boot/logs/audio.log", "a");
+        mkdir("/var/log/blackhand", 0755);
+        g_dispatch_log = fopen("/var/log/blackhand/audio.log", "a");
     }
     if (g_dispatch_log) {
         time_t now = time(NULL);
@@ -54,7 +54,6 @@ static void ipclog(const char *line) {
 }
 
 static void handle_ping(int fd, cJSON *req);
-static void handle_echo(int fd, cJSON *req);
 static void handle_play_start(int fd, cJSON *req);
 static void handle_play_pause(int fd, cJSON *req);
 static void handle_play_resume(int fd, cJSON *req);
@@ -65,6 +64,7 @@ static void handle_record_pause(int fd, cJSON *req);
 static void handle_record_resume(int fd, cJSON *req);
 static void handle_record_stop(int fd, cJSON *req);
 static void handle_volume(int fd, cJSON *req);
+static void handle_route(int fd, cJSON *req);
 static void handle_status(int fd, cJSON *req);
 
 struct handler {
@@ -74,7 +74,6 @@ struct handler {
 
 static struct handler table[] = {
     {"ping",          handle_ping},
-    {"echo",          handle_echo},
     {"play_start",    handle_play_start},
     {"play_pause",    handle_play_pause},
     {"play_resume",   handle_play_resume},
@@ -85,6 +84,7 @@ static struct handler table[] = {
     {"record_resume", handle_record_resume},
     {"record_stop",   handle_record_stop},
     {"volume",        handle_volume},
+    { "route", handle_route },
     {"status",        handle_status},
     {NULL, NULL}
 };
@@ -192,10 +192,6 @@ static void handle_ping(int fd, cJSON *req) {
     send_result(fd, req, "pong");
 }
 
-static void handle_echo(int fd, cJSON *req) {
-    send_result(fd, req, "this is a test echo");
-}
-
 static const char *param_string(cJSON *req, const char *key) {
     cJSON *params = cJSON_GetObjectItem(req, "params");
     if (!params || !cJSON_IsObject(params)) return NULL;
@@ -284,7 +280,7 @@ static void handle_record_resume(int fd, cJSON *req) {
 }
 
 static void handle_record_stop(int fd, cJSON *req) {
-    audio_record_stop();
+    if (audio_record_stop() != 0) { send_error(fd, "recording incomplete"); return; }
     send_result(fd, req, "ok");
 }
 
@@ -307,7 +303,18 @@ static void handle_status(int fd, cJSON *req) {
     cJSON_AddBoolToObject  (s, "playing",    audio_is_playing());
     cJSON_AddBoolToObject  (s, "paused",     audio_is_paused());
     cJSON_AddBoolToObject  (s, "recording",  audio_is_recording());
+    cJSON_AddBoolToObject  (s, "record_error", audio_record_error());
     cJSON_AddNumberToObject(s, "elapsed_ms", audio_play_elapsed_ms());
     cJSON_AddNumberToObject(s, "volume",     audio_get_volume());
+    cJSON_AddNumberToObject(s, "capture",    audio_has_capture());
     send_result_json(fd, req, s);
+}
+
+static void handle_route(int fd, cJSON *req) {
+    const char *mac = param_string(req, "mac");
+    if (!mac) { send_error(fd, "missing mac"); return; }
+    audio_play_stop();
+    audio_record_stop(); /* finalises before route change; memo UI reports partial saves */
+    if (bt_route_set_default(mac) != 0) { send_error(fd, "route failed"); return; }
+    send_result(fd, req, "ok");
 }

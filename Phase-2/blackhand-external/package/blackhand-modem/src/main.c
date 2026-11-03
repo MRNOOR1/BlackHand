@@ -84,7 +84,7 @@ int main(void)
 	fprintf(stderr, "blackhand-modem: listening on " MODEM_SOCK "\n");
 
 	while (1) {
-		int client_fd = accept(server_fd, NULL, NULL);
+		int client_fd = ipc_server_accept(server_fd);
 		if (client_fd < 0) {
 			perror("accept");
 			continue;

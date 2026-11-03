@@ -33,12 +33,29 @@ static int           s_delete_yes = 0;
 static char    s_call_number[32]  = "";
 static char    s_call_name[48]    = "";
 static char    s_call_dir[12]     = "outgoing"; /* "outgoing" | "incoming" */
+
+/* CLOCK_MONOTONIC seconds, NOT wall clock: this device has no RTC, so
+ * time(NULL) starts near the epoch each boot and can leap when corrected.
+ * A call DURATION must never be measured against the wall clock (see
+ * voice_memo_service.c / multitap_service.c for the same pattern). This
+ * only ever measures elapsed time, never "when" the call happened. */
 static time_t  s_call_start       = 0;
+
+static time_t monotonic_now(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec;
+}
 
 static char    s_dial_buffer[32]  = "";   /* digits being typed in CALLS_DIAL */
 
 /* Action-cell focus on decision screens: 0 = affirm, 1 = destruct. */
 static int s_act_focus = 0;
+
+/* An unavailable microphone control must never claim the mic is muted. */
+static int s_connection_lost = 0;
+static const char *s_call_error = NULL;
 
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
@@ -49,6 +66,7 @@ static void enter_log(void)
     s_call_number[0] = '\0';
     s_call_name[0]   = '\0';
     s_call_start     = 0;
+    s_connection_lost = 0;
 }
 
 static void enter_dial(char first_digit)
@@ -134,6 +152,7 @@ static void normalize_dial(const char *raw, char *out, size_t out_sz)
 void screen_calls_start_outgoing(const char *name, const char *phone)
 {
     if (!phone || !phone[0]) return;
+    s_call_error = NULL;
     normalize_dial(phone, s_call_number, sizeof(s_call_number));
     if (name && name[0])
         snprintf(s_call_name, sizeof(s_call_name), "%s", name);
@@ -145,7 +164,7 @@ void screen_calls_start_outgoing(const char *name, const char *phone)
         s_call_start = 0;
         snprintf(s_call_dir, sizeof(s_call_dir), "outgoing");
     } else {
-        // Dial failed — fall back to log so the user isn't stuck on a fake "calling" screen.
+        s_call_error = "Dial failed";
         enter_log();
     }
 }
@@ -171,12 +190,13 @@ void screen_calls_tick(void)
     static int sample_tick = 0;
     if (s_state != CALLS_DIALING && s_state != CALLS_ACTIVE &&
         s_state != CALLS_INCOMING) return;
-    if (!modem_ipc_is_online()) return;
+    if (!modem_ipc_is_online()) { s_connection_lost = 1; return; }
     if (++sample_tick < 30) return;
     sample_tick = 0;
 
     ModemStatus st;
-    if (modem_ipc_get_status(&st) != 0) return;
+    if (modem_ipc_get_status(&st) != 0) { s_connection_lost = 1; return; }
+    s_connection_lost = 0;
 
     if (s_state == CALLS_INCOMING) {
         // Caller gave up before we answered — log a missed call and leave
@@ -190,10 +210,10 @@ void screen_calls_tick(void)
 
     if (s_state == CALLS_DIALING && strcmp(st.call_state, "active") == 0) {
         s_state      = CALLS_ACTIVE;
-        s_call_start = time(NULL);
+        s_call_start = monotonic_now();
     } else if (strcmp(st.call_state, "idle") == 0) {
         // Remote hangup, BUSY, NO CARRIER — persist + return to log.
-        int dur = (s_call_start > 0) ? (int)(time(NULL) - s_call_start) : 0;
+        int dur = (s_call_start > 0) ? (int)(monotonic_now() - s_call_start) : 0;
         comm_service_call_add_full(
             s_call_name, s_call_number, s_call_dir, dur);
         enter_log();
@@ -282,8 +302,10 @@ void screen_calls_draw(struct ncplane *phone)
         int mid = (CONTENT_START_ROW + 2 + footer) / 2;
 
         char lbl[24];
-        if (s_state == CALLS_ACTIVE && s_call_start > 0) {
-            time_t el = time(NULL) - s_call_start;
+        if (s_connection_lost) {
+            snprintf(lbl, sizeof(lbl), "CALL STATE UNKNOWN");
+        } else if (s_state == CALLS_ACTIVE && s_call_start > 0) {
+            time_t el = monotonic_now() - s_call_start;
             snprintf(lbl, sizeof(lbl), "LIVE · %02d:%02d",
                      (int)(el / 60), (int)(el % 60));
         } else {
@@ -302,17 +324,20 @@ void screen_calls_draw(struct ncplane *phone)
             ghost_text(phone, mid, ((int)cols - (int)strlen(masked)) / 2,
                        theme_border(), masked);
 
-        /* single destructive cell — END is the only decision here */
+        if (s_call_error)
+            ghost_text(phone, mid + 2, CONTENT_COL, theme_destruct_border(), s_call_error);
         bh_action_cells(phone, "", "END", 1);
         return;
     }
 
     /* ── call log ── */
+    if (s_call_error) ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL,
+                                theme_destruct_border(), s_call_error);
     if (!comm_service_storage_ok()) {
         ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL,
                    theme_text_primary(), "! STORAGE OFFLINE");
         ghost_text(phone, CONTENT_START_ROW + 3, CONTENT_COL,
-                   theme_text_muted(), "history unavailable (bh-storage down)");
+                   theme_text_muted(), "history unavailable");
     } else if (!modem_ipc_is_online()) {
         ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL,
                    theme_text_primary(), "! MODEM OFFLINE");
@@ -335,7 +360,7 @@ void screen_calls_draw(struct ncplane *phone)
 
     if (count == 0) {
         ghost_text(phone, list_start,     CONTENT_COL, theme_text_muted(), "No call history yet");
-        ghost_text(phone, list_start + 1, CONTENT_COL, theme_text_muted(), "Open a contact to call");
+        ghost_text(phone, list_start + 1, CONTENT_COL, theme_text_muted(), "Open a contact");
         ghost_softkeys(phone, "[Back]", "");
         return;
     }
@@ -357,7 +382,7 @@ void screen_calls_draw(struct ncplane *phone)
     }
 
     ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(),
-               "Left:Del  Enter:Call");
+               "A:Call  D:Del  E:Dial");
     ghost_softkeys(phone, "[Back]", "");
     if (s_delete_prompt) draw_delete_popup(phone);
 }
@@ -386,12 +411,13 @@ screen_id screen_calls_input(uint32_t key)
                     screen_calls_start_outgoing("", s_dial_buffer);
                 }
                 return SCREEN_CALLS;
-            case KEY_SOFT_RIGHT_ACTION:     /* E = call, always */
-            case KEY_ACTION_PRIMARY:        /* A = call */
+            case KEY_ACTION_PRIMARY:        /* A = place the call */
                 if (s_dial_buffer[0]) {
                     screen_calls_start_outgoing("", s_dial_buffer);
                 }
                 return SCREEN_CALLS;
+            case KEY_SOFT_RIGHT_ACTION:     /* E = pick a number from contacts */
+                return SCREEN_CONTACTS;
             case KEY_ACTION_SECONDARY:      /* D = backspace */
             case NCKEY_BACKSPACE: case 127: case '\b': {
                 size_t len = strlen(s_dial_buffer);
@@ -426,7 +452,7 @@ screen_id screen_calls_input(uint32_t key)
                     enter_log();
                 } else if (modem_ipc_answer() == 0) {
                     s_state      = CALLS_ACTIVE;
-                    s_call_start = time(NULL);
+                    s_call_start = monotonic_now();
                 }
                 return SCREEN_CALLS;
             case KEY_SOFT_LEFT_ACTION:
@@ -438,7 +464,7 @@ screen_id screen_calls_input(uint32_t key)
             case KEY_ACTION_PRIMARY:        /* A = answer */
                 if (modem_ipc_answer() == 0) {
                     s_state      = CALLS_ACTIVE;
-                    s_call_start = time(NULL);
+                    s_call_start = monotonic_now();
                 }
                 return SCREEN_CALLS;
             default:
@@ -450,20 +476,26 @@ screen_id screen_calls_input(uint32_t key)
     if (s_state == CALLS_DIALING || s_state == CALLS_ACTIVE) {
         switch (key) {
             case KEY_SOFT_LEFT_ACTION:
-            case NCKEY_LEFT:
-            case KEY_ACTION_SECONDARY: {   /* D = hangup */
-                int dur = (s_call_start > 0) ? (int)(time(NULL) - s_call_start) : 0;
-                modem_ipc_hangup();
+            case KEY_ACTION_SECONDARY: {   /* D = hang up */
+                int dur = (s_call_start > 0) ? (int)(monotonic_now() - s_call_start) : 0;
+                if (modem_ipc_hangup() != 0) {
+                    s_call_error = "Hangup failed"; return SCREEN_CALLS;
+                }
                 comm_service_call_add_full(
                     s_call_name, s_call_number, s_call_dir, dur);
                 enter_log();
                 return SCREEN_CALLS;
             }
+            case KEY_ACTION_PRIMARY:       /* A = explain unavailable mute */
+                if (s_state == CALLS_ACTIVE) s_call_error = "Mute unavailable";
+                return SCREEN_CALLS;
+            case NCKEY_UP:                 /* W = call volume up */
             case '+': {
                 int vol = audio_ipc_get_volume();
                 if (vol >= 0) audio_ipc_volume(vol + 5 > 100 ? 100 : vol + 5);
                 return SCREEN_CALLS;
             }
+            case NCKEY_DOWN:               /* S = call volume down */
             case '-': {
                 int vol = audio_ipc_get_volume();
                 if (vol > 0) audio_ipc_volume(vol - 5 < 0 ? 0 : vol - 5);
@@ -481,7 +513,9 @@ screen_id screen_calls_input(uint32_t key)
                 s_delete_yes = 0; return SCREEN_CALLS;
             case NCKEY_RIGHT: case NCKEY_DOWN:
                 s_delete_yes = 1; return SCREEN_CALLS;
-            case NCKEY_ENTER: case '\n': case KEY_SOFT_RIGHT_ACTION:
+            case NCKEY_ENTER: case '\n':
+            case KEY_SOFT_RIGHT_ACTION:
+            case KEY_ACTION_PRIMARY:        /* A = confirm the highlighted choice */
                 if (s_delete_yes && comm_service_call_count() > 0) {
                     comm_service_call_delete((size_t)s_selected);
                     if (s_selected >= (int)comm_service_call_count() && s_selected > 0)
@@ -489,7 +523,7 @@ screen_id screen_calls_input(uint32_t key)
                 }
                 s_delete_prompt = 0; s_delete_yes = 0;
                 return SCREEN_CALLS;
-            case KEY_SOFT_LEFT_ACTION:
+            case KEY_SOFT_LEFT_ACTION:      /* Q = cancel */
                 s_delete_prompt = 0; s_delete_yes = 0;
                 return SCREEN_CALLS;
             default:
@@ -531,4 +565,8 @@ screen_id screen_calls_input(uint32_t key)
             }
             return SCREEN_CALLS;
     }
+}
+
+int screen_calls_is_live(void) {
+    return s_state == CALLS_INCOMING || s_state == CALLS_DIALING || s_state == CALLS_ACTIVE;
 }

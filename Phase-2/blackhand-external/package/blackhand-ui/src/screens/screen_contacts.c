@@ -25,6 +25,7 @@ static int s_scroll = 0;
 static int s_action = 0; /* profile: 0=call 1=message */
 static int s_delete_prompt = 0;
 static int s_delete_yes = 0;
+static int s_delete_failed = 0; /* last delete attempt hit storage IPC failure */
 static contacts_mode_t s_mode = CONTACTS_MODE_LIST;
 
 /* Edit form — fields: 0=name, 1=country (left/right cycles), 2=number */
@@ -117,7 +118,10 @@ static void begin_edit_contact(const Contact *c) {
     s_mode = CONTACTS_MODE_EDIT;
 }
 
+static const char *s_save_error = NULL;
+
 static void save_contact(void) {
+    s_save_error = NULL;
     if (s_name[0] == '\0') {
         snprintf(s_name, sizeof(s_name), "Unknown");
     }
@@ -131,11 +135,13 @@ static void save_contact(void) {
 
     if (s_edit_existing) {
         const Contact *c = contact_service_get_by_id(s_edit_id);
-        if (c) {
-            contact_service_update((Contact *)c, s_name, e164);
+        if (!c || contact_service_update((Contact *)c, s_name, e164) != 0) {
+            s_save_error = "Save failed/duplicate"; return;
         }
     } else {
-        contact_service_create(s_name, e164);
+        if (!contact_service_create(s_name, e164)) {
+            s_save_error = "Save failed/duplicate"; return;
+        }
         s_selected = 0;
         s_scroll = 0;
     }
@@ -147,6 +153,8 @@ void screen_contacts_draw(struct ncplane *phone) {
     unsigned rows, cols;
     ncplane_dim_yx(phone, &rows, &cols);
 
+    if (s_save_error) ghost_text(phone, (int)rows - 3, CONTENT_COL,
+                                 theme_destruct_border(), s_save_error);
     int footer = (int)rows - FOOTER_ROW_OFFSET;
     int width = INNER_WIDTH(cols);
     if (width < 10) return;
@@ -205,7 +213,7 @@ void screen_contacts_draw(struct ncplane *phone) {
             }
         }
 
-        ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(), "2-9:ABC  #:Case  *:Punct");
+        ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(), "ABC E:Case 4/6:Cty");
         ghost_softkeys(phone, "[Cancel]", "[Save]");
         return;
     }
@@ -246,9 +254,25 @@ void screen_contacts_draw(struct ncplane *phone) {
         ghost_text(phone, card_top + 5, CONTENT_COL + 2, theme_text_muted(),
                    s_action == 1 ? "> MESSAGE" : "  MESSAGE");
 
-        ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(), "Up/Down:Action  Enter:Send");
+        ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(), "A:Call  D:SMS  E:Edit");
         ghost_softkeys(phone, "[Back]", "[Edit]");
         return;
+    }
+
+    /* Corrupt contacts.json must not look like "no contacts" — same
+     * precedent as Calls/Messages' "! STORAGE OFFLINE" banner. Takes
+     * priority over the delete-failed banner; both use the same two rows
+     * and the two conditions don't meaningfully co-occur. */
+    if (contact_service_data_corrupt()) {
+        ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL,
+                   theme_text_primary(), "! CONTACTS ERROR");
+        ghost_text(phone, CONTENT_START_ROW + 3, CONTENT_COL,
+                   theme_text_muted(), "data unreadable");
+    } else if (s_delete_failed) {
+        ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL,
+                   theme_text_primary(), "! DELETE FAILED");
+        ghost_text(phone, CONTENT_START_ROW + 3, CONTENT_COL,
+                   theme_text_muted(), "contact not removed");
     }
 
     int list_start = CONTENT_START_ROW + 4;
@@ -267,13 +291,13 @@ void screen_contacts_draw(struct ncplane *phone) {
         if (s_scroll < 0) s_scroll = 0;
     }
 
-    if (count == 0) {
+    if (count == 0 && !contact_service_data_corrupt()) {
         int mid = (list_start + footer) / 2;
         ncplane_set_fg_rgb(phone, theme_text_muted());
         ncplane_set_bg_rgb(phone, theme_bg());
         ncplane_putstr_yx(phone, mid, CONTENT_COL, "No contacts yet");
-        ncplane_putstr_yx(phone, mid + 1, CONTENT_COL, "Press Right Soft to add");
-    } else {
+        ncplane_putstr_yx(phone, mid + 1, CONTENT_COL, "Press E to add");
+    } else if (count > 0) {
         for (int i = 0; i < visible; i++) {
             int idx = s_scroll + i;
             if (idx >= (int)count) break;
@@ -301,7 +325,7 @@ void screen_contacts_draw(struct ncplane *phone) {
         }
     }
 
-    ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(), "Left:Delete  Enter:Open");
+    ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(), "A:Open  D:Del  E:Add");
     ghost_softkeys(phone, "[Back]", "[Add]");
     if (s_delete_prompt && s_mode == CONTACTS_MODE_LIST) draw_delete_popup(phone);
 }
@@ -334,15 +358,16 @@ screen_id screen_contacts_input(uint32_t key) {
             case NCKEY_RIGHT:
                 if (s_edit_field == 1) cycle_country(+1);
                 return SCREEN_CONTACTS;
-            case KEY_SOFT_LEFT_ACTION:
-            case KEY_ACTION_SECONDARY:     /* D = cancel edit */
+            case KEY_SOFT_LEFT_ACTION:     /* Q = discard edit & exit */
                 multitap_reset(&s_mt);
                 s_mode = CONTACTS_MODE_LIST;
                 return SCREEN_CONTACTS;
-            case KEY_SOFT_RIGHT_ACTION:
             case KEY_ACTION_PRIMARY:       /* A = save */
                 multitap_reset(&s_mt);
                 save_contact();
+                return SCREEN_CONTACTS;
+            case KEY_SOFT_RIGHT_ACTION:    /* E = cycle input mode (case) */
+                if (is_text) multitap_toggle_case(&s_mt);
                 return SCREEN_CONTACTS;
             case NCKEY_ENTER:
             case '\n':
@@ -350,6 +375,7 @@ screen_id screen_contacts_input(uint32_t key) {
                 else save_contact();
                 multitap_set_field(&s_mt, (s_edit_field == 0) ? 0 : 1);
                 return SCREEN_CONTACTS;
+            case KEY_ACTION_SECONDARY:     /* D = backspace */
             case NCKEY_BACKSPACE:
             case 127:
                 if (is_text) multitap_backspace(&s_mt, mt_slot, active);
@@ -358,6 +384,13 @@ screen_id screen_contacts_input(uint32_t key) {
                 if (is_text) multitap_toggle_case(&s_mt);
                 return SCREEN_CONTACTS;
             default:
+                /* Country field has no text: 4/6 cycle it (no arrow keys on the
+                 * keypad). Left/Right above still work for a host keyboard. */
+                if (s_edit_field == 1) {
+                    if (key == '4') cycle_country(-1);
+                    else if (key == '6') cycle_country(+1);
+                    return SCREEN_CONTACTS;
+                }
                 if (!is_text) return SCREEN_CONTACTS;
                 if ((key >= '0' && key <= '9') || key == '*') {
                     multitap_apply_key(&s_mt, key, mt_slot, active, active_sz);
@@ -388,9 +421,11 @@ screen_id screen_contacts_input(uint32_t key) {
             case NCKEY_ENTER:
             case '\n':
             case KEY_SOFT_RIGHT_ACTION:
+            case KEY_ACTION_PRIMARY:        /* A = confirm the highlighted choice */
                 if (s_delete_yes && count > 0) {
+                    s_delete_failed = 0;
                     if (contacts && s_selected < (int)count && contacts[s_selected] && contacts[s_selected]->id) {
-                        contact_service_delete(contacts[s_selected]->id);
+                        s_delete_failed = (contact_service_delete(contacts[s_selected]->id) != 0);
                     }
                     contact_service_list_all(&count);
                     if (s_selected >= (int)count && s_selected > 0) s_selected--;
@@ -398,7 +433,7 @@ screen_id screen_contacts_input(uint32_t key) {
                 s_delete_prompt = 0;
                 s_delete_yes = 0;
                 return SCREEN_CONTACTS;
-            case KEY_SOFT_LEFT_ACTION:
+            case KEY_SOFT_LEFT_ACTION:      /* Q = cancel */
                 s_delete_prompt = 0;
                 s_delete_yes = 0;
                 return SCREEN_CONTACTS;
@@ -435,7 +470,9 @@ screen_id screen_contacts_input(uint32_t key) {
         }
         case NCKEY_ENTER:
         case '\n':
-        case KEY_ACTION_PRIMARY: {         /* A = open/execute selected action */
+            /* Host-keyboard path: execute the highlighted profile action, or
+             * open the profile from the list. On the keypad, A/D act directly
+             * (see the PRIMARY / SECONDARY cases below). */
             if (s_mode == CONTACTS_MODE_PROFILE) {
                 if (count > 0 && contacts && contacts[s_selected]) {
                     const char *name  = contacts[s_selected]->name         ? contacts[s_selected]->name         : "Unknown";
@@ -454,9 +491,36 @@ screen_id screen_contacts_input(uint32_t key) {
                 s_action = 0;
             }
             return SCREEN_CONTACTS;
-        }
-        case NCKEY_LEFT:
-        case KEY_ACTION_SECONDARY:         /* D = delete / back */
+        case KEY_ACTION_PRIMARY:           /* A = call (profile) / open (list) */
+            if (s_mode == CONTACTS_MODE_PROFILE) {
+                if (count > 0 && contacts && contacts[s_selected]) {
+                    const char *name  = contacts[s_selected]->name         ? contacts[s_selected]->name         : "Unknown";
+                    const char *phone = contacts[s_selected]->phone_number ? contacts[s_selected]->phone_number : "";
+                    screen_calls_start_outgoing(name, phone);
+                    return SCREEN_CALLS;
+                }
+                return SCREEN_CONTACTS;
+            }
+            if (count > 0) {
+                s_mode = CONTACTS_MODE_PROFILE;
+                s_action = 0;
+            }
+            return SCREEN_CONTACTS;
+        case KEY_ACTION_SECONDARY:         /* D = send SMS (profile) / delete (list) */
+            if (s_mode == CONTACTS_MODE_PROFILE) {
+                if (count > 0 && contacts && contacts[s_selected]) {
+                    const char *phone = contacts[s_selected]->phone_number ? contacts[s_selected]->phone_number : "";
+                    screen_messages_start_compose(phone);
+                    return SCREEN_MESSAGES;
+                }
+                return SCREEN_CONTACTS;
+            }
+            if (count == 0) return SCREEN_CONTACTS;
+            s_delete_prompt = 1;
+            s_delete_yes = 0;
+            s_delete_failed = 0;
+            return SCREEN_CONTACTS;
+        case NCKEY_LEFT:                   /* host keyboard: back / delete */
             if (s_mode == CONTACTS_MODE_PROFILE) {
                 s_mode = CONTACTS_MODE_LIST;
                 s_action = 0;
@@ -465,6 +529,7 @@ screen_id screen_contacts_input(uint32_t key) {
             if (count == 0) return SCREEN_CONTACTS;
             s_delete_prompt = 1;
             s_delete_yes = 0;
+            s_delete_failed = 0;
             return SCREEN_CONTACTS;
         case KEY_SOFT_LEFT_ACTION:
             if (s_mode == CONTACTS_MODE_PROFILE) {
@@ -472,6 +537,7 @@ screen_id screen_contacts_input(uint32_t key) {
                 s_action = 0;
                 return SCREEN_CONTACTS;
             }
+            s_delete_failed = 0;
             return SCREEN_HOME;
         default:
             return SCREEN_CONTACTS;

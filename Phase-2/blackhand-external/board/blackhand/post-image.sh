@@ -36,11 +36,9 @@ else
     echo ">>> WARNING: rpi-firmware/overlays not found!"
 fi
 
-# Copy custom overlays ON TOP (your additions override defaults if same name)
-if [ -d "${BOARD_DIR}/rpi-firmware/overlays" ]; then
-    cp "${BOARD_DIR}/rpi-firmware/overlays/"*.dtbo "${BINARIES_DIR}/overlays/" 2>/dev/null || true
-    echo ">>> Copied custom overlays"
-fi
+# No custom overlays to copy: the SPI panel uses the stock mipi-dbi-spi overlay
+# (shipped in rpi-firmware and copied above). The former custom override here was
+# vc4-kms-v3d.dtbo, a DPI-era leftover that config.txt never loads.
 
 # ============================================================
 # CRITICAL: Recompile DTB with symbols (-@) for overlay support
@@ -67,7 +65,10 @@ for candidate in \
 done
 echo ">>> Using dtc: ${DTC:-NOT FOUND}"
 
-DTB="${BINARIES_DIR}/bcm2711-rpi-4-b.dtb"
+# Board DTB. MUST match BR2_LINUX_KERNEL_INTREE_DTS_NAME in the defconfig
+# and the boot.vfat file list in genimage.cfg — three places, one name.
+DTB_NAME="${DTB_NAME:-bcm2711-rpi-cm4}"
+DTB="${BINARIES_DIR}/${DTB_NAME}.dtb"
 if [ -x "${DTC}" ] && [ -f "${DTB}" ]; then
     echo ">>> Recompiling DTB with overlay symbols (-@)..."
     DTB_TMP="${DTB}.tmp"
@@ -87,6 +88,14 @@ if [ -x "${DTC}" ] && [ -f "${DTB}" ]; then
 else
     echo ">>> WARNING: dtc not found or DTB missing — cannot add overlay symbols"
 fi
+
+# ── SSH marker (see DECISION-002-ssh-enabled-by-default.md) ─────────────────
+# rcS gates dropbear on /boot/ssh. Bake that marker into every image so a
+# fresh flash is reachable over SSH without touching the SD card first —
+# previously nothing ever created this file, so SSH was permanently dead on
+# a fresh flash. Delete /boot/ssh from the FAT partition (any host) to
+# disable SSH again; genimage.cfg's boot.vfat file list includes "ssh".
+touch "${BINARIES_DIR}/ssh"
 
 # Generate the SD card image
 support/scripts/genimage.sh -c "${BOARD_DIR}/genimage.cfg"

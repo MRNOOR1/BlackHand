@@ -31,7 +31,7 @@ static const int item_count = sizeof(items) / sizeof(items[0]);
 
 static int selected = 0;
 static int hw_exit_armed = 0;
-static time_t hw_exit_arm_ts = 0;
+static long hw_exit_arm_ms = 0; /* CLOCK_MONOTONIC ms -- see screen_home_input() */
 static int hw_pin_prompt = 0;
 static char hw_pin_buf[8] = {0};
 static int hw_pin_len = 0;
@@ -54,8 +54,8 @@ static void draw_hand_white(struct ncplane *phone, unsigned rows, unsigned cols)
 
     ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL, theme_text_muted(), "HAND WHITE MODE");
     ghost_text(phone, CONTENT_START_ROW + 4, CONTENT_COL, theme_text_primary(), tbuf);
-    ghost_text(phone, CONTENT_START_ROW + 6, CONTENT_COL, theme_text_muted(), "LAT: 35.6895 N");
-    ghost_text(phone, CONTENT_START_ROW + 7, CONTENT_COL, theme_text_muted(), "LON: 51.3890 E");
+    ghost_text(phone, CONTENT_START_ROW + 6, CONTENT_COL, theme_text_muted(), "GPS: NO VERIFIED FIX");
+    ghost_text(phone, CONTENT_START_ROW + 7, CONTENT_COL, theme_text_muted(), "");
 
     if (hw_pin_prompt) {
         int w = HOME_PIN_POPUP_WIDTH, h = HOME_PIN_POPUP_HEIGHT;
@@ -74,7 +74,7 @@ static void draw_hand_white(struct ncplane *phone, unsigned rows, unsigned cols)
                        left + UI_POPUP_TEXT_INSET_X, theme_border(), hw_pin_error);
     } else {
         ghost_text(phone, CONTENT_START_ROW + 9, CONTENT_COL, theme_text_muted(),
-                   hw_exit_armed ? "PRESS RIGHT SOFT NOW" : "HOLD BOTH SOFT KEYS TO EXIT");
+                   hw_exit_armed ? "PRESS E NOW" : "Q THEN E TO EXIT");
     }
     ghost_softkeys(phone, NULL, NULL);
 }
@@ -142,7 +142,12 @@ void screen_home_draw(struct ncplane *phone)
 screen_id screen_home_input(uint32_t key)
 {
     if (settings_service_get_bool(SETTINGS_KEY_HAND_WHITE)) {
-        time_t now = time(NULL);
+        /* This device has no RTC (wall clock jumps on correction), so the
+         * 2-second exit-arm window is measured off CLOCK_MONOTONIC, not
+         * time(NULL). See kmono_sec() in blackhand-init for the same issue. */
+        struct timespec ts_now;
+        clock_gettime(CLOCK_MONOTONIC, &ts_now);
+        long now_ms = ts_now.tv_sec * 1000L + ts_now.tv_nsec / 1000000L;
 
         if (hw_pin_prompt) {
             if (key == KEY_SOFT_LEFT_ACTION) {
@@ -150,7 +155,7 @@ screen_id screen_home_input(uint32_t key)
                 hw_pin_buf[0] = '\0'; hw_pin_error[0] = '\0';
                 return SCREEN_HOME;
             }
-            if (key == NCKEY_BACKSPACE || key == 127) {
+            if (key == NCKEY_BACKSPACE || key == 127 || key == KEY_ACTION_SECONDARY) {
                 if (hw_pin_len > 0) { hw_pin_len--; hw_pin_buf[hw_pin_len] = '\0'; }
                 return SCREEN_HOME;
             }
@@ -166,7 +171,11 @@ screen_id screen_home_input(uint32_t key)
                         hw_pin_prompt = 0; hw_pin_len = 0;
                         hw_pin_buf[0] = '\0'; hw_pin_error[0] = '\0';
                     } else {
-                        snprintf(hw_pin_error, sizeof(hw_pin_error), "WRONG PIN");
+                        int lockout = pin_service_lockout_remaining_sec();
+                        if (lockout > 0)
+                            snprintf(hw_pin_error, sizeof(hw_pin_error), "LOCKED %ds", lockout);
+                        else
+                            snprintf(hw_pin_error, sizeof(hw_pin_error), "WRONG PIN");
                         hw_pin_len = 0; hw_pin_buf[0] = '\0';
                     }
                 }
@@ -174,10 +183,10 @@ screen_id screen_home_input(uint32_t key)
             return SCREEN_HOME;
         }
 
-        if (hw_exit_armed && difftime(now, hw_exit_arm_ts) > 2.0) hw_exit_armed = 0;
+        if (hw_exit_armed && now_ms - hw_exit_arm_ms > 2000) hw_exit_armed = 0;
 
         if (key == KEY_SOFT_LEFT_ACTION) {
-            hw_exit_armed = 1; hw_exit_arm_ts = now;
+            hw_exit_armed = 1; hw_exit_arm_ms = now_ms;
             return SCREEN_HOME;
         }
         if ((key == KEY_SOFT_RIGHT_ACTION) && hw_exit_armed) {
@@ -197,12 +206,21 @@ screen_id screen_home_input(uint32_t key)
         return SCREEN_HOME;
     case NCKEY_ENTER:
     case '\n':
-    case KEY_SOFT_RIGHT_ACTION:
-    case KEY_ACTION_PRIMARY:
+    case KEY_SOFT_RIGHT_ACTION:   /* E = open selected app */
+    case KEY_ACTION_PRIMARY:      /* A = accept/open (consistent with A=confirm) */
         return items[selected].target;
-    case KEY_ACTION_SECONDARY:
+    case KEY_ACTION_SECONDARY:    /* D unused on Home */
         return SCREEN_HOME;
+    /* Q (SOFT_LEFT) falls through to default: Home has no "back", so it does
+     * nothing — reserved for future quick-settings per spec. */
     default:
+        /* Number keys 1-7 are direct app shortcuts. This is the "accessible
+         * shortcut" from the spec: implemented on Home only, because making
+         * digits jump apps from inside an app would clash with dial / T9 /
+         * PIN entry. Item order matches the spec's app list exactly:
+         *   1 Phone  2 SMS  3 Contacts  4 Music  5 Notes  6 Voice  7 Settings */
+        if (key >= '1' && key <= '0' + item_count)
+            return items[key - '1'].target;
         return SCREEN_HOME;
     }
 }

@@ -1,0 +1,11 @@
+config BR2_PACKAGE_BLACKHAND_LORA
+    bool "blackhand-lora"
+    select BR2_PACKAGE_BLACKHAND_IPC
+    help
+      LoRa text messaging service. Drives an Adafruit RFM95W
+      (Semtech SX1276) transceiver over /dev/spidev0.1 (SPI0 CE1)
+      and exposes send/receive over /run/bh-lora.sock.
+
+      Point-to-point broadcast text only (no addressing, ACK, or
+      encryption in this MVP). Requires CONFIG_SPI_SPIDEV in the
+      kernel and the RFM95 wired to SPI0 CE1 + RST on GPIO26.

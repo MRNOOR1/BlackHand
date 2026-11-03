@@ -9,6 +9,31 @@
 #include "ui.h"
 #include "services/mp3_service.h"
 #include "services/theme_service.h"
+#include "ui-ipcs/audio_ipc.h"
+
+/* BLACKHAND_MP3_ENABLED is set by CMakeLists.txt only when libmpg123 and
+ * libout123 were found (see the BLACKHAND_UI_ENABLE_MP3 option). Without
+ * it, mp3_service.c is compiled as a stub, and this screen shows a plain
+ * "unavailable" message instead of a music library, rather than failing
+ * the whole blackhand-ui build over one optional feature. */
+#ifndef BLACKHAND_MP3_ENABLED
+
+void screen_mp3_draw(struct ncplane *phone) {
+    unsigned rows, cols;
+    ncplane_dim_yx(phone, &rows, &cols);
+    int mid = (int)(rows - FOOTER_ROW_OFFSET) / 2;
+    ghost_text(phone, mid - 1, CONTENT_COL, theme_text_muted(), "♫  Music player unavailable");
+    ghost_text(phone, mid + 1, CONTENT_COL, theme_text_muted(), "Built without libmpg123/libout123");
+    (void)cols;
+    ghost_softkeys(phone, NULL, NULL);
+}
+
+screen_id screen_mp3_input(uint32_t key) {
+    (void)key;
+    return SCREEN_HOME;
+}
+
+#else /* BLACKHAND_MP3_ENABLED */
 
 static void list_row(struct ncplane *p, int row, int width, int idx, int sel,
                      const char *name, const char *meta) {
@@ -53,12 +78,14 @@ static void draw_categories(struct ncplane *phone, unsigned rows, unsigned cols)
     size_t count = mp3_service_category_count();
 
     mp3_playback_state st = mp3_service_get_state();
+    if (st == MP3_ERROR) ghost_text(phone, CONTENT_START_ROW, CONTENT_COL, theme_destruct_border(), "Playback failed");
     if (st == MP3_PLAYING || st == MP3_PAUSED) {
-        const char *tname = mp3_service_current_track_name();
+        char tname[128];
+        mp3_service_current_track_name(tname, sizeof(tname));
         char now_line[64];
         snprintf(now_line, sizeof(now_line), "%s %s",
                  (st == MP3_PLAYING) ? "▶" : "▌▌",
-                 tname ? tname : "");
+                 tname);
         ghost_text(phone, CONTENT_START_ROW, CONTENT_COL, theme_text_muted(), now_line);
     }
 
@@ -198,6 +225,15 @@ static void draw_tracks(struct ncplane *phone, unsigned rows, unsigned cols) {
     ghost_softkeys(phone, NULL, NULL);
 }
 
+/* Volume only ever changes in the Up/Down handlers below, so cache it and skip
+ * a status-IPC (+ ALSA mixer poll) on every redraw. Seeded lazily; the UI is
+ * the sole mutator so the cache can't drift. */
+static int s_vol_cache = -1;
+static int mp3_vol(void) {
+    if (s_vol_cache < 0) { int v = audio_ipc_get_volume(); s_vol_cache = v < 0 ? 0 : v; }
+    return s_vol_cache;
+}
+
 static void draw_now_playing(struct ncplane *phone, unsigned rows, unsigned cols) {
     mp3_playback_state st = mp3_service_get_state();
     if (st == MP3_STOPPED) {
@@ -215,18 +251,20 @@ static void draw_now_playing(struct ncplane *phone, unsigned rows, unsigned cols
 
     ghost_text(phone, CONTENT_START_ROW, CONTENT_COL, th->dim, "N O W   P L A Y I N G");
 
-    const char *track = mp3_service_current_track_name();
+    char track[128];
+    mp3_service_current_track_name(track, sizeof(track));
     ncplane_set_fg_rgb(phone, th->bright);
     ncplane_set_bg_rgb(phone, th->bg);
-    put_clipped(phone, CONTENT_START_ROW + 1, CONTENT_COL, width, track ? track : "Unknown");
+    put_clipped(phone, CONTENT_START_ROW + 1, CONTENT_COL, width, track);
 
-    const char *collection = mp3_service_current_collection_name();
-    const char *category   = mp3_service_current_category_name();
+    char collection[64], category[64];
+    mp3_service_current_collection_name(collection, sizeof(collection));
+    mp3_service_current_category_name(category, sizeof(category));
     char meta[96];
-    if (collection && collection[0])
-        snprintf(meta, sizeof(meta), "%s · %s", collection, category ? category : "");
+    if (collection[0])
+        snprintf(meta, sizeof(meta), "%s · %s", collection, category);
     else
-        snprintf(meta, sizeof(meta), "%s", category ? category : "");
+        snprintf(meta, sizeof(meta), "%s", category);
     ncplane_set_fg_rgb(phone, th->mid);
     ncplane_set_bg_rgb(phone, th->bg);
     put_clipped(phone, CONTENT_START_ROW + 2, CONTENT_COL, width, meta);
@@ -254,7 +292,7 @@ static void draw_now_playing(struct ncplane *phone, unsigned rows, unsigned cols
     int ctl_row = bar_row + 3;
     const char *ctl = (st == MP3_PLAYING) ? "‖ PAUSE" : "▶ PLAY";
     ghost_text(phone, ctl_row, CONTENT_COL, th->bright, ctl);
-    int vol = mp3_service_get_volume();
+    int vol = mp3_vol();   /* cached; hardware mixer = single authority */
     int vbars = (vol + 12) / 25; if (vbars > 4) vbars = 4; if (vbars < 0) vbars = 0;
     char vm[24] = "VOL ";
     for (int i = 0; i < 4; i++) strcat(vm, i < vbars ? "▮" : "▯");
@@ -295,13 +333,19 @@ screen_id screen_mp3_input(uint32_t key) {
                     mp3_service_resume();
                 return SCREEN_MP3;
             case NCKEY_UP: {
-                int vol = mp3_service_get_volume();
-                mp3_service_set_volume(vol + 5);
+                /* Drive the hardware mixer via the daemon — the one volume
+                 * authority for both MP3 (out123→ALSA) and voice memo. */
+                int vol = mp3_vol();
+                vol += 5; if (vol > 100) vol = 100;
+                audio_ipc_volume(vol);
+                s_vol_cache = vol;
                 return SCREEN_MP3;
             }
             case NCKEY_DOWN: {
-                int vol = mp3_service_get_volume();
-                mp3_service_set_volume(vol - 5);
+                int vol = mp3_vol();
+                vol -= 5; if (vol < 0) vol = 0;
+                audio_ipc_volume(vol);
+                s_vol_cache = vol;
                 return SCREEN_MP3;
             }
             case KEY_SOFT_LEFT_ACTION:
@@ -426,3 +470,5 @@ screen_id screen_mp3_input(uint32_t key) {
         }
     }
 }
+
+#endif /* BLACKHAND_MP3_ENABLED */

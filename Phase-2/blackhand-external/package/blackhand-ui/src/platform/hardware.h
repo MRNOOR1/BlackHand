@@ -236,7 +236,7 @@ typedef struct {
  *   battery_status_t struct with current values
  *
  * CALLED BY:
- *   draw_status_bar() in main.c, once per frame
+ *   bh_status_strip() in bh_skin.c, on each rendered frame
  */
 battery_status_t hardware_get_battery(void);
 
@@ -262,7 +262,7 @@ battery_status_t hardware_get_battery(void);
  *   cellular_status_t struct with current values
  *
  * CALLED BY:
- *   draw_status_bar() in main.c, once per frame
+ *   bh_status_strip() in bh_skin.c, on each rendered frame
  */
 cellular_status_t hardware_get_cellular(void);
 

@@ -61,8 +61,14 @@ int  audio_record_resume(void);
 
 /* Stop recording and finalise the WAV header. */
 int  audio_record_stop(void);
+int  audio_record_error(void);
 
 int  audio_is_recording(void);
+
+/* Whether a capture device was available at daemon init (BT SCO mic or a
+   USB/onboard capture PCM). 1 if capture is possible, 0 if not. The UI
+   reads this from the status "capture" field to enable/disable recording. */
+int  audio_has_capture(void);
 
 /* ── volume ── */
 void audio_set_volume(int percent);

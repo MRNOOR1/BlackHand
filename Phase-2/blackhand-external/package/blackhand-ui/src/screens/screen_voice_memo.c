@@ -28,6 +28,10 @@ static int anim_tick = 0;
 
 static int delete_prompt = 0;
 static int s_discard_prompt = 0;
+/* Set when a record attempt failed even though a mic seemed present (e.g.
+   the daemon couldn't open the capture device). Shown on the list so the
+   failure is never silent. Cleared on navigation. */
+static int s_record_failed = 0;
 
 static char name_buf[128];
 static int name_cursor = 0;
@@ -127,7 +131,7 @@ static void draw_name_prompt(struct ncplane *phone, unsigned rows, unsigned cols
         ghost_text(phone, top + UI_POPUP_INPUT_ROW_OFFSET, cursor_col, theme_border(), "_");
 
     ghost_text(phone, top + UI_POPUP_HINT_ROW_OFFSET, left + UI_POPUP_TEXT_INSET_X,
-               theme_text_muted(), "2-9:ABC #:Case *:Punct");
+               theme_text_muted(), "2-9:ABC #Case *Punc");
     ghost_softkeys(phone, "[Skip]", "[Save]");
 }
 
@@ -183,11 +187,20 @@ static void draw_list(struct ncplane *phone, unsigned rows, unsigned cols) {
     size_t count = 0;
     const VoiceMemo **list = voice_memo_service_list_all(&count);
 
+    /* 0 = definitively no mic; 1 = mic present; -1 = audio daemon unreachable
+     * (NOT the same as "no mic" — never invite a record attempt here). */
+    int cap = voice_memo_service_capture_available();
+
     if (count == 0) {
         int mid = (CONTENT_START_ROW + footer) / 2;
         ncplane_set_fg_rgb(phone, theme_text_muted());
         ncplane_putstr_yx(phone, mid, CONTENT_COL, "No voice memos yet");
-        ncplane_putstr_yx(phone, mid + 1, CONTENT_COL, "Press E to record");
+        if (cap == 0)
+            ncplane_putstr_yx(phone, mid + 1, CONTENT_COL, "No mic: plug in USB");
+        else if (cap < 0)
+            ncplane_putstr_yx(phone, mid + 1, CONTENT_COL, "Audio service down");
+        else
+            ncplane_putstr_yx(phone, mid + 1, CONTENT_COL, "Press E to record");
         ghost_softkeys(phone, NULL, NULL);
         return;
     }
@@ -222,9 +235,23 @@ static void draw_list(struct ncplane *phone, unsigned rows, unsigned cols) {
         bh_list_item(phone, row, CONTENT_COL, width, dname[0] ? dname : "?", dbuf, sel, index);
     }
 
-    ghost_softkeys(phone, "[Back]", "[Record]");
-    ghost_text(phone, (int)rows - 3, CONTENT_COL, theme_text_muted(),
-               "A:Play  D:Delete  E:Record");
+    if (cap == 0) {
+        ghost_softkeys(phone, "[Back]", "");
+        ghost_text(phone, (int)rows - 3, CONTENT_COL, theme_text_muted(),
+                   "No mic: plug in USB");
+    } else if (cap < 0) {
+        ghost_softkeys(phone, "[Back]", "");
+        ghost_text(phone, (int)rows - 3, CONTENT_COL, theme_text_muted(),
+                   "Audio service down");
+    } else if (s_record_failed) {
+        ghost_softkeys(phone, "[Back]", "[Record]");
+        ghost_text(phone, (int)rows - 3, CONTENT_COL, theme_text_muted(),
+                   "Record failed, retry");
+    } else {
+        ghost_softkeys(phone, "[Back]", "[Record]");
+        ghost_text(phone, (int)rows - 3, CONTENT_COL, theme_text_muted(),
+                   "A:Play D:Del E:Record");
+    }
     if (delete_prompt) ghost_confirm_popup(phone, "DELETE MEMO?", 0);
 }
 
@@ -232,6 +259,7 @@ void screen_voice_memo_draw(struct ncplane *phone) {
     unsigned rows, cols;
     ncplane_dim_yx(phone, &rows, &cols);
     anim_tick++;
+    if (ui_mode == VM_MODE_RECORDING && voice_memo_service_state() == VM_IDLE) ui_mode = VM_MODE_LIST;
 
     switch (ui_mode) {
         case VM_MODE_LIST:
@@ -250,6 +278,8 @@ void screen_voice_memo_draw(struct ncplane *phone) {
             draw_name_prompt(phone, rows, cols, 1);
             break;
     }
+    if (voice_memo_service_record_failed())
+        ghost_text(phone, (int)rows - 3, CONTENT_COL, theme_destruct_border(), "Recording incomplete");
 }
 
 static void start_name_prompt(void) {
@@ -288,6 +318,7 @@ static screen_id handle_name_input(uint32_t key, int is_rename) {
 
     switch (key) {
         case KEY_SOFT_RIGHT_ACTION:
+        case KEY_ACTION_PRIMARY:        /* A = save name */
         case NCKEY_ENTER:
         case '\n': {
             multitap_reset(&s_name_multitap);
@@ -315,6 +346,7 @@ static screen_id handle_name_input(uint32_t key, int is_rename) {
             ui_mode = VM_MODE_LIST;
             if (!is_rename) { selected = 0; list_scroll = 0; }
             return SCREEN_VOICE_MEMO;
+        case KEY_ACTION_SECONDARY:      /* D = backspace */
         case NCKEY_BACKSPACE:
         case 127:
             multitap_backspace(&s_name_multitap, 0, name_buf);
@@ -400,13 +432,14 @@ screen_id screen_voice_memo_input(uint32_t key) {
             switch (key) {
                 case NCKEY_ENTER:
                 case '\n':
+                case KEY_ACTION_PRIMARY:    /* A = confirm discard */
                     voice_memo_service_record_stop(NULL);
                     s_discard_prompt = 0;
                     ui_mode = VM_MODE_LIST;
                     selected = 0;
                     list_scroll = 0;
                     return SCREEN_VOICE_MEMO;
-                case KEY_SOFT_LEFT_ACTION:
+                case KEY_SOFT_LEFT_ACTION:  /* Q = keep recording */
                     s_discard_prompt = 0;
                     return SCREEN_VOICE_MEMO;
                 default:
@@ -414,12 +447,14 @@ screen_id screen_voice_memo_input(uint32_t key) {
             }
         }
         switch (key) {
+            case KEY_ACTION_PRIMARY:        /* A = stop & save */
             case KEY_SOFT_RIGHT_ACTION:
             case NCKEY_ENTER:
             case '\n':
                 voice_memo_service_record_stop(NULL);
                 start_name_prompt();
                 return SCREEN_VOICE_MEMO;
+            case KEY_ACTION_SECONDARY:      /* D = discard recording */
             case NCKEY_LEFT:
             case KEY_SOFT_LEFT_ACTION:
                 s_discard_prompt = 1;
@@ -433,6 +468,7 @@ screen_id screen_voice_memo_input(uint32_t key) {
         switch (key) {
             case NCKEY_ENTER:
             case '\n':
+            case KEY_ACTION_PRIMARY:        /* A = confirm delete */
                 if (count > 0 && list && selected < (int)count) {
                     voice_memo_service_delete(list[selected]->filename);
                     voice_memo_service_list_all(&count);
@@ -440,7 +476,8 @@ screen_id screen_voice_memo_input(uint32_t key) {
                 }
                 delete_prompt = 0;
                 return SCREEN_VOICE_MEMO;
-            case KEY_SOFT_LEFT_ACTION:
+            case KEY_SOFT_LEFT_ACTION:      /* Q = cancel */
+            case KEY_ACTION_SECONDARY:      /* D = cancel */
                 delete_prompt = 0;
                 return SCREEN_VOICE_MEMO;
             default:
@@ -450,9 +487,11 @@ screen_id screen_voice_memo_input(uint32_t key) {
 
     switch (key) {
         case NCKEY_UP:
+            s_record_failed = 0;
             if (selected > 0) selected--;
             return SCREEN_VOICE_MEMO;
         case NCKEY_DOWN:
+            s_record_failed = 0;
             if (selected < (int)count - 1) selected++;
             return SCREEN_VOICE_MEMO;
         case NCKEY_ENTER:
@@ -477,8 +516,20 @@ screen_id screen_voice_memo_input(uint32_t key) {
             return SCREEN_VOICE_MEMO;
         case KEY_SOFT_RIGHT_ACTION:
             s_discard_prompt = 0;
+            /* No capture device, or the audio daemon can't be reached to
+               even ask: don't attempt to record — the list already shows
+               why the [Record] softkey isn't offered. */
+            if (voice_memo_service_capture_available() <= 0) {
+                s_record_failed = 0;
+                return SCREEN_VOICE_MEMO;
+            }
             if (voice_memo_service_record_start() == 0) {
+                s_record_failed = 0;
                 ui_mode = VM_MODE_RECORDING;
+            } else {
+                /* Daemon rejected the record start (device busy/absent).
+                   Surface it instead of failing silently. */
+                s_record_failed = 1;
             }
             return SCREEN_VOICE_MEMO;
         case NCKEY_RIGHT:

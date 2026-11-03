@@ -51,9 +51,25 @@
 #define IPC_ERR_CONNECT     -3
 #define IPC_ERR_SEND        -4
 #define IPC_ERR_RECV        -5
-#define IPC_ERR_TOO_LARGE   -6
+#define IPC_ERR_TOO_LARGE   -6   /* response did not fit in the caller's buffer */
 #define IPC_ERR_BIND        -7
 #define IPC_ERR_LISTEN      -8
+#define IPC_ERR_TIMEOUT     -9   /* peer alive but did not answer in time */
+
+/* ── Timeout ──────────────────────────────────────────────────────────────
+ *
+ * One value, applied to connect, send and receive on every client fd.
+ *
+ * CONSTRAINT: this must be LARGER than the slowest server handler, otherwise
+ * the client gives up while the server is still legitimately working.
+ * The slowest known handler is modem sms.send: at_cmd_sms(..., 5000, 10000)
+ * in blackhand-modem/src/Modem.c = 15s worst case. 20s leaves margin.
+ * If any handler ever gets slower, raise this — do not lower it.
+ * Overridable at compile time only so ipc_selftest.c can run in ~seconds.
+ */
+#ifndef IPC_TIMEOUT_SEC
+#define IPC_TIMEOUT_SEC     20
+#endif
 
 /* ── Server ───────────────────────────────────────────────────────────────
  *
@@ -67,6 +83,7 @@
  * The caller must then call accept() in a loop to receive connections.
  */
 int ipc_server_listen(const char *path);
+int ipc_server_accept(int server_fd);
 
 /* ── Client ───────────────────────────────────────────────────────────────
  *
@@ -75,6 +92,10 @@ int ipc_server_listen(const char *path);
  * Returns the connected fd on success, or a negative IPC_ERR_* code.
  * On IPC_ERR_CONNECT the server is not ready yet — retry with a small delay.
  * The caller calls send_msg() / recv_msg() on the returned fd directly.
+ *
+ * The returned fd has IPC_TIMEOUT_SEC set for both send and receive, so no
+ * call on it can block forever. This makes the fd unsuitable for waiting on
+ * unsolicited events for longer than that — it is a request/response fd.
  */
 int ipc_client_connect(const char *path);
 
@@ -86,6 +107,10 @@ int ipc_client_connect(const char *path);
  * null-terminated string.
  *
  * Returns IPC_OK on success, or a negative IPC_ERR_* code on failure.
+ * Failures are distinguishable: IPC_ERR_CONNECT (service down or wedged),
+ * IPC_ERR_TIMEOUT (no answer within IPC_TIMEOUT_SEC), IPC_ERR_TOO_LARGE
+ * (response did not fit in buf — see the recv_msg note below), IPC_ERR_SEND
+ * / IPC_ERR_RECV (connection broke).
  */
 int ipc_request(const char *path, const char *json,
                 char *buf, size_t buf_size);
@@ -100,6 +125,19 @@ int ipc_request(const char *path, const char *json,
  * recv_msg — read a length-prefixed message into buffer.
  *   Returns the number of bytes read on success, -1 on failure.
  *   buffer is always null-terminated on success.
+ *   Framing failures shut down the stream; caller must close and reconnect.
+ *
+ *   SIZE CEILING — read this before adding a bulk method.
+ *   A message is rejected when its length is >= buffer_size; the caller's
+ *   buffer IS the protocol limit. Every service currently passes a 32768
+ *   byte buffer, so a single response must stay under 32 KB. There is no
+ *   chunking and no pagination: a handler that returns an unbounded list
+ *   (e.g. history.calls_recent with a large limit) will work for small data
+ *   sets and then fail outright once the JSON crosses the ceiling.
+ *   On rejection recv_msg returns -1, sets errno to EMSGSIZE, and logs the
+ *   actual size and the limit to stderr. ipc_request turns that into
+ *   IPC_ERR_TOO_LARGE. The return stays -1 so that servers checking
+ *   (n == -1) keep closing the connection as before.
  *
  * ipc_close — close an fd safely. No-op if fd < 0.
  */

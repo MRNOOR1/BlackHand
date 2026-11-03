@@ -37,8 +37,8 @@ void screen_gps_draw(struct ncplane *phone)
     /* Poll location every ~10 draw calls (~2.5s at 250ms idle cadence) */
     if (s_gps_on && ++s_draw_tick >= 10) {
         s_draw_tick = 0;
-        if (modem_ipc_get_location(&s_loc) == 0)
-            s_has_loc = 1;
+        s_has_loc = modem_ipc_get_location(&s_loc) == 0;
+        if (!s_has_loc) memset(&s_loc, 0, sizeof(s_loc));
     }
 
     int top = CONTENT_START_ROW + 3;
@@ -49,9 +49,7 @@ void screen_gps_draw(struct ncplane *phone)
 
     if (!s_gps_on) {
         ghost_text(phone, top + 2, CONTENT_COL, theme_text_muted(),
-                   "GPS is off. Press right soft");
-        ghost_text(phone, top + 3, CONTENT_COL, theme_text_muted(),
-                   "key to enable.");
+                   "GPS off - press E");
         ghost_softkeys(phone, "[Back]", "[Enable]");
         return;
     }
@@ -73,7 +71,7 @@ void screen_gps_draw(struct ncplane *phone)
     }
 
     ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(),
-               "Right soft: disable GPS");
+               "E: Disable GPS");
     ghost_softkeys(phone, "[Back]", "[Disable]");
     (void)footer;
 }

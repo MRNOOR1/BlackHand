@@ -54,4 +54,11 @@ int audio_ipc_status_full(int *out_playing,
 /* Legacy shim retained for the few call sites that only want playing+volume. */
 int audio_ipc_status(int *out_playing, int *out_volume);
 
+/* Whether the daemon currently has a usable capture (microphone) device.
+   Reads the `capture` field of the same status snapshot. Returns 1 if a
+   capture device exists, 0 if none, -1 on IPC failure. */
+int audio_ipc_capture_available(void);
+
+int audio_ipc_route(const char *mac);
+
 #endif

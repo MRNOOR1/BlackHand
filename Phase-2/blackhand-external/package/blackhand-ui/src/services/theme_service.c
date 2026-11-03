@@ -180,3 +180,8 @@ uint32_t theme_affirm_border(void)   { return theme_active()->is_light ? 0x2F8A3
 uint32_t theme_affirm_text(void)     { return theme_active()->is_light ? 0x1F6B2E : 0xC0DD97; }
 uint32_t theme_destruct_border(void) { return 0xA32D2D; }
 uint32_t theme_destruct_text(void)   { return theme_active()->is_light ? 0x8E2424 : 0xF09595; }
+
+void theme_service_preview(int index) {
+    g_index = clamp_index(index);
+    if (g_dark_mode) build_dark_theme();
+}

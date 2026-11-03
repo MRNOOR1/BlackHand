@@ -1,3 +1,5 @@
+#include "wav_file.h"
+#include <fcntl.h>
 /*
  * audio_alsa.c — single-owner audio engine for blackhand-audio.
  *
@@ -36,23 +38,21 @@
 #include <stdarg.h>
 
 /* ───────────── debug log ─────────────
-   Writes timestamped lines to /boot/logs/audio.log. /boot is FAT32 and
-   auto-mounts on macOS / Windows when the SD card is plugged in — no
-   ext4 driver needed. Each line is flushed immediately so a hard
-   power-off doesn't eat the last few events.
+   Writes timestamped lines to the volatile /var/log/blackhand/audio.log.
+   Logs avoid writes to the boot filesystem and do not survive power loss.
 
    Also mirrored to stderr, which the service manager redirects into
-   /boot/logs/last-boot.log via the rcS exec redirect. */
+   /var/log/blackhand/last-boot.log via the rcS exec redirect. */
 static FILE *g_log = NULL;
 static pthread_mutex_t g_log_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static void dlog(const char *fmt, ...) {
     pthread_mutex_lock(&g_log_lock);
     if (!g_log) {
-        /* Make sure /boot/logs exists even if rcS didn't create it
+        /* Make sure /var/log/blackhand exists even if rcS didn't create it
            (e.g. someone ran the daemon manually for testing). */
-        mkdir("/boot/logs", 0755);
-        g_log = fopen("/boot/logs/audio.log", "a");
+        mkdir("/var/log/blackhand", 0755);
+        g_log = fopen("/var/log/blackhand/audio.log", "a");
     }
     if (g_log) {
         time_t now = time(NULL);
@@ -75,33 +75,15 @@ static void dlog(const char *fmt, ...) {
     fputc('\n', stderr);
 }
 
-/* ───────────────────────── card discovery ───────────────────────── */
+/* ───────────────────────── audio routing ─────────────────────────
 
-static int find_usb_audio_card(void) {
-    for (int n = 1; n <= 7; n++) {
-        char path[64];
-        snprintf(path, sizeof(path), "/proc/asound/card%d/usbbus", n);
-        if (access(path, F_OK) == 0) return n;
-    }
-    return 1;
-}
-
-static int load_card_num(void) {
-    FILE *f = fopen("/tmp/bh-audio-card", "r");
-    if (f) {
-        int n = 1;
-        if (fscanf(f, "%d", &n) == 1 && n >= 1 && n <= 7) {
-            fclose(f);
-            return n;
-        }
-        fclose(f);
-    }
-    return find_usb_audio_card();
-}
-
-static void card_to_pcm(int card_num, char *buf, size_t sz) {
-    snprintf(buf, sz, "plughw:%d,0", card_num);
-}
+   The daemon does not pick a card number itself. rcS writes
+   /etc/asound.conf at boot with pcm.!default / ctl.!default pointing at
+   the USB card when one is present and at the onboard bcm2835 (card 0)
+   otherwise. Opening the ALSA "default" PCM/ctl therefore routes exactly
+   like the UI MP3 path (out123 also opens "default"), works for card 0,
+   and follows the BT re-route that bluetooth_service.c writes into the
+   same file. */
 
 /* ───────────────────────── mixer / volume ───────────────────────── */
 
@@ -141,9 +123,7 @@ static int mixer_try_attach(void) {
         mixer_handle = NULL;
     }
 
-    int card_num = load_card_num();
-    char mixer_card[32];
-    snprintf(mixer_card, sizeof(mixer_card), "hw:%d", card_num);
+    const char *mixer_card = "default";
 
     int err = snd_mixer_open(&mixer_handle, 0);
     if (err < 0) { mixer_handle = NULL; return -1; }
@@ -281,11 +261,10 @@ static int pb_open_pcm(void) {
         pb_pcm = NULL;
     }
 
-    card_to_pcm(load_card_num(), dev, sizeof(dev));
-    dlog("play routing → USB (%s)", dev);
-    int err = snd_pcm_open(&pb_pcm, dev, SND_PCM_STREAM_PLAYBACK, 0);
+    dlog("play routing → default (asound.conf)");
+    int err = snd_pcm_open(&pb_pcm, "default", SND_PCM_STREAM_PLAYBACK, 0);
     if (err < 0) {
-        dlog("play: pcm_open(%s): %s", dev, snd_strerror(err));
+        dlog("play: pcm_open(default): %s", snd_strerror(err));
         pb_pcm = NULL;
         return -1;
     }
@@ -410,7 +389,18 @@ static void *pb_thread_main(void *arg) {
             snd_pcm_prepare(pb_pcm);
         }
 
-        size_t got = fread(buf, frame_bytes, period_frames, pb_file);
+        /* Bound the read to the parsed data-chunk length. Reading to
+           physical EOF would play any trailing chunks (LIST/INFO/id3…)
+           as noise. Using the live file offset keeps this correct across
+           seeks. Truncating remaining/frame_bytes drops a partial frame. */
+        off_t pos = ftello(pb_file);
+        off_t data_end = pb_data_start + (off_t)pb_data_size;
+        if (pos >= data_end) { dlog("play: end of data chunk"); break; }
+        size_t max_frames = (size_t)((data_end - pos) / (off_t)frame_bytes);
+        if (max_frames == 0) { dlog("play: end of data chunk"); break; }
+        size_t want = (period_frames < max_frames) ? period_frames : max_frames;
+
+        size_t got = fread(buf, frame_bytes, want, pb_file);
         if (got == 0) { dlog("play: EOF reached"); break; }
         snd_pcm_sframes_t w = snd_pcm_writei(pb_pcm, buf, (snd_pcm_uframes_t)got);
         if (w < 0) {
@@ -464,14 +454,14 @@ static void pb_join_thread(void) {
 int audio_play_start(const char *path) {
     if (!path) return -1;
 
-    /* Stop any existing playback first. Releases pb_pcm and pb_file. */
-    pthread_mutex_lock(&pb_lock);
-    if (pb_state != PB_IDLE) {
-        pthread_mutex_unlock(&pb_lock);
-        pb_join_thread();
-        pthread_mutex_lock(&pb_lock);
-    }
+    /* Reap any previous playback thread before starting a new one. This
+       covers both an explicit stop AND a track that ended naturally:
+       pb_thread_main leaves pb_thread_id set until it is joined here, so
+       joining unconditionally prevents a leaked pthread per track.
+       pb_join_thread is a no-op when nothing is running. */
+    pb_join_thread();
 
+    pthread_mutex_lock(&pb_lock);
     dlog("play_start: %s", path);
     pb_file = fopen(path, "rb");
     if (!pb_file) {
@@ -537,12 +527,8 @@ int audio_play_resume(void) {
 }
 
 int audio_play_stop(void) {
-    pthread_mutex_lock(&pb_lock);
-    if (pb_state == PB_IDLE) {
-        pthread_mutex_unlock(&pb_lock);
-        return 0;
-    }
-    pthread_mutex_unlock(&pb_lock);
+    /* Always join. pb_join_thread reaps a naturally-finished thread
+       (pb_thread_id stays set until joined) and is a no-op when idle. */
     pb_join_thread();
     return 0;
 }
@@ -599,6 +585,7 @@ typedef enum { RC_IDLE, RC_RECORDING, RC_PAUSED } rc_state_t;
 static pthread_mutex_t rc_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t  rc_resume_cv = PTHREAD_COND_INITIALIZER;
 static rc_state_t      rc_state = RC_IDLE;
+static int rc_failed = 0;
 
 static pthread_t       rc_thread_id = 0;
 static int             rc_stop_request = 0;
@@ -613,26 +600,41 @@ static uint16_t        rc_channels = REC_CHANNELS_DEFAULT;
 static int64_t         rc_position_ms = 0;
 static int64_t         rc_record_start_mono_ms = 0;
 
-static void rc_write_wav_header(FILE *f, uint32_t data_size,
-                                uint16_t channels, uint32_t sample_rate) {
-    uint16_t audio_fmt   = 1;
-    uint16_t bits        = REC_BITS;
-    uint32_t byte_rate   = sample_rate * channels * (bits / 8);
-    uint16_t block_align = (uint16_t)(channels * (bits / 8));
-    uint32_t fmt_size    = 16;
-    uint32_t chunk_size  = 36 + data_size;
+/* Whether ANY capture device was available at daemon init. On this board
+   the only card is bcm2835 (playback-only), so this is 0 unless a USB mic
+   or BT SCO headset is present. Probed once in audio_init(); exposed to the
+   UI via the status "capture" field so the record button can be disabled. */
+static int             rc_capture_available = 0;
 
-    fseek(f, 0, SEEK_SET);
-    fwrite("RIFF", 1, 4, f);   fwrite(&chunk_size,  4, 1, f);
-    fwrite("WAVE", 1, 4, f);
-    fwrite("fmt ", 1, 4, f);   fwrite(&fmt_size,    4, 1, f);
-    fwrite(&audio_fmt,   2, 1, f);
-    fwrite(&channels,    2, 1, f);
-    fwrite(&sample_rate, 4, 1, f);
-    fwrite(&byte_rate,   4, 1, f);
-    fwrite(&block_align, 2, 1, f);
-    fwrite(&bits,        2, 1, f);
-    fwrite("data", 1, 4, f);   fwrite(&data_size,   4, 1, f);
+/* Probe once: can we open a capture PCM at all? A BT SCO headset can also
+   provide capture, so treat a connected HFP mic as capture-available too. */
+static int rc_probe_capture(void) {
+    char mac[24] = {0};
+    if (bt_route_find_hfp_mic(mac, sizeof(mac))) return 1;
+
+    snd_pcm_t *probe = NULL;
+    int err = snd_pcm_open(&probe, "default", SND_PCM_STREAM_CAPTURE,
+                           SND_PCM_NONBLOCK);
+    if (err < 0) return 0;
+    snd_pcm_close(probe);
+    return 1;
+}
+
+int audio_has_capture(void) {
+    /* While no capture device is known, re-probe at most every 2 s. A USB
+       headset (or BT SCO mic) attached AFTER boot would otherwise never be
+       seen: the UI hides the record button while capture==0, so the user can
+       never trigger a re-check by hand — a deadlock. Costs nothing once a
+       capture device is found (the branch stops running). */
+    if (!rc_capture_available) {
+        static int64_t last_probe_ms = 0;
+        int64_t now = mono_ms();
+        if (last_probe_ms == 0 || now - last_probe_ms >= 2000) {
+            last_probe_ms = now;
+            rc_capture_available = rc_probe_capture();
+        }
+    }
+    return rc_capture_available;
 }
 
 /* Open the right capture PCM device. Tries BT SCO first; falls back to
@@ -665,12 +667,11 @@ static int rc_open_pcm(uint32_t *sample_rate_out, uint16_t *channels_out) {
         rc_pcm = NULL;
     }
 
-    card_to_pcm(load_card_num(), dev, sizeof(dev));
     want_rate = 48000;
-    dlog("rec routing → USB (%s)", dev);
-    int err = snd_pcm_open(&rc_pcm, dev, SND_PCM_STREAM_CAPTURE, 0);
+    dlog("rec routing → default (asound.conf)");
+    int err = snd_pcm_open(&rc_pcm, "default", SND_PCM_STREAM_CAPTURE, 0);
     if (err < 0) {
-        dlog("rec: capture pcm_open(%s): %s", dev, snd_strerror(err));
+        dlog("rec: capture pcm_open(default): %s", snd_strerror(err));
         rc_pcm = NULL;
         return -1;
     }
@@ -690,7 +691,12 @@ static int rc_open_pcm(uint32_t *sample_rate_out, uint16_t *channels_out) {
 static void *rc_thread_main(void *arg) {
     (void)arg;
     uint8_t buf[REC_PERIOD * 4]; /* up to 2 channels * 16-bit */
+    int failed = 0;
     int first_bytes_logged = 0;
+    int zero_reads = 0;
+    /* ~1 s of consecutive empty reads (100 * 10 ms) means the device is
+       not delivering frames — stop rather than spin at 100% CPU. */
+    const int REC_MAX_ZERO_READS = 100;
 
     /* Explicitly start the capture stream. snd_pcm_readi will auto-start
        in most cases, but on some bluealsa setups and on a freshly-opened
@@ -718,6 +724,7 @@ static void *rc_thread_main(void *arg) {
                and EINTR. Anything else is fatal. */
             int rec = snd_pcm_recover(rc_pcm, (int)n, 0);
             if (rec < 0) {
+                failed = 1;
                 dlog("rec: readi: %s (unrecoverable)", snd_strerror((int)n));
                 break;
             }
@@ -725,19 +732,27 @@ static void *rc_thread_main(void *arg) {
             continue;
         }
         if (n == 0) {
-            /* Shouldn't happen on a healthy capture device, but log it
-               loudly if it does — this is what an output-only USB device
-               would look like. */
-            dlog("rec: readi returned 0 frames (no mic? muted?)");
+            /* Shouldn't happen on a healthy capture device. Back off so we
+               don't spin at 100% CPU and flood the log; give up after a
+               bounded run of empty reads (e.g. an output-only device). */
+            if (++zero_reads >= REC_MAX_ZERO_READS) {
+                failed = 1;
+                dlog("rec: %d consecutive 0-frame reads — stopping capture",
+                     zero_reads);
+                break;
+            }
+            struct timespec backoff = { 0, 10 * 1000 * 1000 }; /* 10 ms */
+            nanosleep(&backoff, NULL);
             continue;
         }
+        zero_reads = 0;
 
         size_t bytes = (size_t)n * rc_channels * (REC_BITS / 8);
-        size_t w = fwrite(buf, 1, bytes, rc_file);
-        if (w != bytes) {
-            dlog("rec: short write: %zu/%zu (disk full?)", w, bytes);
+        if (wav_file_append(rc_file, buf, bytes, rc_channels, &rc_data_bytes) != 0) {
+            dlog("rec: write failed; saving captured prefix");
+            failed = 1;
+            break;
         }
-        rc_data_bytes += (uint32_t)bytes;
 
         if (!first_bytes_logged) {
             dlog("rec: first %zu bytes captured (mic is live)", bytes);
@@ -751,11 +766,12 @@ static void *rc_thread_main(void *arg) {
     }
     if (rc_file) {
         dlog("rec: stopping, total captured = %u bytes", rc_data_bytes);
-        rc_write_wav_header(rc_file, rc_data_bytes, rc_channels, rc_sample_rate);
-        fclose(rc_file);
+        if (wav_file_header(rc_file, rc_data_bytes, rc_channels, rc_sample_rate) != 0) failed = 1;
+        if (fclose(rc_file) != 0) failed = 1;
         rc_file = NULL;
     }
     if (rc_pcm) { snd_pcm_drop(rc_pcm); snd_pcm_close(rc_pcm); rc_pcm = NULL; }
+    rc_failed = failed;
     rc_state = RC_IDLE;
     rc_stop_request = 0;
     rc_record_start_mono_ms = 0;
@@ -772,13 +788,42 @@ int audio_record_start(const char *path) {
         return -1;
     }
 
+    pthread_t previous = rc_thread_id;
+    rc_thread_id = 0;
+    pthread_mutex_unlock(&rc_lock);
+    if (previous != 0) pthread_join(previous, NULL);
+    pthread_mutex_lock(&rc_lock);
+
+    /* Fast-fail when there is no capture device rather than creating a
+       zero-byte file and blocking on an open that can't succeed. A USB
+       headset or BT SCO mic attached after init still provides capture, so
+       re-probe here before giving up. */
+    if (!rc_capture_available) {
+        /* rc_probe_capture() covers BOTH a BT SCO mic and an ALSA capture
+           device, so a USB headset attached after init is picked up too. */
+        rc_capture_available = rc_probe_capture();
+        if (!rc_capture_available) {
+            static int logged = 0;
+            if (!logged) {
+                dlog("record_start: no capture device available — rejecting");
+                logged = 1;
+            }
+            pthread_mutex_unlock(&rc_lock);
+            return -1;
+        }
+    }
+
     dlog("record_start: %s", path);
-    rc_file = fopen(path, "wb");
+    int file_fd = open(path, O_WRONLY | O_CREAT | O_EXCL, 0600);
+    rc_file = file_fd < 0 ? NULL : fdopen(file_fd, "wb");
+    if (file_fd >= 0 && !rc_file) { close(file_fd); unlink(path); }
     if (!rc_file) {
         dlog("record_start: cannot create %s: %s", path, strerror(errno));
         pthread_mutex_unlock(&rc_lock);
         return -1;
     }
+
+    setvbuf(rc_file, NULL, _IONBF, 0);
 
     if (rc_open_pcm(&rc_sample_rate, &rc_channels) != 0) {
         fclose(rc_file); rc_file = NULL;
@@ -789,7 +834,14 @@ int audio_record_start(const char *path) {
 
     /* Write a placeholder header. We'll patch it with the final size
        when we close the file. */
-    rc_write_wav_header(rc_file, 0, rc_channels, rc_sample_rate);
+    if (wav_file_header(rc_file, 0, rc_channels, rc_sample_rate) != 0) {
+        fclose(rc_file); rc_file = NULL;
+        snd_pcm_close(rc_pcm); rc_pcm = NULL;
+        unlink(path);
+        pthread_mutex_unlock(&rc_lock);
+        return -1;
+    }
+    rc_failed = 0;
     rc_data_bytes = 0;
 
     rc_position_ms = 0;
@@ -840,10 +892,6 @@ int audio_record_resume(void) {
 
 int audio_record_stop(void) {
     pthread_mutex_lock(&rc_lock);
-    if (rc_state == RC_IDLE) {
-        pthread_mutex_unlock(&rc_lock);
-        return 0;
-    }
     rc_stop_request = 1;
     pthread_cond_broadcast(&rc_resume_cv);
     /* Drop under the lock so the thread's cleanup can't race with us
@@ -854,7 +902,7 @@ int audio_record_stop(void) {
     pthread_mutex_unlock(&rc_lock);
 
     if (t != 0) pthread_join(t, NULL);
-    return 0;
+    return audio_record_error() ? -1 : 0;
 }
 
 int audio_is_recording(void) {
@@ -868,10 +916,16 @@ int audio_is_recording(void) {
 
 int audio_init(void) {
     dlog("─── audio daemon starting ───");
-    int card = load_card_num();
-    char dev[32];
-    card_to_pcm(card, dev, sizeof(dev));
-    dlog("audio_init: USB card = %d (%s)", card, dev);
+    dlog("audio_init: playback/capture via ALSA \"default\" (asound.conf)");
     mixer_try_attach();
+    rc_capture_available = rc_probe_capture();
+    dlog("audio_init: capture available = %d", rc_capture_available);
     return 0;
+}
+
+int audio_record_error(void) {
+    pthread_mutex_lock(&rc_lock);
+    int error = rc_failed;
+    pthread_mutex_unlock(&rc_lock);
+    return error;
 }

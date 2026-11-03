@@ -28,7 +28,11 @@ int bluetooth_service_scan_start(void);
 void bluetooth_service_scan_stop(void);
 int bluetooth_service_scan_is_running(void);
 size_t bluetooth_service_device_count(void);
-const BtDevice *bluetooth_service_device_at(size_t index);
+/* Copies the device at `index` into *out. Returns 1 on success, 0 if index
+ * is out of range (out is left untouched). Copies out rather than handing
+ * back an internal pointer so callers on other threads never dereference
+ * shared storage without the lock that protects it. */
+int bluetooth_service_device_at(size_t index, BtDevice *out);
 
 int bluetooth_service_connect(const char *mac);
 int bluetooth_service_connect_async(const char *mac);

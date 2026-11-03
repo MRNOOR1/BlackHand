@@ -19,7 +19,7 @@ typedef struct {
     char name[48];    /* resolved contact name, or the number itself */
     char phone[32];
     char time[24];    /* formatted from ts                           */
-    char type[16];    /* incoming | outgoing | missed | rejected | busy | no_answer */
+    char type[16];    /* incoming | outgoing | missed | rejected | busy | no_answer | cancelled | failed */
     char icon[8];
     int    duration_sec;
     int    storage_id;  /* unused in per-number layout (kept for ABI)  */
@@ -57,7 +57,8 @@ const CommMessage *comm_service_message_at(size_t index);
 
 /* ── one open conversation ── */
 /* Loads the full message list for `number` and marks it read.
- * Returns 0 on success. */
+ * Returns 0 on success, -1 on transport failure, -2 if that number's
+ * history file exists but is corrupt (caller must show this, not "empty"). */
 int comm_service_thread_open(const char *number);
 size_t comm_service_thread_count(void);
 const CommMessage *comm_service_thread_at(size_t index);
@@ -73,6 +74,6 @@ int comm_service_message_add_full(const char *sender, const char *phone,
                                    const char *body, int is_outgoing);
 int comm_service_message_delete(size_t index);
 
-void comm_service_reset(void);
+int comm_service_reset(void);
 
 #endif

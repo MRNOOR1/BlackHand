@@ -30,13 +30,20 @@ CFLAGS ?= -O2 -Wall -Wextra
 all: blackhand-init blackhand-svc-mgr
 
 # PID 1 binary — compiled from init.c alone
-blackhand-init: init.c
+blackhand-init: init.c restart_policy.h
 	$(CC) $(CFLAGS) -o $@ $<
 
 # service manager binary — compiled from service_manager.c alone
-blackhand-svc-mgr: service_manager.c
+blackhand-svc-mgr: service_manager.c restart_policy.h
 	$(CC) $(CFLAGS) -o $@ $<
+
+# host self-test — builds and runs selftest.c against the restart logic.
+# Deliberately NOT part of `all`: it is never cross-compiled and never
+# installed on the target. Always built with the host cc.
+selftest: selftest.c restart_policy.h
+	cc -Wall -Wno-unused-function -o $@ selftest.c
+	./$@
 
 # remove both binaries for a clean rebuild
 clean:
-	rm -f blackhand-init blackhand-svc-mgr
+	rm -f blackhand-init blackhand-svc-mgr selftest

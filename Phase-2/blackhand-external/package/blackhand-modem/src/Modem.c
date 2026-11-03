@@ -1,3 +1,4 @@
+#include "gps_service.h"
 #include "serial_utility.h"
 #include "Modem.h"
 #include "urc.h"
@@ -118,7 +119,7 @@ typedef struct {
 	int    answered;
 	char   number[64];
 	time_t ts_start;    /* when dialling/ringing began */
-	time_t ts_answer;   /* when the call connected     */
+	struct timespec answered_at; /* monotonic talk-time origin */
 } CallSession;
 
 static pthread_mutex_t session_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -152,7 +153,7 @@ void call_session_answered(void)
 	pthread_mutex_lock(&session_mutex);
 	if (session.active && !session.answered) {
 		session.answered  = 1;
-		session.ts_answer = time(NULL);
+		clock_gettime(CLOCK_MONOTONIC, &session.answered_at);
 	}
 	pthread_mutex_unlock(&session_mutex);
 }
@@ -178,8 +179,13 @@ void call_session_end(const char *outcome_hint)
 		        : (snap.incoming ? "missed" : "no_answer");
 
 	int duration = 0;
-	if (snap.answered)
-		duration = (int)(time(NULL) - snap.ts_answer);
+	if (snap.answered) {
+		struct timespec now;
+		clock_gettime(CLOCK_MONOTONIC, &now);
+		duration = (int)(now.tv_sec - snap.answered_at.tv_sec);
+		if (now.tv_nsec < snap.answered_at.tv_nsec) duration--;
+		if (duration < 0) duration = 0;
+	}
 
 	// Outside the lock — this is a blocking IPC round-trip to storage.
 	storage_record_call(snap.number,
@@ -227,6 +233,32 @@ int modem_attempt_bringup(void)
 	return 1;
 }
 
+/* Called by the URC reader when the modem fd errors (USB unplug / driver
+ * reset). Tears the modem down so the background bring-up loop re-probes and
+ * re-opens. Uses trylock, NOT a blocking lock: if a manual port switch
+ * (modem_select_port) is already tearing us down it holds bringup_lock and is
+ * about to urc_stop()→join this very thread — blocking here would deadlock the
+ * join. Returns 1 if THIS caller performed the teardown (and now owns its own
+ * thread cleanup), 0 if a concurrent switch already owns it. */
+int modem_reader_teardown(void)
+{
+	if (pthread_mutex_trylock(&bringup_lock) != 0)
+		return 0;
+	if (fn >= 0) {
+		/* close_port_locked (not close_port): waits for any at_cmd()/
+		 * at_cmd_sms() in flight on this fd to finish before closing, so a
+		 * concurrent caller (dispatch thread, bring-up thread) can never be
+		 * left mid-write()/read() on an fd this teardown just handed to a
+		 * fresh open() elsewhere. See serial_utility.c. */
+		close_port_locked(fn);
+		fn = -1;
+	}
+	gps_reset_state();
+	modem_present = 0;
+	pthread_mutex_unlock(&bringup_lock);
+	return 1;
+}
+
 /* Switch to a specific port ("auto" restores the sweep). Tears down the
  * current connection if any, pins the new port, and tries it immediately.
  * Returns 0 if the modem answered on the new port, -1 otherwise (the
@@ -236,12 +268,15 @@ int modem_select_port(const char *port)
 	pthread_mutex_lock(&bringup_lock);
 
 	if (modem_present) {
+		gps_reset_state();
 		modem_present = 0;
 		pthread_mutex_lock(&call_state_mutex);
 		call_state = CALL_IDLE;
 		pthread_mutex_unlock(&call_state_mutex);
 		urc_stop();
-		close_port(fn);
+		/* close_port_locked: see modem_reader_teardown() above for why plain
+		 * close_port() is unsafe here. */
+		close_port_locked(fn);
 		fn = -1;
 		modem_clear_incoming_number();
 	}
@@ -337,6 +372,9 @@ int modem_dial(const char *number)
 	if (busy)
 		return -1;
 
+	if (!number || !number[0] || strlen(number) > 40 ||
+	    strspn(number, "+0123456789*#") != strlen(number)) return -1;
+	call_session_start(0, number);
 	char cmd[64];
 	snprintf(cmd, sizeof(cmd), "ATD%s;", number);
 	const char *response = at_cmd(fn, cmd, 10000);
@@ -346,12 +384,12 @@ int modem_dial(const char *number)
 		pthread_mutex_lock(&call_state_mutex);
 		call_state = CALL_DIALLING;
 		pthread_mutex_unlock(&call_state_mutex);
-		call_session_start(0, number);
 		return 1;
 	}
 	pthread_mutex_lock(&call_state_mutex);
 	call_state = CALL_IDLE;
 	pthread_mutex_unlock(&call_state_mutex);
+	call_session_end("failed");
 	return -1;
 }
 
@@ -383,7 +421,8 @@ int modem_hangup()
 	if (cs == CALL_IDLE)
 		return 1;   /* already idle — no-op, not an error */
 
-	const char *outcome = (cs == CALL_RINGING) ? "rejected" : NULL;
+	const char *outcome = (cs == CALL_RINGING) ? "rejected" :
+	                      (cs == CALL_DIALLING) ? "cancelled" : NULL;
 
 	const char *response = at_cmd(fn, "AT+CHUP", 3000);
 	if (strstr(response, "OK") == NULL)
@@ -402,46 +441,15 @@ int modem_hangup()
 
 int modem_sms_send(const char *number, const char *message)
 {
-	char cmd[64];
-	snprintf(cmd, sizeof(cmd), "AT+CMGS=\"%s\"", number);
+	// The whole CMGS transaction runs under at_cmd_mutex inside at_cmd_sms, so
+	// a background AT+CSQ poll can't inject into the body or steal the response
+	// (H5). Body wait capped at 10s (was 60s) so the single-threaded dispatch
+	// loop can't be blocked for a minute on a slow send (H6).
+	const char *response = at_cmd_sms(fn, number, message, 5000, 10000);
 
-	const char *response = at_cmd(fn, cmd, 5000);
-	if (strstr(response, ">") == NULL)
+	if (strstr(response, "+CMS ERROR") != NULL)
 		return -1;
-
-	pthread_mutex_lock(&response_mutex);
-	response_ready = 0;
-
-	size_t mlen = strlen(message);
-	while (mlen > 0)
-	{
-		ssize_t n = write(fn, message, mlen);
-		if (n < 0)
-			break;
-		message += n;
-		mlen -= n;
-	}
-	char ctrlz = 0x1A;
-	write(fn, &ctrlz, 1);
-
-	// SMS submission can take a while over poor signal.
-	struct timespec deadline;
-	clock_gettime(CLOCK_REALTIME, &deadline);
-	deadline.tv_sec += 60;
-
-	int rc = 0;
-	while (response_ready == 0 && rc == 0)
-		rc = pthread_cond_timedwait(&response_cond, &response_mutex, &deadline);
-
-	char buffer[BUFFERSIZE];
-	buffer[0] = '\0';
-	if (response_ready)
-		strncpy(buffer, response_buffer, BUFFERSIZE);
-	pthread_mutex_unlock(&response_mutex);
-
-	if (strstr(buffer, "+CMS ERROR") != NULL)
-		return -1;
-	if (strstr(buffer, "+CMGS:") != NULL)
+	if (strstr(response, "+CMGS:") != NULL)
 		return 1;
 	return -1;
 }

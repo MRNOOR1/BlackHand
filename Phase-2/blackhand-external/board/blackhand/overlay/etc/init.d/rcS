@@ -14,28 +14,49 @@ mount -t devpts devpts /dev/pts -o gid=5,mode=620 2>/dev/null || true
 mount -t tmpfs  tmpfs  /dev/shm 2>/dev/null || true
 
 # ── Boot partition (FAT32) ────────────────────────────────────────────────────
-# Mounted early so logs can be written here. FAT32 is readable from macOS
-# and Windows by simply plugging the SD card in — no ext4 driver required.
-# All log files in this script and in the audio daemon are written under
-# /boot/logs/ for that reason.
+# FAT has no journal — a write in progress at power-loss can corrupt the
+# partition that makes the device bootable. Cannot be mounted read-only here:
+# blackhand-audio, blackhand-ui and service_manager (blackhand-init) each open
+# their own /boot/logs/<name>.log directly at arbitrary times during runtime
+# (see handoff — those are not this script's files). Mounted rw as before.
+#
+# What rcS itself no longer does: stream its own logging to FAT continuously.
+# The kernel ring buffer (dmesg -w) and this script's own last-boot/sysinfo/
+# errors logs move to /var/log/blackhand/ (ext4) below — that was the bulk of
+# the continuous write volume. /boot/logs/ still gets ONE deliberate write
+# from this script (a copy of the finished last-boot.log, for offline triage
+# from a Mac with no serial console) plus whatever the other daemons write to
+# their own files there; the size-cap loop further down still watches
+# /boot/logs/*.log too, so those files can't silently grow unbounded either.
 mkdir -p /boot /data
 mount -t vfat /dev/mmcblk0p1 /boot 2>/dev/null || true
 mkdir -p /boot/logs
 
 # ── Logging ───────────────────────────────────────────────────────────────────
-# Per-boot rotation. Everything goes under /boot/logs/ (FAT32) so you can
-# pull the SD and read the logs on any host.
+# Per-boot rotation under /var/log/blackhand/ (ext4 root, not the FAT boot
+# partition — see above).
 #   last-boot.log         — rcS output + anything to stderr from this script
 #   last-boot.prev.log    — previous boot's rcS log, rotated on each start
 #   dmesg.log             — kernel ring buffer, streamed live (-w)
 #   sysinfo.log           — one-shot snapshot of hardware state at boot
 #   errors.log            — filtered tail of every log: ERROR/WARN/FATAL/fail
 #   <service-name>.log    — per-service stderr/stdout (see service_manager.c)
+LOGDIR=/var/log/blackhand
+mkdir -p "$LOGDIR"
 for _f in last-boot dmesg sysinfo errors; do
-    [ -f /boot/logs/${_f}.log ] && \
-        mv -f /boot/logs/${_f}.log /boot/logs/${_f}.prev.log 2>/dev/null || true
+    [ -f "$LOGDIR/${_f}.log" ] && \
+        mv -f "$LOGDIR/${_f}.log" "$LOGDIR/${_f}.prev.log" 2>/dev/null || true
 done
-exec > /boot/logs/last-boot.log 2>&1
+# `exec` is a special builtin: a failed redirection kills a non-interactive
+# shell outright. $LOGDIR now lives on the ext4 root, which is remounted
+# read-only by the kernel after any filesystem error — so an unprobed redirect
+# here would silently abort ALL of rcS (no display, no modem, no audio, no BT)
+# with nothing written anywhere to say why. Probe first and step down to FAT
+# /boot, then to tmpfs, which is always writable. Probing with `touch` and not
+# `: >` on purpose — `:` is a special builtin too and dies exactly the same way.
+touch "$LOGDIR/last-boot.log" 2>/dev/null || LOGDIR=/boot/logs
+touch "$LOGDIR/last-boot.log" 2>/dev/null || LOGDIR=/tmp
+exec > "$LOGDIR/last-boot.log" 2>&1
 
 # Stream the kernel ring buffer to disk. -w follows new messages, so this
 # captures everything from now until shutdown: USB enumerations, audio
@@ -43,57 +64,97 @@ exec > /boot/logs/last-boot.log 2>&1
 # going. busybox dmesg doesn't take --color; util-linux dmesg does. Either
 # is fine — we just don't pass the flag.
 if command -v dmesg >/dev/null 2>&1; then
-    dmesg > /boot/logs/dmesg.log 2>/dev/null
-    dmesg -w >> /boot/logs/dmesg.log 2>/dev/null &
+    dmesg > "$LOGDIR/dmesg.log" 2>/dev/null
+    dmesg -w >> "$LOGDIR/dmesg.log" 2>/dev/null &
 fi
 
 # say: write to log AND tty1 so progress is visible on-screen without SSH
 say() { echo "$@"; printf '%s\n' "$@" > /dev/tty1 2>/dev/null || true; }
 say ">>> Black Hand OS starting..."
 
-# ── Display init ──────────────────────────────────────────────────────────────
-# Run before anything that can block.
-if [ -x /usr/bin/hyperpixel4-init ]; then
-    /usr/bin/hyperpixel4-init
+# ── Wall clock (no RTC on this hardware) ──────────────────────────────────────
+# The clock starts near the epoch every boot without a battery-backed RTC.
+# Confirmed damage: history sorts scramble and voice-memo filenames derived
+# from time() collide and silently overwrite each other.
+#
+# Contract (shared with blackhand-init, which persists this file on the
+# shutdown path — normally unreachable since the user pulls power, hence the
+# periodic save below): /data/.clock holds a single decimal integer, seconds
+# since the epoch, plus a trailing newline. Restore ONLY moves the clock
+# FORWARD, never back — a validated stored value is always at least as
+# trustworthy as "near epoch", but a clock that is already correct (e.g. a
+# device that gained a real RTC later, or NTP some day) must never be pushed
+# backwards by a stale file.
+CLOCK_FILE=/data/.clock
+if [ -f "$CLOCK_FILE" ]; then
+    CLOCK_VAL=$(cat "$CLOCK_FILE" 2>/dev/null)
+    case "$CLOCK_VAL" in
+        ''|*[!0-9]*)
+            # Guards a garbage/empty file (e.g. a truncated read on power
+            # loss mid-write, though the write itself is atomic — see below).
+            say "clock: $CLOCK_FILE unreadable or non-numeric ('$CLOCK_VAL') — ignoring"
+            ;;
+        *)
+            NOW=$(date +%s)
+            if [ "$CLOCK_VAL" -gt "$NOW" ]; then
+                date -s "@$CLOCK_VAL" >/dev/null 2>&1
+                say "clock: restored from $CLOCK_FILE ($CLOCK_VAL, was $NOW)"
+            else
+                say "clock: $CLOCK_FILE ($CLOCK_VAL) not newer than current ($NOW) — keeping current"
+            fi
+            ;;
+    esac
+else
+    say "clock: no $CLOCK_FILE yet (first boot, or pre-fix data)"
 fi
+
+# Periodic save. This replaces the old 60 s /data-wide chmod sweep removed
+# below with something far cheaper: ONE small file write, not recursive.
+# Atomic (tmp + mv) so a power cut mid-write can never leave a truncated
+# value that would later be parsed as a bogus time.
+save_clock() {
+    date +%s > "$CLOCK_FILE.tmp" 2>/dev/null && mv -f "$CLOCK_FILE.tmp" "$CLOCK_FILE" 2>/dev/null
+}
+( while sleep 300; do save_clock; done ) &
+
+# ── Display (SPI panel: Waveshare 1.83", panel-mipi-dbi) ──────────────────────
+# The init sequence lives in the kernel-linked firmware blob panel.bin, so
+# there is nothing to run here — only log the geometry the device actually
+# came up with. With no network, /boot/logs/last-boot.log (mirrored from
+# /var/log/blackhand/last-boot.log) is the only instrument (brief §7.1).
+# Expected: fb=240,304 / grid 16 24 / stride=960 bpp=32 / offsets 0.
+FB=/sys/class/graphics/fb0
+if [ -d "$FB" ]; then
+    echo "display: fb0 up, fb=$(cat $FB/virtual_size 2>/dev/null)"
+    echo "display: console grid (rows cols) = $(stty -F /dev/tty1 size 2>/dev/null)"
+    echo "display: stride=$(cat $FB/stride 2>/dev/null) bpp=$(cat $FB/bits_per_pixel 2>/dev/null)"
+    # Paint the whole panel to the UI's default background (theme 0, 0x0B0B09)
+    # before the UI starts. notcurses only paints the 24x16 text grid (288 of
+    # 304 px); this fills the ~16 px un-gridded strip below the grid so the
+    # bottom lip matches the UI ground instead of showing black. (§6.1)
+    [ -x /usr/bin/fbfill ] && fbfill 0B0B09 >/dev/null 2>&1 || true
+else
+    echo "display: WARNING — /sys/class/graphics/fb0 absent (panel driver did not bind)"
+fi
+# Requested DT geometry, straight from the boot config.
+echo "display: dt geometry: $(grep -hE '^dtparam=(width|height|x-offset|y-offset)' /boot/config.txt 2>/dev/null | tr '\n' ' ')"
 
 # Disable console blanking so the screen stays lit.
 printf "\033[9;0]" > /dev/tty1 2>/dev/null || true
 
-# ── Device manager + USB serial drivers ──────────────────────────────────────
+# ── USB serial drivers (modem) ────────────────────────────────────────────────
 # bcm2711_defconfig builds the SIM7600's USB-serial driver as a module
 # (CONFIG_USB_SERIAL=m, CONFIG_USB_SERIAL_OPTION=m). Nothing loads modules
 # automatically under our custom init, so without this block /dev/ttyUSB*
 # never appear and blackhand-modem reports "no AT-responding port".
 #
-# 1. udevd: loads drivers on hotplug via MODALIAS and applies
-#    /etc/udev/rules.d/99-blackhand-modem.rules → /dev/blackhand-modem-at.
-# 2. Explicit modprobe as a fallback in case udev is missing from the image.
+# No udevd on this image (see DECISION-001-no-udev.md): the device-creation
+# choice is devtmpfs-only, deliberately, to keep the image lighter. There is
+# no hotplug, so blackhand-modem sweeps /dev/ttyUSB* itself instead of
+# relying on a udev-created /dev/blackhand-modem-at symlink.
 say "modem: loading USB serial drivers..."
 modprobe usbserial 2>/dev/null || true
 modprobe option    2>/dev/null || true
-
-UDEVD=""
-# eudev (BR2_PACKAGE_EUDEV) historically installed udevd to /sbin/udevd, but
-# newer builds move it under /lib/udev/ or /lib/systemd/. Probe all of them so
-# we don't fall back to the sweep just because the binary moved.
-for p in /sbin/udevd /usr/sbin/udevd /lib/udev/udevd \
-         /lib/systemd/systemd-udevd /usr/lib/systemd/systemd-udevd; do
-    [ -x "$p" ] && UDEVD="$p" && break
-done
-if [ -n "$UDEVD" ]; then
-    "$UDEVD" --daemon 2>/dev/null || true
-    # Coldplug: replay add events for devices that enumerated before udevd
-    # started, so the modem symlink rule fires for already-present hardware.
-    udevadm trigger --action=add 2>/dev/null || true
-    udevadm settle --timeout=10  2>/dev/null || true
-    say "modem: udevd running ($UDEVD), coldplug done"
-else
-    # blackhand-modem scans /dev/ttyUSB* itself, so the rule-driven
-    # /dev/ttyMODEM symlink is a convenience, not a requirement. Log INFO
-    # instead of WARNING so this stops looking like a real fault.
-    say "modem: INFO — udevd binary not present, modem daemon will sweep ttyUSB*"
-fi
 
 # ── Networking ────────────────────────────────────────────────────────────────
 # Only run DHCP when a cable is physically present — boot must never block
@@ -122,33 +183,137 @@ if [ -x /sbin/udhcpc ]; then
     fi
 fi
 
-# ── SSH ───────────────────────────────────────────────────────────────────────
-# Log the acquired IP — the only way to find the device address without a
-# serial console (ttyAMA0 is occupied by Bluetooth).
-ETH0_IP=$(/sbin/ifconfig eth0 2>/dev/null | grep 'inet ' | awk '{print $2}' | sed 's/addr://')
-if [ -n "$ETH0_IP" ]; then
-    say "ssh: eth0 = $ETH0_IP  →  ssh root@$ETH0_IP"
+# ── Wi-Fi (CYW43455) ──────────────────────────────────────────────────────────
+# On the CM4 carrier Wi-Fi is the ONLY network path: the board has no ethernet,
+# and in normal-boot mode the USB-C data lines go to the modem rather than the
+# CM4. Everything here runs in a backgrounded subshell because wlan0 appearing,
+# associating and getting a lease can take many seconds or never finish, and
+# boot must never wait on it.
+#
+# /etc/wpa_supplicant.conf is generated at BUILD time by post-build.sh from
+# BLACKHAND_WIFI_SSID / BLACKHAND_WIFI_PSK (hashed, mode 0600). No file means
+# "not configured" — post-build.sh also deletes the wpa_supplicant package's
+# own default, which contains key_mgmt=NONE and would otherwise join any open
+# network it found.
+if [ ! -f /etc/wpa_supplicant.conf ]; then
+    say "wifi: /etc/wpa_supplicant.conf absent — Wi-Fi skipped (set BLACKHAND_WIFI_SSID/PSK at build time)"
+elif [ ! -x /usr/sbin/wpa_supplicant ]; then
+    say "wifi: WARNING — wpa_supplicant not found — check BR2_PACKAGE_WPA_SUPPLICANT=y"
 else
-    say "ssh: eth0 has no IP yet — SSH unavailable until ethernet is connected"
+    (
+        # There is no udev on this image, so nothing autoloads the driver.
+        # brcmfmac pulls in cfg80211 and brcmutil.
+        modprobe brcmfmac 2>/dev/null || true
+        # modprobe returns before the SDIO probe and firmware load finish, and
+        # wpa_supplicant -i wlan0 fails outright if the interface is absent.
+        WIFI_WAIT=0
+        until [ -d /sys/class/net/wlan0 ] || [ $WIFI_WAIT -ge 60 ]; do
+            sleep 0.25
+            WIFI_WAIT=$((WIFI_WAIT + 1))
+        done
+        if [ ! -d /sys/class/net/wlan0 ]; then
+            say "wifi: WARNING — wlan0 absent after 15s (brcmfmac/firmware? see dmesg.log)"
+            exit 0
+        fi
+        if ! /usr/sbin/wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant.conf; then
+            say "wifi: WARNING — wpa_supplicant failed to start"
+            exit 0
+        fi
+        say "wifi: wpa_supplicant started on wlan0, requesting DHCP"
+        # -b: fork to background and keep retrying rather than giving up.
+        /sbin/udhcpc -i wlan0 -b
+        WLAN0_IP=$(/sbin/ifconfig wlan0 2>/dev/null | grep 'inet ' | awk '{print $2}' | sed 's/addr://')
+        if [ -n "$WLAN0_IP" ]; then
+            say "ssh: wlan0 = $WLAN0_IP  →  ssh root@$WLAN0_IP"
+        else
+            say "wifi: no lease yet — udhcpc keeps retrying in the background"
+        fi
+    ) &
 fi
 
-if [ -x /usr/sbin/dropbear ]; then
+# ── SSH ───────────────────────────────────────────────────────────────────────
+# Log the acquired IP — the only way to find the device address without the P1
+# serial console (ttyAMA0 is occupied by Bluetooth). Wi-Fi associates
+# asynchronously above, so its address is logged there, not here.
+ETH0_IP=$(/sbin/ifconfig eth0 2>/dev/null | grep 'inet ' | awk '{print $2}' | sed 's/addr://')
+if [ -n "$ETH0_IP" ]; then
+    say "ssh: eth0 = $ETH0_IP (SSH enabled — delete /boot/ssh to disable)"
+else
+    say "ssh: no eth0 address (expected on this carrier — it has no ethernet; see the wifi lines above)"
+fi
+
+# SSH is gated on /boot/ssh, which post-image.sh now bakes into every image
+# (see DECISION-002-ssh-enabled-by-default.md) so a fresh flash is reachable
+# without touching the SD card first. Delete /boot/ssh from the FAT boot
+# partition (any host, no ext4 driver needed) to disable it again.
+#
+# CURRENT POSTURE: dropbear is started with -s below — password logins are
+# DISABLED, key auth only. The defconfig root password is an unrecoverable
+# random $6$ hash (not a usable login), so a device with no authorized_keys
+# provisioned is unreachable over SSH until a key is dropped at
+# /boot/authorized_keys (installed below) and the box is rebooted.
+# STILL OPEN before shipping: remove the /boot/ssh marker from post-image.sh
+# so SSH is opt-in again (see DECISION-002-ssh-enabled-by-default.md).
+# dropbear runs here, unsupervised (rcS does not restart it if it dies) — see
+# handoff to the init/service-manager owner about bringing it under supervision.
+if [ -e /boot/ssh ] && [ -x /usr/sbin/dropbear ]; then
+    # /etc/dropbear MUST be a real directory. Buildroot's dropbear package can
+    # ship it as a symlink (the keys-on-tmpfs pattern) or as a plain file. When
+    # it is not a directory, "mkdir -p" silently succeeds without creating
+    # anything, dropbear has nowhere to write its host keys, exits immediately,
+    # and every connection is refused with no obvious cause. Confirmed on
+    # hardware: this was the actual reason SSH appeared "enabled but dead".
+    if [ -e /etc/dropbear ] && [ ! -d /etc/dropbear ]; then
+        say "ssh: /etc/dropbear was not a directory — recreating it"
+        rm -f /etc/dropbear
+    fi
     mkdir -p /etc/dropbear
 
-    # -R: generate host keys at runtime if absent (keys are normally baked in
-    # by post-build.sh, but -R is a safety net for dev builds where HOST_DROPBEAR
-    # was not yet enabled).
-    # -P: write a pid file. Without this dropbear runs fine but the readiness
-    # check below has nothing to read and falsely reports "did not start" on
-    # every boot, making it look like SSH is broken when it isn't.
-    /usr/sbin/dropbear -R -P /var/run/dropbear.pid 2>&1
+    # Make sure a host key exists. dropbear -R would generate one, but doing it
+    # explicitly means a failure shows up in the log instead of looking like a
+    # mysterious refused connection. dropbearkey IS present on the device.
+    if [ ! -f /etc/dropbear/dropbear_ed25519_host_key ] \
+       && command -v dropbearkey >/dev/null 2>&1; then
+        say "ssh: no host key — generating ed25519 host key"
+        if dropbearkey -t ed25519 -f /etc/dropbear/dropbear_ed25519_host_key >/dev/null 2>&1; then
+            chmod 600 /etc/dropbear/dropbear_ed25519_host_key
+            say "ssh: host key generated"
+        else
+            say "ssh: WARNING — dropbearkey failed; falling back to dropbear -R"
+        fi
+    fi
+
+    # Provision the operator's public key if one was supplied. Key auth is the
+    # preferred path; drop your PUBLIC key at /boot/authorized_keys on the FAT
+    # partition (writable from any host). Installed with the strict perms
+    # dropbear requires — it refuses a group/other-writable key file.
+    if [ -f /boot/authorized_keys ]; then
+        mkdir -p /root/.ssh
+        chmod 700 /root/.ssh
+        cp /boot/authorized_keys /root/.ssh/authorized_keys
+        chmod 600 /root/.ssh/authorized_keys
+        chown root:root /root/.ssh /root/.ssh/authorized_keys 2>/dev/null || true
+        say "ssh: installed authorized_keys from /boot/authorized_keys"
+    fi
+
+    if [ -s /root/.ssh/authorized_keys ]; then
+        say "ssh: key auth available (/root/.ssh/authorized_keys present)"
+    else
+        say "ssh: no authorized key — provision /boot/authorized_keys to log in"
+    fi
+
+    # -s disables password authentication; SSH requires an authorized key.
+    # -R: generate host keys at runtime if absent (normally baked by post-build.sh).
+    # -P: pid file, so the readiness check below can confirm it actually bound :22.
+    /usr/sbin/dropbear -s -R -P /var/run/dropbear.pid 2>&1
 
     # Give the daemon a moment to bind port 22 then confirm it is running.
     sleep 0.3
     if kill -0 "$(cat /var/run/dropbear.pid 2>/dev/null)" 2>/dev/null; then
         say "ssh: dropbear running on port 22 (PID $(cat /var/run/dropbear.pid 2>/dev/null))"
-        # Print the host fingerprint — helps diagnose "REMOTE HOST IDENTIFICATION
-        # HAS CHANGED" on the dev machine.  Run 'ssh-keygen -R <ip>' there to fix.
+        # Print the host fingerprint — helps diagnose "REMOTE HOST
+        # IDENTIFICATION HAS CHANGED" on the dev machine. Run
+        # 'ssh-keygen -R <ip>' there to fix.
         for _kf in /etc/dropbear/dropbear_ed25519_host_key \
                    /etc/dropbear/dropbear_rsa_host_key; do
             if [ -f "$_kf" ] && command -v dropbearkey >/dev/null 2>&1; then
@@ -160,19 +325,65 @@ if [ -x /usr/sbin/dropbear ]; then
             say "ssh: if refused with key-changed warning: ssh-keygen -R $ETH0_IP"
         fi
     else
-        say "ssh: WARNING — dropbear did not start (port 22 in use? check /boot/logs/last-boot.log)"
+        say "ssh: WARNING — dropbear did not start (port 22 in use? check /var/log/blackhand/last-boot.log or /boot/logs/last-boot.log)"
     fi
-else
+elif [ ! -x /usr/sbin/dropbear ]; then
     say "ssh: WARNING — /usr/sbin/dropbear not found — check BR2_PACKAGE_DROPBEAR=y"
+else
+    say "ssh: disabled (create /boot/ssh on the boot partition to enable — password+key auth, bring-up build)"
 fi
 
 # ── Data directories ──────────────────────────────────────────────────────────
-mkdir -p /data/voice-memos /data/notes /data/alarms /data/contacts /data/music
-chmod -R 700 /data
+# blackhand-storage now creates its own directories (contacts/, numbers/,
+# per-number folders) at 0700 and writes files at 0600 directly (see
+# storage_service.c: ensure_dirs(), number_file(), save_json()) — that was
+# the real fix, done at the source instead of papering over it here.
+#
+# What's left here is a ONE-SHOT migration for any device whose /data
+# predates that fix and may still hold 0755 dirs / 0644 files from before.
+# `go-rwx` only CLEARS group/other bits — unlike `chmod -R 700`, it never
+# touches the owner bits, so it can't set the execute bit on a regular data
+# file. No background loop: a permanent 700-owner-bit sweep was actively
+# harmful (chmod(2) dirties every inode's ctime even when the mode doesn't
+# change, so it was a 60 s write cycle across all of /data, including a
+# growing /data/music, on SD flash, for no ongoing benefit once the mkdir
+# modes are correct at the source).
+mkdir -p /data/voice-memos /data/notes /data/alarms /data/contacts /data/music /data/numbers
+chmod -R go-rwx /data 2>/dev/null || true
 
 # ── Audio ─────────────────────────────────────────────────────────────────────
 modprobe snd_bcm2835   2>/dev/null || true
 modprobe snd_usb_audio 2>/dev/null || true
+
+# write_asound_conf <card> <label> — identical for USB and onboard, only the
+# card index and header comment differ. asym splits playback from capture.
+# No dmix: verified on hardware that dmix HANGS on this card (hw_ptr frozen
+# at 0), while the card itself mixes concurrent hardware playback streams
+# fine (8 substreams, tested with two simultaneous plug->hw playbacks, both
+# ran to completion). Named PCMs (not inline slave.pcm {}) -- older alsa-lib
+# mis-parses inline.
+write_asound_conf() {
+    cat > /etc/asound.conf << AEOF
+# Generated by rcS — $2
+pcm.bh_play {
+    type plug
+    slave.pcm "hw:$1,0"
+}
+pcm.bh_cap {
+    type plug
+    slave.pcm "hw:$1,0"
+}
+pcm.!default {
+    type asym
+    playback.pcm "bh_play"
+    capture.pcm "bh_cap"
+}
+ctl.!default {
+    type hw
+    card $1
+}
+AEOF
+}
 
 # Detect USB audio card.
 # /proc/asound/cardN/usbbus only exists for USB audio devices. USB
@@ -198,18 +409,7 @@ done
 if [ -n "$USB_CARD" ]; then
     echo "audio: USB audio card = $USB_CARD"
     echo "$USB_CARD" > /tmp/bh-audio-card
-
-    cat > /etc/asound.conf << AEOF
-# Generated by rcS — USB audio card ${USB_CARD}
-pcm.!default {
-    type plug
-    slave.pcm "hw:${USB_CARD},0"
-}
-ctl.!default {
-    type hw
-    card ${USB_CARD}
-}
-AEOF
+    write_asound_conf "$USB_CARD" "USB audio card ${USB_CARD}"
 
     amixer -q -c "$USB_CARD" sset Master  100% 2>/dev/null || true
     amixer -q -c "$USB_CARD" sset PCM     100% 2>/dev/null || true
@@ -217,18 +417,7 @@ AEOF
 else
     echo "audio: no USB audio card found — falling back to onboard (card 0)"
     echo "0" > /tmp/bh-audio-card
-
-    cat > /etc/asound.conf << AEOF
-# Generated by rcS — onboard bcm2835 (card 0, no USB audio present)
-pcm.!default {
-    type plug
-    slave.pcm "hw:0,0"
-}
-ctl.!default {
-    type hw
-    card 0
-}
-AEOF
+    write_asound_conf 0 "onboard bcm2835 (card 0, no USB audio present)"
 
     # Route bcm2835 output to headphone jack (1=headphones, 2=HDMI, 0=auto)
     amixer -q cset numid=3 1 2>/dev/null || true
@@ -308,10 +497,15 @@ if [ -n "$BT_DAEMON" ] && [ -e /sys/class/bluetooth/hci0 ]; then
     # Brief pause before powering on — the controller may not have finished
     # its internal init even after D-Bus registration.
     sleep 0.5
-    bluetoothctl --timeout 5 power on        2>/dev/null || true
-    bluetoothctl --timeout 5 discoverable on 2>/dev/null || true
-    bluetoothctl --timeout 5 pairable on     2>/dev/null || true
-    say "bt: adapter powered on, discoverable, pairable"
+    bluetoothctl --timeout 5 power on 2>/dev/null || true
+    # Deliberately NOT discoverable/pairable at boot. A permanently
+    # discoverable + pairable adapter lets any nearby device initiate a
+    # (Just Works) pairing. Discoverability/pairability must be enabled
+    # transiently by the UI only while the user is on the pairing screen;
+    # both auto-time-out (see DiscoverableTimeout/PairableTimeout in
+    # /etc/bluetooth/main.conf). Already-bonded devices still reconnect,
+    # since reconnection does not require pairable to be on.
+    say "bt: adapter powered on (not discoverable/pairable — enable pairing from the UI)"
 
     # Start bluez-alsa bridge.
     # hfp-ag: Pi is the Audio Gateway (the phone side), NOT the headset side.
@@ -329,15 +523,32 @@ if [ -n "$BT_DAEMON" ] && [ -e /sys/class/bluetooth/hci0 ]; then
     done
     say "bt: bluealsa on D-Bus (waited ${BA_WAIT}x0.5s)"
 
-    # Register a headless pairing agent ("Just Works" / NoInputNoOutput).
+    # Register a headless pairing agent. It can only complete a pairing while
+    # the adapter is pairable, which is off at boot and only enabled
+    # transiently by the UI during user-initiated pairing (see above). With
+    # pairable off, this agent cannot accept any unsolicited pairing.
     if command -v bt-agent >/dev/null 2>&1; then
         setsid bt-agent -c NoInputNoOutput &
-        say "bt: bt-agent started (Just Works pairing enabled)"
+        say "bt: bt-agent registered (idle until user starts pairing)"
     else
         say "bt: WARNING — bt-agent not found (install bluez-tools)"
     fi
 else
     say "bt: ERROR — bluetoothd not found or hci0 missing, BT disabled"
+fi
+
+# ── UI (detached tmux session) ────────────────────────────────────────────────
+# Defined in /usr/bin/bh-session (session command, size, wait for
+# /run/bh-storage.sock, which does not exist yet: rcS runs BEFORE
+# blackhand-svc-mgr). Detached because rcS has no tty; tty1 and SSH attach with
+# bh-session, tty1 via a respawning client spawned by init.c.
+# shortcut: nothing restarts the tmux server if it dies (the loop only restarts
+# the UI); the tty1 client respawn re-creates it via bh-session. Upgrade to a
+# supervised server in blackhand-svc-mgr if headless boots need it.
+if /usr/bin/bh-session --detached; then
+    say "ui: tmux session 'bh' ready (attach: bh-session)"
+else
+    say "ui: WARNING — tmux session failed to start (check BR2_PACKAGE_TMUX=y)"
 fi
 
 say ">>> Black Hand OS ready"
@@ -369,20 +580,64 @@ echo "fb0: $(cat /sys/class/graphics/fb0/virtual_size 2>/dev/null || echo 'not f
     echo; echo "=== /sys/class/bluetooth ==="; ls -la /sys/class/bluetooth 2>/dev/null
     echo; echo "=== /data/voice-memos ==="; ls -la /data/voice-memos 2>/dev/null
     echo; echo "=== ps ==="; ps 2>/dev/null
-} > /boot/logs/sysinfo.log 2>&1
-say "logs: sysinfo snapshot written to /boot/logs/sysinfo.log"
+} > "$LOGDIR/sysinfo.log" 2>&1
+say "logs: sysinfo snapshot written to $LOGDIR/sysinfo.log"
 
 # ── errors.log filter ─────────────────────────────────────────────────────────
-# Tails every log file in /boot/logs/ EXCEPT errors.log itself (would loop)
-# and writes any line that looks like a problem to /boot/logs/errors.log.
+# Tails every log file in $LOGDIR EXCEPT errors.log itself (would loop)
+# and writes any line that looks like a problem to $LOGDIR/errors.log.
 # Backgrounded; never blocks boot.
 (
     sleep 3  # let services write a few lines first so tail has files to follow
-    LOG_FILES=$(ls /boot/logs/*.log 2>/dev/null | grep -v errors.log | tr '\n' ' ')
+    LOG_FILES=$(ls "$LOGDIR"/*.log 2>/dev/null | grep -v errors.log | tr '\n' ' ')
     if [ -n "$LOG_FILES" ]; then
         tail -F -n 0 $LOG_FILES 2>/dev/null \
             | grep --line-buffered -iE 'ERROR|WARN|FATAL|fail|unrecoverable|cannot|panic' \
-            >> /boot/logs/errors.log 2>/dev/null
+            >> "$LOGDIR/errors.log" 2>/dev/null
     fi
 ) &
 say "logs: errors.log filter started"
+
+# ── Log-size cap (brief §8.12) ────────────────────────────────────────────────
+# /boot is a 128 MB FAT partition. A crash-looping service once wrote a 105 MB
+# log and took it to 100%, after which even editing /boot/config.txt failed.
+# Covers both log directories: $LOGDIR (this script's own logs, ext4 — a
+# crash-looping service can fill the root filesystem the same way) and
+# /boot/logs (blackhand-audio, blackhand-ui, service_manager — see handoff;
+# those daemons write there directly and are not this script's files, but
+# nothing else caps their size, so it stays covered here). Cap every
+# *.log to its last LOG_CAP bytes — at boot (trims oversized .prev logs) and
+# every 60 s thereafter.
+#
+# The trim MUST keep the same inode. Almost every log here has a long-lived
+# writer holding an open O_APPEND fd: `dmesg -w`, the errors.log tail filter,
+# and every service's stdout/stderr (service_manager.c dup2s the fd before
+# execv and never reopens it). Replacing the file with `mv` unlinks the inode
+# those fds point at, so the writer keeps appending to a file nobody can see:
+# the visible log freezes at LOG_CAP forever while the partition keeps
+# filling, and the space is only reclaimed when the process exits. Measured
+# on tmpfs: after one mv-based cap the visible file stayed at 20000 bytes
+# while filesystem usage grew 2.5 MB -> 12.3 MB in 4 s.
+# `cat tmp > "$_lf"` truncates and rewrites the SAME inode, so every open fd
+# stays valid and O_APPEND writers resume at the new, small end of file.
+LOG_CAP=2097152   # 2 MB per file
+cap_logs() {
+    for _lf in "$LOGDIR"/*.log /boot/logs/*.log; do
+        [ -f "$_lf" ] || continue
+        if [ "$(wc -c < "$_lf" 2>/dev/null || echo 0)" -gt "$LOG_CAP" ]; then
+            tail -c "$LOG_CAP" "$_lf" > "$_lf.cap" 2>/dev/null \
+                && cat "$_lf.cap" > "$_lf" 2>/dev/null
+            rm -f "$_lf.cap"
+        fi
+    done
+}
+cap_logs
+( while sleep 60; do cap_logs; done ) &
+say "logs: per-file size cap active (${LOG_CAP} bytes, every 60s)"
+
+# ── Boot log snapshot to /boot ────────────────────────────────────────────────
+# One copy of this script's own completed boot log, so it can be read from a
+# Mac/Windows host with the SD card pulled and no serial console — the other
+# daemons' /boot/logs/*.log files (audio.log, ui-audio.log, per-service logs)
+# are already there directly from their own writers.
+cp -f "$LOGDIR/last-boot.log" /boot/logs/last-boot.log 2>/dev/null || true

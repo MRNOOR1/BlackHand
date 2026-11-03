@@ -40,7 +40,9 @@ static void call_type(const char *dir, const char *outcome,
     if (outcome && (strcmp(outcome, "missed")    == 0 ||
                     strcmp(outcome, "rejected")  == 0 ||
                     strcmp(outcome, "busy")      == 0 ||
-                    strcmp(outcome, "no_answer") == 0)) {
+                    strcmp(outcome, "no_answer") == 0 ||
+                    strcmp(outcome, "cancelled") == 0 ||
+                    strcmp(outcome, "failed") == 0)) {
         snprintf(out, out_sz, "%s", outcome);
         return;
     }
@@ -182,7 +184,12 @@ int comm_service_storage_ok(void) { return s_storage_ok; }
 
 void comm_service_init(void)     { comm_service_sync(); }
 void comm_service_shutdown(void) {}
-void comm_service_reset(void)    { s_call_count = 0; s_thread_count = 0; }
+int comm_service_reset(void)
+{
+    int rc = storage_ipc_history_clear();
+    comm_service_sync();
+    return rc;
+}
 
 /* ── calls ──────────────────────────────────────────────────────────────── */
 
@@ -204,6 +211,9 @@ const CommMessage *comm_service_message_at(size_t index)
 
 /* ── open conversation ──────────────────────────────────────────────────── */
 
+/* Returns 0 on success, -1 on transport/parse failure, -2 if this number's
+ * sms.json is present but unreadable — the caller must tell the user, not
+ * show an empty conversation (see storage_ipc.h request_array note). */
 int comm_service_thread_open(const char *number)
 {
     if (!number || !number[0]) return -1;
@@ -212,7 +222,8 @@ int comm_service_thread_open(const char *number)
     s_conv_count = 0;
     snprintf(s_conv_number, sizeof(s_conv_number), "%s", number);
 
-    if (storage_ipc_sms_list(number, buf, sizeof(buf)) != 0) return -1;
+    int rc = storage_ipc_sms_list(number, buf, sizeof(buf));
+    if (rc != 0) return rc;
 
     char display[48];
     resolve_name(number, display, sizeof(display));

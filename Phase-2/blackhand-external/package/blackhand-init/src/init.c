@@ -1,3 +1,4 @@
+#include "restart_policy.h"
 /* ============================================================================
  * BlackHand OS — init.c  (PID 1)
  * ============================================================================
@@ -6,7 +7,6 @@
  *   - setsid() + TIOCSCTTY for proper tty/session management
  *   - Correct signal handler ordering (registered before any spawning)
  *   - waitpid(-1) reaping loop handles multiple simultaneous child deaths
- *   - kspawn_shell() waits for the shell (like ASKFIRST) or runs as respawn
  *   - PID 1 never returns — infinite pause loop with safe shutdown path
  *   - shutdown_requested handled with actual reboot(3) call
  *
@@ -16,8 +16,8 @@
  *     → ksetup_console()       bind stdin/stdout/stderr to /dev/console
  *     → ksetup_signals()       register SIGCHLD + SIGTERM + SIGINT handlers
  *     → krun_sysinit()         run /etc/init.d/rcS synchronously (no SIGCHLD race)
- *     → kspawn_shell()         interactive shell on console (like busybox ASKFIRST)
  *     → kspawn_services()      service manager takes over
+ *     → kspawn_tty1()          bh-session (tmux client) on tty1, respawned
  *     → for(;;) { pause(); }   sleep forever, handlers do the work
  *
  * ============================================================================
@@ -36,6 +36,7 @@
 #include <termios.h>
 #include <string.h>
 #include <errno.h>
+#include <time.h>
 
 /* ============================================================================
  * Global state
@@ -43,7 +44,9 @@
  */
 
 /*
- * shutdown_requested — set by signal handler, checked in main loop.
+ * shutdown_requested — 0, or the signal number that asked for shutdown.
+ * Set by the signal handler, consumed by the main loop. The number is kept
+ * because it selects reboot vs halt vs power-off (see kdo_shutdown).
  *
  * volatile sig_atomic_t: the only type safe to read/write from both a signal
  * handler and normal code. volatile prevents the compiler from caching it in
@@ -56,6 +59,39 @@ volatile sig_atomic_t shutdown_requested = 0;
  * when Ctrl-Alt-Del is pressed, same as busybox init behaviour).
  */
 volatile sig_atomic_t ctrlaltdel_requested = 0;
+
+/*
+ * Service-manager supervision.
+ *
+ * svcmgr_pid   — PID of the running /usr/bin/blackhand-svc-mgr, or -1.
+ * svcmgr_died  — set by the SIGCHLD handler when that PID is reaped; the main
+ *                loop respawns it. Without this the manager's death silently
+ *                ends supervision of every service.
+ */
+static volatile sig_atomic_t svcmgr_pid = -1;
+static volatile sig_atomic_t svcmgr_died = 0;
+
+/*
+ * tty1 client — the bh-session process that shows the tmux-hosted UI on the
+ * phone's own screen. tty1_pid is ONLY the pid kspawn_tty1() forked; the tmux
+ * server and its UI loop are other processes (see ksigchld_handler).
+ * tty1_died is set when that pid is reaped; main() respawns it.
+ */
+static volatile sig_atomic_t tty1_pid = -1;
+static volatile sig_atomic_t tty1_died = 0;
+
+/* Crash-loop guard: more than this many manager deaths inside the window and
+ * we stop respawning. Respawning forever would peg the CPU with no prospect of
+ * recovery; stopping keeps whatever is still running alive and logs loudly. */
+
+#ifdef BLACKHAND_DEBUG_SHELL
+/* PID of the bring-up rescue shell (kspawn_shell). Written by main(), read by
+ * the SIGCHLD handler, so it must be sig_atomic_t. */
+volatile sig_atomic_t debug_shell_pid = -1;
+/* Set by the handler when that shell exits so main() respawns it — otherwise
+ * typing "exit" once would lock you out of the device until a reboot. */
+volatile sig_atomic_t debug_shell_died = 0;
+#endif
 
 /*
  * log_fd — open file descriptor to /dev/tty1 for on-screen log messages.
@@ -127,9 +163,29 @@ static void ksigchld_handler(int sig)
 		pid_t pid = waitpid(-1, NULL, WNOHANG);
 		if (pid <= 0)
 			break; /* 0 = no zombie ready, -1 = no children at all */
-		/* In a fuller implementation you would walk an action list here
-		 * (like busybox's mark_terminated) and schedule respawns.
-		 * For now we just reap and log. */
+#ifdef BLACKHAND_DEBUG_SHELL
+		/* Only the rescue shell is respawned here; real services are the
+		 * service manager's job. */
+		if (pid == (pid_t)debug_shell_pid)
+			debug_shell_died = 1;
+#endif
+		/* Everything else that dies here is an orphan re-parented to PID 1
+		 * (rcS background jobs, ex-service-manager children) — reaping is
+		 * all that is owed to them. The service manager is the one child
+		 * init actively supervises. */
+		if (pid == (pid_t)svcmgr_pid)
+			svcmgr_died = 1;
+
+		/* Exact-pid match only. tmux daemonises: the server (and the UI
+		 * loop it runs) is re-parented to init, so it is reaped here as an
+		 * "orphan" if it ever dies, but its pid is never tty1_pid. Clearing
+		 * tty1_pid also stops a recycled pid from matching later. */
+		if (pid == (pid_t)tty1_pid)
+		{
+			tty1_pid = -1;
+			tty1_died = 1;
+		}
+
 		klog("init: reaped child\n");
 	}
 }
@@ -138,13 +194,13 @@ static void ksigchld_handler(int sig)
  * ksigterm_handler — graceful shutdown on SIGUSR1 (halt), SIGTERM (reboot),
  * SIGUSR2 (poweroff). Mirrors busybox halt_reboot_pwoff().
  *
- * Sets a flag rather than acting directly — signal handlers should do as
- * little as possible. The main loop calls kdo_shutdown() when it sees the flag.
+ * Records WHICH signal arrived rather than acting directly — signal handlers
+ * should do as little as possible, and the main loop needs the signal number
+ * to pick reboot vs halt vs power-off.
  */
 static void ksigterm_handler(int sig)
 {
-	(void)sig;
-	shutdown_requested = 1;
+	shutdown_requested = sig;
 }
 
 /*
@@ -403,10 +459,52 @@ static void kmount_vfs(void)
 		perror("init: remount / rw (non-fatal)"); /* non-fatal */
 }
 
+/*
+ * ksethostname — apply /etc/hostname (the custom init is not busybox init, so
+ * nothing else does). Non-fatal: a missing file leaves the kernel default.
+ */
+static void ksethostname(void)
+{
+	char name[65];
+	ssize_t n;
+	int fd = open("/etc/hostname", O_RDONLY);
+
+	if (fd < 0)
+		return;
+	n = read(fd, name, sizeof(name) - 1);
+	close(fd);
+	if (n <= 0)
+		return;
+	name[n] = '\0';
+	name[strcspn(name, "\r\n")] = '\0';
+	if (name[0] != '\0' && sethostname(name, strlen(name)) < 0)
+		perror("init: sethostname (non-fatal)");
+}
+
 /* ============================================================================
  * Process spawning
  * ============================================================================
  */
+
+/*
+ * kchild_signals — put a freshly forked child back to a clean signal state.
+ *
+ * execv() already resets every CAUGHT handler to SIG_DFL for us (POSIX
+ * exec: "signals set to be caught ... shall be set to the default action").
+ * The two things that DO survive exec are an *ignored* disposition and the
+ * blocked-signal mask, so those are the only two we have to clear:
+ *   - SIGHUP is SIG_IGN in init (ksetup_signals) and would stay ignored.
+ *   - the mask is normally empty, but clearing it costs nothing and keeps
+ *     children sane if init is ever forked from inside a handler.
+ */
+static void kchild_signals(void)
+{
+	sigset_t mask;
+
+	signal(SIGHUP, SIG_DFL);
+	sigemptyset(&mask);
+	sigprocmask(SIG_SETMASK, &mask, NULL);
+}
 
 /*
  * kspawn — fork + execv a binary. Returns child PID or -1 on error.
@@ -428,17 +526,7 @@ static pid_t kspawn(const char *path)
 
 	if (pid == 0)
 	{
-		/* Child: reset all signal handlers to defaults, unblock signals.
-		 * Mirrors busybox reset_sighandlers_and_unblock_sigs(). */
-		signal(SIGCHLD, SIG_DFL);
-		signal(SIGTERM, SIG_DFL);
-		signal(SIGUSR1, SIG_DFL);
-		signal(SIGUSR2, SIG_DFL);
-		signal(SIGINT, SIG_DFL);
-		signal(SIGHUP, SIG_DFL);
-		sigset_t mask;
-		sigemptyset(&mask);
-		sigprocmask(SIG_SETMASK, &mask, NULL);
+		kchild_signals();
 
 		/* New session + controlling terminal */
 		kopen_tty("/dev/console");
@@ -481,13 +569,7 @@ static void krun_sysinit(void)
 
 	if (pid == 0)
 	{
-		/* Child: reset signals and get a tty */
-		signal(SIGCHLD, SIG_DFL);
-		signal(SIGTERM, SIG_DFL);
-		sigset_t mask;
-		sigemptyset(&mask);
-		sigprocmask(SIG_SETMASK, &mask, NULL);
-
+		kchild_signals();
 		kopen_tty("/dev/console");
 
 		char *argv[] = {"/bin/sh", "/etc/init.d/rcS", NULL};
@@ -505,16 +587,19 @@ static void krun_sysinit(void)
  * kspawn_shell — spawn an interactive shell on /dev/console.
  *
  * Mirrors busybox ASKFIRST behaviour: the shell is a normal child of init.
- * When it exits (user logs out), init's SIGCHLD handler reaps it.
- *
- * For a respawn-on-exit loop you would track the shell PID and re-spawn
- * in the main loop, exactly as busybox does for RESPAWN actions. That
- * extension is left as a TODO — the current behaviour is "spawn once".
+ * When it exits (user logs out), init's SIGCHLD handler reaps it and the main
+ * loop respawns it, so typing "exit" cannot lock you out of the device.
  *
  * The leading '-' convention (like busybox uses "-/bin/sh") makes the
  * shell treat itself as a login shell. We achieve this by setting argv[0]
  * to "-sh".
+ *
+ * SECURITY: this spawns an UNAUTHENTICATED root shell on /dev/tty2, which
+ * bypasses the app PIN. It must NEVER ship in a production image. It is
+ * compiled out by default and only built when BLACKHAND_DEBUG_SHELL is
+ * defined explicitly (BR2_PACKAGE_BLACKHAND_INIT_DEBUG_SHELL=y).
  */
+#ifdef BLACKHAND_DEBUG_SHELL
 static pid_t kspawn_shell(void)
 {
 	pid_t pid = fork();
@@ -527,16 +612,7 @@ static pid_t kspawn_shell(void)
 
 	if (pid == 0)
 	{
-		/* Child: reset all signal handlers */
-		signal(SIGCHLD, SIG_DFL);
-		signal(SIGTERM, SIG_DFL);
-		signal(SIGUSR1, SIG_DFL);
-		signal(SIGUSR2, SIG_DFL);
-		signal(SIGINT, SIG_DFL);
-		signal(SIGHUP, SIG_DFL);
-		sigset_t mask;
-		sigemptyset(&mask);
-		sigprocmask(SIG_SETMASK, &mask, NULL);
+		kchild_signals();
 
 		/* New session + controlling tty — open tty1, which is what the
 		 * framebuffer displays. /dev/console = tty3 (console=tty3 in cmdline)
@@ -554,30 +630,158 @@ static pid_t kspawn_shell(void)
 	klog("init: shell spawned\n");
 	return pid;
 }
+#endif /* BLACKHAND_DEBUG_SHELL */
 
 /*
  * kspawn_services — launch the BlackHand service manager.
  *
  * The service manager is a normal child of init. It reads
- * /etc/blackhand/services.conf and starts all services in order.
- * If it crashes, init reaps it via SIGCHLD. Restarting it is a TODO
- * (track its PID, respawn in main loop — same busybox RESPAWN pattern).
+ * /etc/blackhand/services.conf and starts all services in order. init records
+ * its PID so the SIGCHLD handler can notice its death (see krespawn_services).
  *
- * If fork itself fails we cannot start services, so we hang in pause()
- * rather than exiting (which would kernel panic).
+ * Never exits on failure — PID 1 exiting is an immediate kernel panic.
+ *
+ * SIGCHLD is blocked from before the fork until svcmgr_pid has been stored.
+ * A manager that dies immediately (missing binary, bad services.conf, crash
+ * on startup) otherwise delivers SIGCHLD while svcmgr_pid still holds -1 or
+ * the previous PID: ksigchld_handler() reaps it, the PID does not match,
+ * svcmgr_died is never set, and init never respawns — every service is left
+ * unsupervised for the rest of the uptime, silently. This is the same race
+ * start_service() closes in service_manager.c. kchild_signals() clears the
+ * mask in the child, so the manager still starts unblocked.
  */
 static void kspawn_services(void)
 {
-	const char *path = "/usr/bin/blackhand-svc-mgr";
-	pid_t pid = kspawn(path);
-	if (pid < 0)
+	sigset_t chld, prev;
+	pid_t pid;
+
+	sigemptyset(&chld);
+	sigaddset(&chld, SIGCHLD);
+	sigprocmask(SIG_BLOCK, &chld, &prev);
+
+	pid = kspawn("/usr/bin/blackhand-svc-mgr");
+	svcmgr_pid = (pid < 0) ? -1 : pid;
+
+	sigprocmask(SIG_SETMASK, &prev, NULL); /* PID stored — safe to reap */
+
+	klog(pid < 0 ? "init: ERROR -- service manager failed to spawn\n"
+	             : "init: service manager spawned\n");
+}
+
+/*
+ * kspawn_tty1 — start /usr/bin/bh-session (a tmux client) on tty1 so the UI
+ * shows on the phone's own screen. The UI itself lives in the detached tmux
+ * session rcS created, not in this process: this client may exit (detach, or
+ * tmux server gone) and the main loop respawns it. bh-session re-creates the
+ * session if it is missing, so a dead tmux server heals here too.
+ *
+ * kopen_tty() gives the child setsid() + TIOCSCTTY on tty1. The child sleeps
+ * 1 s first, so a client that dies at once (no tmux, tty1 unusable) is
+ * respawned at most once a second instead of spinning PID 1. The sleep is in
+ * the child; PID 1 never blocks.
+ *
+ * SIGCHLD is blocked until tty1_pid is stored, same race as kspawn_services().
+ */
+static void kspawn_tty1(void)
+{
+	sigset_t chld, prev;
+	pid_t pid;
+
+	sigemptyset(&chld);
+	sigaddset(&chld, SIGCHLD);
+	sigprocmask(SIG_BLOCK, &chld, &prev);
+
+	pid = fork();
+	if (pid == 0)
 	{
-		klog("init: FATAL -- service manager failed to spawn\n");
-		/* Don't exit — PID 1 exiting = kernel panic */
-		for (;;)
-			pause();
+		char *argv[] = {"/usr/bin/bh-session", NULL};
+		char *envp[] = {"TERM=linux", "LANG=C.UTF-8", "HOME=/root",
+		                "PATH=/usr/sbin:/usr/bin:/sbin:/bin", NULL};
+
+		kchild_signals(); /* clear ignored SIGHUP + blocked SIGCHLD */
+		sleep(1);
+		if (!kopen_tty("/dev/tty1"))
+			_exit(EXIT_FAILURE);
+		execve(argv[0], argv, envp);
+		perror("init: exec bh-session");
+		_exit(EXIT_FAILURE);
 	}
-	klog("init: service manager spawned\n");
+	tty1_pid = (pid < 0) ? -1 : pid;
+
+	sigprocmask(SIG_SETMASK, &prev, NULL); /* PID stored — safe to reap */
+
+	if (pid < 0)
+		perror("init: fork bh-session");
+	else
+		klog("init: tty1 client spawned\n");
+}
+
+/*
+ * kmono_sec — seconds from a monotonic source, for measuring elapsed time.
+ *
+ * This device has no RTC: the wall clock starts near the epoch every boot and
+ * leaps forward whenever it is later corrected. time() is therefore unusable
+ * for durations — a forward jump past SVCMGR_WINDOW_SEC silently resets the
+ * crash-loop window (the guard never trips, so a crash-looping manager spins
+ * forever), and a backward jump makes `now - window_start` negative so the
+ * window never resets at all and the guard trips early, leaving the system
+ * permanently unsupervised. CLOCK_MONOTONIC has neither failure mode.
+ */
+static time_t kmono_sec(void)
+{
+	struct timespec ts;
+
+	if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
+		return 0; /* cannot happen on Linux; 0 just widens the window */
+	return ts.tv_sec;
+}
+
+/*
+ * ksvcmgr_giveup — the crash-loop guard. Returns 1 once the manager has died
+ * more than SVCMGR_MAX_DEATHS times inside SVCMGR_WINDOW_SEC seconds.
+ * `now` is a parameter (not read inline) so selftest.c can drive it.
+ */
+static int ksvcmgr_giveup(time_t now)
+{
+    static RestartGuard guard;
+    return restart_guard_exhausted(&guard, now);
+}
+
+/*
+ * krespawn_services — restart the service manager after it died.
+ *
+ * Called from the main loop (never from the handler) when svcmgr_died is set.
+ * Without this, one crash of the manager silently ends supervision of every
+ * service for the rest of the uptime.
+ *
+ * Killing the old process group first is not optional: when the manager dies
+ * its services keep running and are re-parented to init. No service calls
+ * setsid(), so they all sit in the manager's process group (kspawn() made the
+ * manager a group leader via setsid) and one kill(-pgid) reaches all of them.
+ * Skip it and the new manager starts a SECOND copy of every service, which
+ * then fights the first for its Unix socket and the audio device.
+ *
+ * Crash-loop guard: after SVCMGR_MAX_DEATHS deaths inside SVCMGR_WINDOW_SEC
+ * we stop. Respawning forever would burn the CPU with no prospect of recovery.
+ */
+
+static void krespawn_services(void)
+{
+	int giveup = ksvcmgr_giveup(kmono_sec());
+
+	if (svcmgr_pid > 0)
+		kill(-(pid_t)svcmgr_pid, SIGKILL); /* orphaned services */
+	svcmgr_pid = -1;
+
+	if (giveup)
+	{
+		klog("init: FATAL -- service manager crash-looping, giving up\n");
+		klog("init: no services are supervised; reboot the device\n");
+		return;
+	}
+
+	klog("init: service manager died -- respawning\n");
+	kspawn_services();
 }
 
 /* ============================================================================
@@ -586,37 +790,198 @@ static void kspawn_services(void)
  */
 
 /*
- * kdo_shutdown — kill all processes and reboot/halt.
+ * kunmount_all — flush and detach writable filesystems. Bounded: shutdown
+ * must never hang, so every step has a hard limit.
+ *
+ * /boot is FAT32. Runtime logs use /var/log, but any boot/config changes
+ * must still be flushed before poweroff because FAT has no journal.
+ *
+ * The ext4 root is REMOUNTED READ-ONLY instead of unmounted: PID 1 itself runs
+ * from it, so unmounting it is impossible. Read-only is sufficient — it
+ * commits the journal and blocks any further write. See DECISION-005.
+ *
+ * /proc, /sys, /dev, /run and /tmp are virtual — nothing to flush.
+ */
+#ifndef MNT_DETACH
+#define MNT_DETACH 2 /* linux/fs.h; not exported by every libc's sys/mount.h */
+#endif
+static void kunmount_all(void)
+{
+	int i;
+
+	sync();
+
+	for (i = 0; i < 3; i++)
+	{
+		/* EINVAL/ENOENT = /boot was never mounted; nothing to do. */
+		if (umount("/boot") == 0 || errno == EINVAL || errno == ENOENT)
+			break;
+		sleep(1);
+	}
+	if (i == 3)
+	{
+		/* Still busy after 3 s. MNT_DETACH removes it from the tree now and
+		 * releases it when the last user closes — better than blocking the
+		 * shutdown forever, and the sync() below still flushes the data. */
+		klog("init: /boot busy -- lazy unmount\n");
+		umount2("/boot", MNT_DETACH);
+	}
+
+	/* Root now carries several permanent writers (rcS's `dmesg -w` stream,
+	 * a `tail -F | grep` errors filter, a 60 s log-cap rewriter, and until
+	 * removed a 60 s chmod sweep), so MS_REMOUNT|MS_RDONLY can hit EBUSY
+	 * exactly like /boot's umount above -- any of them still holding a file
+	 * open for write blocks it. kill(-1, SIGKILL) earlier in kdo_shutdown()
+	 * returns before those processes are actually reaped, so the first
+	 * attempt can easily lose that race. Retry with the same bounded
+	 * 3-attempt, 1 s-gap shape as /boot. There is no MNT_DETACH equivalent
+	 * for the fs PID 1 itself runs from -- it cannot be unmounted, only
+	 * left dirty -- so a still-failing final attempt is only logged. */
+	for (i = 0; i < 3; i++)
+	{
+		if (mount(NULL, "/", NULL, MS_REMOUNT | MS_RDONLY, NULL) == 0)
+			break;
+		sleep(1);
+	}
+	if (i == 3)
+		klog("init: WARNING -- could not remount / read-only after 3 attempts\n");
+
+	sync();
+}
+
+/*
+ * ksave_clock — best-effort save of the wall clock to /data/.clock before
+ * shutdown, so rcS can restore it at the next boot (this device has no RTC —
+ * see kmono_sec()). Contract is fixed by the rcS restore side: a single
+ * decimal seconds-since-epoch value plus a trailing newline.
+ *
+ * Must run BEFORE kunmount_all() remounts / read-only -- /data lives on root.
+ *
+ * rcS already saves this periodically; the normal shutdown path on this
+ * device is pulling power, not this clean-shutdown path, so this is a small
+ * improvement layered on that, not the primary mechanism. Best effort only:
+ * never retries, never blocks shutdown, just logs on failure.
+ *
+ * Atomic: write to a temp file in the same directory, then rename() over the
+ * real path. rename() within one filesystem is atomic, so a reader (rcS at
+ * next boot) can never observe a truncated value.
+ */
+static void ksave_clock(void)
+{
+	char buf[32];
+	int len, fd;
+
+	len = snprintf(buf, sizeof(buf), "%ld\n", (long)time(NULL));
+	if (len <= 0 || (size_t)len >= sizeof(buf))
+		return; /* cannot happen: a time_t always fits in 32 bytes */
+
+	fd = open("/data/.clock.tmp", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	if (fd < 0)
+	{
+		klog("init: WARNING -- could not save clock to /data/.clock\n");
+		return;
+	}
+
+	if (write(fd, buf, (size_t)len) != len)
+		klog("init: WARNING -- short write saving clock\n");
+
+	close(fd);
+
+	if (rename("/data/.clock.tmp", "/data/.clock") < 0)
+		klog("init: WARNING -- could not rename /data/.clock.tmp\n");
+}
+
+/*
+ * SHUTDOWN_GRACE_SEC — how long kdo_shutdown() waits after SIGTERM before
+ * SIGKILL.
+ *
+ * MUST stay >= IPC_TIMEOUT_SEC from blackhand-ipc/src/ipc.h (currently 20s).
+ * Reasoning: a client (typically blackhand-ui) can be blocked inside a
+ * synchronous send_msg()/recv_msg() call to a service when SIGTERM arrives.
+ * recv_all()/send_all() in ipc.c retry on EINTR, so the signal does not
+ * unblock the call early -- the client only regains control when the peer
+ * answers or the socket's SO_RCVTIMEO/SO_SNDTIMEO (set to IPC_TIMEOUT_SEC)
+ * fires. Only after that can the client's own SIGTERM handling run its
+ * flush-notes/flush-drafts/finalise-recording cleanup. A grace shorter than
+ * IPC_TIMEOUT_SEC (the old value was 5s, 15s short) gets that client
+ * SIGKILLed before it ever gets a chance to clean up.
+ *
+ * Set to IPC_TIMEOUT_SEC + 2s: the extra 2s is for the client's own cleanup
+ * work after its IPC call unblocks, plus scheduling slop -- it is not itself
+ * bounded by anything else in this file, so it is a fixed margin rather than
+ * a derived one. This is a hand-kept invariant, not enforced by the compiler:
+ * ipc.h and init.c are separate Buildroot packages (blackhand-init does not
+ * depend on blackhand-ipc's headers), so if IPC_TIMEOUT_SEC ever changes,
+ * SHUTDOWN_GRACE_SEC must be reviewed and updated to match by hand. See
+ * BUG-shutdown-grace in shared knowledge.
+ */
+#define SHUTDOWN_GRACE_SEC 22
+
+/*
+ * kdo_shutdown — kill all processes, save the clock, unmount cleanly, and
+ * reboot/halt/poweroff.
  *
  * Mirrors busybox run_shutdown_and_kill_processes() + pause_and_low_level_reboot().
  *
- * Step 1: SIGTERM — ask processes to exit cleanly.
- * Step 2: sync()  — flush all pending disk writes.
- * Step 3: sleep(1) — give processes time to respond.
- * Step 4: SIGKILL — kill anything still alive.
- * Step 5: sync() again — flush any writes from dying processes.
- * Step 6: reboot(2) — ask the kernel to halt/reboot/poweroff.
+ *   1. SIGTERM      — ask every process to exit cleanly.
+ *   2. sleep(22)    — give them time to respond (UI drafts/notes flush,
+ *                     daemon WAV finalisation) -- see SHUTDOWN_GRACE_SEC.
+ *   3. SIGKILL      — kill whatever is still alive (frees /boot).
+ *   4. ksave_clock  — best-effort, before root goes read-only.
+ *   5. kunmount_all — sync, unmount /boot, remount / read-only (retried).
+ *   6. reboot(2)    — hand over to the kernel.
  *
- * kill(-1, sig) sends the signal to every process except PID 1 itself.
+ * Worst-case duration: 22 s (SIGTERM grace, SHUTDOWN_GRACE_SEC) + up to 3 s
+ * (/boot unmount retries) + up to 3 s (/ remount-ro retries) = ~28 s. Bounded
+ * at every step; this never hangs, it just occasionally reboots slower.
  *
- * We use RB_AUTOBOOT (reboot) as the default. A production implementation
- * would distinguish halt/reboot/poweroff based on which signal arrived,
- * exactly as busybox halt_reboot_pwoff() does with RB_HALT_SYSTEM /
- * RB_AUTOBOOT / RB_POWER_OFF.
+ * kill(-1, sig) sends the signal to every process except PID 1 itself. The
+ * service manager has the default SIGTERM disposition, so step 1 stops it
+ * before it can restart anything it sees dying.
+ *
+ * `sig` is the signal that requested the shutdown, using the busybox
+ * convention: SIGUSR1 = halt, SIGUSR2 = power off, anything else = reboot.
  */
-static void kdo_shutdown(void)
+static void kdo_shutdown(int sig)
 {
+	int how = RB_AUTOBOOT; /* SIGTERM (reboot) and SIGINT (Ctrl-Alt-Del) */
+
+	if (sig == SIGUSR1)
+		how = RB_HALT_SYSTEM;
+	else if (sig == SIGUSR2)
+		how = RB_POWER_OFF;
+
 	klog("init: shutdown -- terminating all processes\n");
+
+	/* Let the kernel auto-reap from here on. Nothing is being supervised any
+	 * more, and a handler firing for each dying process would cut short the
+	 * sleeps in kunmount_all() (sleep(3) is not restarted by SA_RESTART),
+	 * which is exactly the time /boot needs to become free.
+	 *
+	 * The shutdown signals need the same treatment for the same reason: a
+	 * second `poweroff` over SSH, or Ctrl-Alt-Del, delivers SIGTERM/SIGUSR1/
+	 * SIGUSR2/SIGINT to PID 1 while we are in one of those sleeps and cuts it
+	 * short too — SA_RESTART does not cover sleep(). Shutdown is already
+	 * running and cannot be started twice, so ignoring them is also correct. */
+	signal(SIGCHLD, SIG_IGN);
+	signal(SIGTERM, SIG_IGN);
+	signal(SIGUSR1, SIG_IGN);
+	signal(SIGUSR2, SIG_IGN);
+	signal(SIGINT, SIG_IGN);
 
 	kill(-1, SIGTERM);
 	sync();
-	sleep(1);
+	/* Let UI drafts and daemon WAV finalisation finish before forced exit.
+	 * See SHUTDOWN_GRACE_SEC above for why this must be >= IPC_TIMEOUT_SEC. */
+	sleep(SHUTDOWN_GRACE_SEC);
 
 	kill(-1, SIGKILL);
-	sync();
-	sleep(1);
 
-	klog("init: rebooting\n");
+	ksave_clock(); /* before root goes read-only below */
+
+	kunmount_all();
+
+	klog(how == RB_AUTOBOOT ? "init: rebooting\n" : "init: powering down\n");
 
 	/* Fork before calling reboot() — the kernel calls do_exit() inside
 	 * reboot() which can panic if called directly by PID 1 on some kernels.
@@ -624,7 +989,7 @@ static void kdo_shutdown(void)
 	pid_t pid = fork();
 	if (pid == 0)
 	{
-		reboot(RB_AUTOBOOT);
+		reboot(how);
 		_exit(0);
 	}
 
@@ -647,9 +1012,11 @@ static void kdo_shutdown(void)
  *   2. ksetup_console()  — already called inside kmount_vfs() after /dev mounts
  *   3. krun_sysinit()    — blocking rcS run (before SIGCHLD registered)
  *   4. ksetup_signals()  — register handlers (after blocking sysinit, before spawning)
- *   5. kspawn_shell()    — interactive console shell
- *   6. kspawn_services() — service manager
- *   7. for(;;) pause()   — sleep, wake on signal, check flags, repeat
+ *   5. kspawn_services() — service manager
+ *   6. for(;;) pause()   — sleep, wake on signal, check flags, repeat
+ *
+ * No interactive shell is spawned. kspawn_shell() exists only for local
+ * bring-up and is compiled out unless BLACKHAND_DEBUG_SHELL is defined.
  *
  * main() must NEVER return. If PID 1 exits, the kernel panics immediately.
  */
@@ -689,6 +1056,8 @@ int main(void)
 
 	/* 3. Run sysinit script synchronously — BEFORE SIGCHLD handler is live
 	 *    to avoid race between our waitpid(pid) and handler's waitpid(-1). */
+	ksethostname();
+
 	klog("init: running /etc/init.d/rcS...\n");
 	krun_sysinit();
 
@@ -699,6 +1068,17 @@ int main(void)
 	/* 5. Service manager */
 	klog("init: spawning service manager\n");
 	kspawn_services();
+
+	/* 5b. tty1 client for the tmux session rcS already created (rcS is the
+	 *     single creation point; bh-session would create it only if absent). */
+	kspawn_tty1();
+
+#ifdef BLACKHAND_DEBUG_SHELL
+	/* 6. Bring-up rescue shell on tty2 — reach it with Alt+F2 (UI owns tty1).
+	 *    Compiled out unless BR2_PACKAGE_BLACKHAND_INIT_DEBUG_SHELL=y. */
+	klog("init: spawning debug shell on tty2 (Alt+F2)\n");
+	debug_shell_pid = kspawn_shell();
+#endif
 
 	klog("init: boot complete — system ready\n");
 	klog("\n");
@@ -719,14 +1099,36 @@ int main(void)
 		{
 			ctrlaltdel_requested = 0;
 			klog("init: Ctrl-Alt-Del -- rebooting\n");
-			kdo_shutdown(); /* does not return */
+			kdo_shutdown(SIGINT); /* does not return */
 		}
 
 		if (shutdown_requested)
 		{
+			int sig = shutdown_requested;
 			shutdown_requested = 0;
-			kdo_shutdown(); /* does not return */
+			kdo_shutdown(sig); /* does not return */
 		}
+
+		if (svcmgr_died)
+		{
+			svcmgr_died = 0;
+			krespawn_services();
+		}
+
+		if (tty1_died)
+		{
+			tty1_died = 0;
+			kspawn_tty1();
+		}
+
+#ifdef BLACKHAND_DEBUG_SHELL
+		if (debug_shell_died)
+		{
+			debug_shell_died = 0;
+			klog("init: debug shell exited — respawning\n");
+			debug_shell_pid = kspawn_shell();
+		}
+#endif
 	}
 
 	return 0; /* unreachable — satisfies compiler */

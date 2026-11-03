@@ -1,5 +1,8 @@
+#define _POSIX_C_SOURCE 200809L
 #include "notes_service.h"
-#include "../config.h"
+#include "file_store.h"
+#include <unistd.h>
+#include "../app_paths.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -61,9 +64,19 @@ static void make_safe_filename(const char *title, char *out, size_t out_size)
 		return;
 	}
 
+	/* Cap the base name well under the 256-byte out[] bound and, more
+	   importantly, under the filesystem's NAME_MAX (255 on ext4/APFS).
+	   file_store_begin() appends ".tmpXXXXXX" (10 bytes) to the filename
+	   for its temp file, and the duplicate-title path below can append
+	   "_NNN" (up to 5 bytes) before ".md" (3 bytes). Without this cap, a
+	   long-but-plausible title (e.g. ~250 alnum chars) produced a
+	   filename that was itself under 256 bytes but became too long for
+	   mkstemp() once ".tmpXXXXXX" was appended, so notes_service_create()
+	   silently returned NULL and the note was never saved. */
+#define NOTES_SAFE_BASENAME_LEN 200
 	size_t j = 0;
 	int last_underscore = 0;
-	for (size_t i = 0; title[i] != '\0' && j + 5 < out_size; i++) {
+	for (size_t i = 0; title[i] != '\0' && j + 5 < out_size && j < NOTES_SAFE_BASENAME_LEN; i++) {
 		unsigned char ch = (unsigned char)title[i];
 		if (isalnum(ch)) {
 			out[j++] = (char)ch;
@@ -109,7 +122,7 @@ void notes_service_init(void)
 
 	struct stat st = {0};
 	if (stat(NOTES_PATH, &st) == -1) {
-		if (mkdir(NOTES_PATH, 0755) != 0) {
+		if (mkdir(NOTES_PATH, 0700) != 0) {
 			perror("Failed to create notes directory");
 			return;
 		}
@@ -199,11 +212,12 @@ Note *notes_service_create(const char *title, const char *content)
 		}
 	}
 
+	if (path_exists(filepath)) { free(new_note); return NULL; }
 	new_note->filename = strdup(filename);
 	new_note->title = title_from_filename(filename);
 	new_note->content = strdup(content ? content : "");
 
-	if (ensure_capacity() != 0) {
+	if (!new_note->filename || !new_note->title || !new_note->content || ensure_capacity() != 0) {
 		free(new_note->filename);
 		free(new_note->title);
 		free(new_note->content);
@@ -216,18 +230,20 @@ Note *notes_service_create(const char *title, const char *content)
 	   nothing was on disk). Old behaviour silently inserted into the
 	   in-memory index and the note would vanish on reboot. */
 	snprintf(filepath, sizeof(filepath), "%s/%s", NOTES_PATH, new_note->filename);
-	FILE *f = fopen(filepath, "w");
-	if (!f) {
-		fprintf(stderr, "notes_service: cannot create %s: %s\n",
-		        filepath, strerror(errno));
+	char temp[1100];
+	FILE *f = file_store_begin(filepath, temp, sizeof(temp));
+	int saved = 0;
+	if (f) {
+		fputs(new_note->content, f);
+		saved = file_store_commit(f, temp, filepath, 1) == 0;
+	}
+	if (!saved) {
 		free(new_note->filename);
 		free(new_note->title);
 		free(new_note->content);
 		free(new_note);
 		return NULL;
 	}
-	fprintf(f, "%s", new_note->content);
-	fclose(f);
 
 	insert_at_front(new_note);
 	return new_note;
@@ -253,7 +269,7 @@ int notes_service_delete_note(const Note *n)
 		if (strcmp(note->filename, n->filename) == 0) {
 			char filepath[1024];
 			snprintf(filepath, sizeof(filepath), "%s/%s", NOTES_PATH, note->filename);
-			remove(filepath);
+			if (unlink(filepath) != 0 && errno != ENOENT) return 1;
 
 			free(note->filename);
 			free(note->title);
@@ -277,29 +293,21 @@ int notes_service_update_note(Note *n)
 	for (size_t i = 0; i < notes_count; i++) {
 		Note *note = notes_index[i];
 		if (strcmp(note->filename, n->filename) == 0) {
-			if (n != note) {
-				free(note->content);
-				note->content = strdup(n->content ? n->content : "");
-			}
-
-			/* Move to front (most recently modified) */
-			if (i != 0) {
-				Note *tmp = note;
-				for (size_t j = i; j > 0; j--)
-					notes_index[j] = notes_index[j - 1];
-				notes_index[0] = tmp;
-			}
-
-			char filepath[1024];
+			char *content = strdup(n->content ? n->content : "");
+			if (!content) return 1;
+			char filepath[1024], temp[1100];
 			snprintf(filepath, sizeof(filepath), "%s/%s", NOTES_PATH, note->filename);
-			FILE *f = fopen(filepath, "w");
-			if (!f) {
-				fprintf(stderr, "notes_service: cannot write %s: %s\n",
-				        filepath, strerror(errno));
+			FILE *f = file_store_begin(filepath, temp, sizeof(temp));
+			if (!f) { free(content); return 1; }
+			fputs(content, f);
+			if (file_store_commit(f, temp, filepath, 0) != 0) {
+				free(content);
 				return 1;
 			}
-			fprintf(f, "%s", note->content);
-			fclose(f);
+			free(note->content);
+			note->content = content;
+			for (size_t j = i; j > 0; j--) notes_index[j] = notes_index[j - 1];
+			notes_index[0] = note;
 			return 0;
 		}
 	}
@@ -353,15 +361,17 @@ int notes_service_rename_note(Note *n, const char *new_title)
 	snprintf(old_path, sizeof(old_path), "%s/%s", NOTES_PATH, n->filename);
 	snprintf(new_path, sizeof(new_path), "%s/%s", NOTES_PATH, new_filename);
 
-	if (rename(old_path, new_path) != 0)
-		return -1;
-
-	/* Update in-memory */
+	char *filename = strdup(new_filename);
+	char *title = title_from_filename(new_filename);
+	if (!filename || !title) { free(filename); free(title); return -1; }
+	if (link(old_path, new_path) != 0) { free(filename); free(title); return -1; }
+	if (unlink(old_path) != 0) {
+		unlink(new_path); free(filename); free(title); return -1;
+	}
 	free(n->filename);
 	free(n->title);
-	n->filename = strdup(new_filename);
-	n->title = title_from_filename(new_filename);
-
+	n->filename = filename;
+	n->title = title;
 	return 0;
 }
 

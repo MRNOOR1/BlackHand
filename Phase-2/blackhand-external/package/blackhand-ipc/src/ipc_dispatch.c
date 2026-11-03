@@ -24,7 +24,6 @@
 
 /* ── private handler forward declarations ── */
 static void handle_ping(int fd, cJSON *req);
-static void handle_echo(int fd, cJSON *req);
 
 /* ── dispatch table ── add your service handlers here ── */
 struct handler {
@@ -34,7 +33,6 @@ struct handler {
 
 static struct handler table[] = {
     {"ping", handle_ping},
-    {"echo", handle_echo},
     /* add service-specific entries here */
     {NULL, NULL}
 };
@@ -91,19 +89,6 @@ static void handle_ping(int fd, cJSON *req)
     cJSON *res = cJSON_CreateObject();
     cJSON_AddStringToObject(res, "jsonrpc", "2.0");
     cJSON_AddStringToObject(res, "result", "pong");
-    cJSON_AddNumberToObject(res, "id", id);
-    char *str = cJSON_PrintUnformatted(res);
-    send_msg(fd, str);
-    free(str);
-    cJSON_Delete(res);
-}
-
-static void handle_echo(int fd, cJSON *req)
-{
-    int id = cJSON_GetObjectItem(req, "id")->valueint;
-    cJSON *res = cJSON_CreateObject();
-    cJSON_AddStringToObject(res, "jsonrpc", "2.0");
-    cJSON_AddStringToObject(res, "result", "this is a test echo");
     cJSON_AddNumberToObject(res, "id", id);
     char *str = cJSON_PrintUnformatted(res);
     send_msg(fd, str);

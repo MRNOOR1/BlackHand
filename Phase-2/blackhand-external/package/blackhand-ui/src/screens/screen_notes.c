@@ -29,6 +29,7 @@ static int delete_prompt = 0;
 static int delete_choice_yes = 0;
 static int delete_target = -1;
 
+static const char *s_error = NULL;
 static int edit_is_new = 1;
 static int edit_index = -1;
 static char edit_body[2048];
@@ -39,17 +40,6 @@ static int save_name_cursor = 0;
 static multitap_state s_save_multitap;
 static char save_target_filename[256];
 static int save_name_pristine = 0;
-
-static void put_clipped(struct ncplane *p, int row, int col, int max_w, const char *text) {
-    if (!text || max_w <= 0) return;
-    char buf[512];
-    snprintf(buf, sizeof(buf), "%s", text);
-    if ((int)strlen(buf) > max_w) {
-        if (max_w > 3) { buf[max_w - 3] = '.'; buf[max_w - 2] = '.'; buf[max_w - 1] = '.'; }
-        buf[max_w] = '\0';
-    }
-    ncplane_putstr_yx(p, row, col, buf);
-}
 
 static void draw_delete_popup(struct ncplane *phone) {
     ghost_confirm_popup(phone, "DELETE NOTE?", delete_choice_yes);
@@ -70,6 +60,9 @@ static void begin_edit_existing(int index) {
     Note **notes = notes_service_list_all(NULL);
     if (!notes || !notes[index]) return;
 
+    if (strlen(notes[index]->content ? notes[index]->content : "") >= sizeof(edit_body)) {
+        s_error = "Note too large to edit"; return;
+    }
     edit_is_new = 0;
     edit_index = index;
     snprintf(edit_body, sizeof(edit_body), "%s",
@@ -101,6 +94,7 @@ static void enter_save_prompt(int index) {
 }
 
 static void save_edit(void) {
+    s_error = NULL;
     const char *body = edit_body;
 
     if (edit_is_new) {
@@ -111,6 +105,7 @@ static void save_edit(void) {
             enter_save_prompt(0);
             return;
         }
+        s_error = "Save failed; text kept";
         /* Create failed (disk full, no permission, etc.). Stay in EDIT
            mode so the user doesn't lose their typing. Previously fell
            through to LIST mode and silently dropped the content. */
@@ -122,16 +117,11 @@ static void save_edit(void) {
         Note **notes = notes_service_list_all(NULL);
         if (notes && notes[edit_index]) {
             Note *n = notes[edit_index];
-            char *old_content = n->content;
-            n->content = strdup(body);
-            if (notes_service_update_note(n) != 0) {
-                /* Save failed. Roll back to the old content in memory
-                   and keep the user in EDIT mode. */
-                free(n->content);
-                n->content = old_content;
-                return;
+            Note candidate = *n;
+            candidate.content = edit_body;
+            if (notes_service_update_note(&candidate) != 0) {
+                s_error = "Save failed; text kept"; return;
             }
-            free(old_content);
             selected = 0;
             list_scroll = 0;
         }
@@ -185,7 +175,7 @@ static void draw_list(struct ncplane *phone) {
 
     ghost_softkeys(phone, "[Back]", "[New]");
     ghost_text(phone, (int)rows - 3, CONTENT_COL, theme_text_muted(),
-               "A:View  E:New  D:Delete");
+               "A:View E:New D:Del");
     if (delete_prompt) draw_delete_popup(phone);
 }
 
@@ -299,7 +289,7 @@ static void draw_edit(struct ncplane *phone) {
 
     ghost_softkeys(phone, "[Back]", "[Save]");
     ghost_text(phone, (int)rows - 3, CONTENT_COL, theme_text_muted(),
-               "2-9:ABC  F4:Save  F1:Back");
+               "2-9:ABC A:Save D:Bksp");
 }
 
 static void draw_save_prompt(struct ncplane *phone) {
@@ -325,7 +315,7 @@ static void draw_save_prompt(struct ncplane *phone) {
         ghost_text(phone, top + UI_POPUP_INPUT_ROW_OFFSET, cursor_col, theme_border(), "_");
 
     ghost_text(phone, top + UI_POPUP_HINT_ROW_OFFSET, left + UI_POPUP_TEXT_INSET_X,
-               theme_text_muted(), "2-9:ABC #:Case *:Punct");
+               theme_text_muted(), "2-9:ABC #Case *Punc");
     ghost_softkeys(phone, "[Skip]", "[Save]");
 }
 
@@ -335,6 +325,10 @@ void screen_notes_draw(struct ncplane *phone) {
         case NOTES_MODE_VIEW:        draw_view(phone); break;
         case NOTES_MODE_EDIT:        draw_edit(phone); break;
         case NOTES_MODE_SAVE_PROMPT: draw_save_prompt(phone); break;
+    }
+    if (s_error) {
+        unsigned rows, cols; ncplane_dim_yx(phone, &rows, &cols);
+        ghost_text(phone, (int)rows - 3, CONTENT_COL, theme_destruct_border(), s_error);
     }
 }
 
@@ -346,11 +340,13 @@ screen_id screen_notes_input(uint32_t key) {
         s_multitap_ready = 1;
     }
 
+    s_error = NULL;
     size_t count = notes_service_note_count();
 
     if (mode == NOTES_MODE_SAVE_PROMPT) {
         switch (key) {
             case KEY_SOFT_RIGHT_ACTION:
+            case KEY_ACTION_PRIMARY:        /* A = save name */
             case NCKEY_ENTER:
             case '\n': {
                 multitap_reset(&s_save_multitap);
@@ -361,7 +357,9 @@ screen_id screen_notes_input(uint32_t key) {
                         for (size_t i = 0; i < count; i++) {
                             if (notes[i] && notes[i]->filename &&
                                 strcmp(notes[i]->filename, save_target_filename) == 0) {
-                                notes_service_rename_note(notes[i], save_name_buf);
+                                if (notes_service_rename_note(notes[i], save_name_buf) != 0) {
+                                    s_error = "Rename failed"; return SCREEN_NOTES;
+                                }
                                 break;
                             }
                         }
@@ -380,6 +378,7 @@ screen_id screen_notes_input(uint32_t key) {
                 list_scroll = 0;
                 save_name_pristine = 0;
                 return SCREEN_NOTES;
+            case KEY_ACTION_SECONDARY:      /* D = backspace */
             case NCKEY_BACKSPACE:
             case 127:
                 multitap_backspace(&s_save_multitap, 0, save_name_buf);
@@ -422,10 +421,12 @@ screen_id screen_notes_input(uint32_t key) {
             switch (key) {
                 case NCKEY_ENTER:
                 case '\n':
+                case KEY_ACTION_PRIMARY:    /* A = confirm delete */
                     if (delete_target >= 0) {
                         Note **notes = notes_service_list_all(NULL);
                         if (notes && delete_target < (int)count) {
-                            notes_service_delete_note(notes[delete_target]);
+                            if (notes_service_delete_note(notes[delete_target]) != 0)
+                                s_error = "Delete failed";
                         }
                         count = notes_service_note_count();
                         if (selected >= (int)count && selected > 0) selected--;
@@ -433,7 +434,8 @@ screen_id screen_notes_input(uint32_t key) {
                     delete_prompt = 0;
                     delete_target = -1;
                     return SCREEN_NOTES;
-                case KEY_SOFT_LEFT_ACTION:
+                case KEY_SOFT_LEFT_ACTION:  /* Q = cancel */
+                case KEY_ACTION_SECONDARY:  /* D = cancel */
                     delete_prompt = 0;
                     delete_target = -1;
                     return SCREEN_NOTES;
@@ -501,15 +503,16 @@ screen_id screen_notes_input(uint32_t key) {
 
     /* EDIT mode */
     switch (key) {
-        case KEY_SOFT_RIGHT_ACTION:
-        case KEY_ACTION_PRIMARY:
+        case KEY_ACTION_PRIMARY:            /* A = save */
             multitap_reset(&s_multitap);
             save_edit();
             return SCREEN_NOTES;
-        case KEY_SOFT_LEFT_ACTION:
-        case KEY_ACTION_SECONDARY:
+        case KEY_SOFT_RIGHT_ACTION:         /* E = cycle input mode (case) */
+            multitap_toggle_case(&s_multitap);
+            return SCREEN_NOTES;
+        case KEY_SOFT_LEFT_ACTION:          /* Save before leaving the editor. */
             multitap_reset(&s_multitap);
-            mode = NOTES_MODE_LIST;
+            save_edit();
             return SCREEN_NOTES;
         case NCKEY_ENTER:
         case '\n': {
@@ -521,6 +524,7 @@ screen_id screen_notes_input(uint32_t key) {
             }
             return SCREEN_NOTES;
         }
+        case KEY_ACTION_SECONDARY:          /* D = backspace */
         case NCKEY_BACKSPACE:
         case 127:
             multitap_backspace(&s_multitap, 0, edit_body);
@@ -548,4 +552,22 @@ screen_id screen_notes_input(uint32_t key) {
 
 int screen_notes_is_edit_mode(void) {
     return (mode == NOTES_MODE_EDIT || mode == NOTES_MODE_SAVE_PROMPT) ? 1 : 0;
+}
+
+/* Called on idle and before shutdown; leave editor state intact. */
+int screen_notes_flush(void) {
+    if (mode != NOTES_MODE_EDIT) return 0;
+    if (edit_is_new && !edit_body[0]) return 0;
+    Note **notes = notes_service_list_all(NULL);
+    if (!edit_is_new && edit_index >= 0 && edit_index < (int)notes_service_note_count() &&
+        strcmp(notes[edit_index]->content, edit_body) == 0) return 0;
+    save_edit();
+    if (mode == NOTES_MODE_EDIT) return -1;
+    edit_is_new = 0; edit_index = 0; mode = NOTES_MODE_EDIT;
+    return 0;
+}
+
+void screen_notes_reset_editor(void) {
+    mode = NOTES_MODE_LIST; edit_body[0] = '\0'; edit_index = -1; edit_is_new = 1;
+    delete_prompt = 0; selected = 0; list_scroll = 0;
 }

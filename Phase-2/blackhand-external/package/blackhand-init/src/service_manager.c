@@ -1,3 +1,4 @@
+#include "restart_policy.h"
 /*
  * ============================================================================
  * BlackHand OS — service_manager.c
@@ -72,9 +73,9 @@
  * RELATIONSHIP TO init.c
  * -----------------------
  * init.c spawns this process as its only direct child. init.c mounts /run
- * which is where socket files live. init.c also reaps this process if it
- * crashes (via its own SIGCHLD handler), though currently it does not
- * restart the service manager — that is a future improvement.
+ * which is where socket files live. If this process dies, init reaps it,
+ * SIGKILLs this process group (which is where the orphaned services are)
+ * and starts a fresh manager — see krespawn_services() in init.c.
  *
  * The full process tree at runtime:
  *
@@ -123,6 +124,12 @@
 #define CONFIG_PATH "/etc/blackhand/services.conf"
 
 /*
+ * BACKOFF_MAX_COUNT — restart_count is clamped here, which pins the backoff
+ * delay at 30 s (1 << 5 == 32, clamped to 30) and keeps the shift width well
+ * inside the width of an int.
+ */
+
+/*
  * Service — describes one service entry from the config file.
  *
  *   name              — human-readable identifier e.g. "blackhand-audio".
@@ -152,13 +159,71 @@ typedef struct
 	int   restart_on_failure;
 	pid_t pid;
 	int   restart_count;
-	time_t last_start_time;
-	time_t next_restart_at;  /* 0 = not pending, >0 = restart after this time */
+	time_t last_start_time;   /* CLOCK_MONOTONIC seconds -- see kmono_sec() */
+	int    restart_pending;   /* 1 = a restart is scheduled, next_restart_at is valid */
+	time_t next_restart_at;   /* CLOCK_MONOTONIC deadline; meaningless unless
+	                            * restart_pending is set. 0 is a normal, reachable
+	                            * deadline (time since boot), not a sentinel -- see
+	                            * restart_pending. */
 } Service;
 
 /* Global service table — filled by parse_config(), used by everything else */
 Service services[MAX_SERVICES];
 int     num_services = 0;
+
+/*
+ * backoff_delay — seconds to wait before the next restart of a service that
+ * has already been restarted `restart_count` times: 0, 1, 2, 4, 8, 16, then
+ * 30 s forever.
+ *
+ * The clamp is not cosmetic. Callers must also clamp restart_count, because
+ * an uncapped counter would eventually shift by 32 or more, which is
+ * undefined behaviour — and the delay is pinned at 30 s long before then.
+ *
+ * Covered by selftest.c.
+ */
+
+/*
+ * kmono_sec — seconds from a monotonic source, for measuring elapsed time and
+ * computing restart deadlines (last_start_time, next_restart_at).
+ *
+ * This device has no RTC: the wall clock starts near the epoch every boot and
+ * leaps forward whenever it is later corrected (init.c's shutdown path now
+ * saves it to /data/.clock and rcS restores it at boot). time() is unusable
+ * for this: a forward jump makes `now >= next_restart_at` true instantly,
+ * collapsing a crash-looping service's backoff to zero right when the guard
+ * matters most. CLOCK_MONOTONIC cannot jump.
+ *
+ * Identical to init.c's kmono_sec(). Not shared via a common header: these
+ * are two independent processes, and a header for ~8 duplicated lines is
+ * more machinery than the duplication it removes (CLAUDE.md simplicity
+ * rule) -- two tiny static helpers in two binaries is the simpler choice.
+ */
+static time_t kmono_sec(void)
+{
+	struct timespec ts;
+
+	if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
+		return 0; /* cannot happen on Linux; 0 just widens the window */
+	return ts.tv_sec;
+}
+
+/*
+ * slog — write a message to stderr (init wires this to the serial console).
+ *
+ * Async-signal-safe: write() is on the POSIX list, and the length is computed
+ * with a plain pointer walk because strlen() is not. This replaces
+ * write(2, "...", <hand-counted length>) — two of those constants were wrong
+ * and silently truncated their message.
+ */
+static void slog(const char *msg)
+{
+	size_t len = 0;
+	const char *p = msg;
+	while (*p++)
+		len++;
+	write(2, msg, len);
+}
 
 /*
  * parse_config — read services.conf and populate the services[] array.
@@ -214,7 +279,7 @@ static void parse_config(void)
 			current++;
 			if (current >= MAX_SERVICES)
 			{
-				write(2, "service_manager: too many services in config\n", 45);
+				slog("service_manager: too many services in config\n");
 				break;
 			}
 
@@ -223,6 +288,7 @@ static void parse_config(void)
 			services[current].restart_on_failure = 0;
 			services[current].restart_count    = 0;
 			services[current].last_start_time  = 0;
+			services[current].restart_pending  = 0;
 			services[current].next_restart_at  = 0;
 			services[current].name[0]          = '\0';
 			services[current].path[0]          = '\0';
@@ -287,15 +353,34 @@ static void parse_config(void)
  */
 static void start_service(Service *service)
 {
-	pid_t pid = fork();
+	sigset_t chld, prev;
+	pid_t pid;
+
+	/* SIGCHLD must stay blocked from before the fork until service->pid has
+	 * been stored. A service that dies immediately (missing binary, bad
+	 * config) otherwise delivers SIGCHLD while service->pid still holds the
+	 * OLD value: find_by_pid() misses the new PID, the death is dropped, and
+	 * the service stays dead forever while the manager believes it is up.
+	 * The child unblocks it again below so the service starts unblocked. */
+	sigemptyset(&chld);
+	sigaddset(&chld, SIGCHLD);
+	sigprocmask(SIG_BLOCK, &chld, &prev);
+
+	pid = fork();
 
 	if (pid == -1)
 	{
+		sigprocmask(SIG_SETMASK, &prev, NULL);
 		perror("service_manager: fork failed");
 		return; /* log and continue — do not kill the whole service manager */
 	}
 	else if (pid == 0)
 	{
+		/* The blocked mask survives execv() — restore it before the service
+		 * image takes over, or every service would start with SIGCHLD
+		 * blocked and could not reap its own children. */
+		sigprocmask(SIG_SETMASK, &prev, NULL);
+
 		/* blackhand-ui must render on tty1 (the framebuffer's active VT).
 		 * Without this redirect the UI inherits /dev/console = tty3
 		 * (set by console=tty3 in cmdline.txt) and renders on a VT that
@@ -316,13 +401,13 @@ static void start_service(Service *service)
 		{
 			/* Every other service has its stderr+stdout redirected to a
 			 * per-service log file on the FAT32 boot partition, e.g.
-			 * /boot/logs/blackhand-audio.log. That makes every daemon
+			 * /var/log/blackhand/blackhand-audio.log. That makes every daemon
 			 * inspectable from any host that can read the SD card —
 			 * no SSH, no ext4 driver. The redirect happens *before*
 			 * execv so the new image inherits the redirected fds. */
 			char logpath[128];
 			snprintf(logpath, sizeof(logpath),
-			         "/boot/logs/%s.log", service->name);
+			         "/var/log/blackhand/%s.log", service->name);
 			int logfd = open(logpath,
 			                 O_WRONLY | O_CREAT | O_APPEND, 0644);
 			if (logfd >= 0)
@@ -344,11 +429,13 @@ static void start_service(Service *service)
 	else
 	{
 		service->pid = pid;
-		service->last_start_time = time(NULL);
+		service->last_start_time = kmono_sec();
+		service->restart_pending = 0;
 		service->next_restart_at = 0;
-		write(2, "service_manager: started ", 25);
-		write(2, service->name, strlen(service->name));
-		write(2, "\n", 1);
+		sigprocmask(SIG_SETMASK, &prev, NULL); /* PID stored — safe to reap */
+		slog("service_manager: started ");
+		slog(service->name);
+		slog("\n");
 	}
 }
 
@@ -373,6 +460,25 @@ static Service *find_by_pid(pid_t pid)
 			return &services[i];
 	}
 	return NULL;
+}
+
+/*
+ * restart_is_due — true if a service with a scheduled restart should be
+ * started now.
+ *
+ * Factored out of the polling loop in main() so selftest.c can drive it
+ * directly with chosen `now` values -- the same reason init.c's
+ * ksvcmgr_giveup() takes `now` as a parameter instead of reading time()
+ * inline. This is also where the next_restart_at sentinel hazard is fixed:
+ * the old check was `next_restart_at > 0`, which treated a restart validly
+ * scheduled for time 0 as "not pending" and silently dropped it forever.
+ * restart_pending is the explicit flag now; next_restart_at is only ever
+ * read once restart_pending says it is meaningful.
+ */
+static int restart_is_due(const Service *svc, time_t now)
+{
+    return restart_due(svc->pid != 0, svc->restart_on_failure, svc->restart_pending,
+                       svc->next_restart_at, now);
 }
 
 /*
@@ -401,8 +507,9 @@ static void sigchld_handler(int sig)
 	(void)sig;
 	while (1)
 	{
-		int wstatus = 0;
-		pid_t pid = waitpid(-1, &wstatus, WNOHANG);
+		/* NULL status: the policy is "restart=always", so how the service
+		 * died does not change what we do about it. */
+		pid_t pid = waitpid(-1, NULL, WNOHANG);
 		if (pid <= 0)
 			break;
 
@@ -415,28 +522,22 @@ static void sigchld_handler(int sig)
 		if (svc->restart_on_failure != 1)
 			continue;
 
-		time_t now = time(NULL);
+		time_t now = kmono_sec();
 
 		/* Reset backoff counter if the service ran for at least 10 seconds. */
 		if (svc->last_start_time > 0 && (now - svc->last_start_time) >= 10)
 			svc->restart_count = 0;
 
-		/* Exponential backoff: 0 s, 1 s, 2 s, 4 s, 8 s, … capped at 30 s. */
-		int delay = 0;
-		if (svc->restart_count > 0)
-		{
-			delay = 1 << (svc->restart_count - 1);
-			if (delay > 30) delay = 30;
-		}
-		svc->restart_count++;
+		int delay = backoff_delay(svc->restart_count);
+		if (svc->restart_count < BACKOFF_MAX_COUNT)
+			svc->restart_count++;
 		svc->next_restart_at = now + delay;
+		svc->restart_pending = 1;
 
-		write(2, "service_manager: ", 17);
-		write(2, svc->name, strlen(svc->name));
-		if (delay > 0)
-			write(2, " died — scheduling restart with backoff\n", 40);
-		else
-			write(2, " died — restarting now\n", 23);
+		slog("service_manager: ");
+		slog(svc->name);
+		slog(delay > 0 ? " died -- restart scheduled with backoff\n"
+		              : " died -- restarting now\n");
 	}
 }
 
@@ -444,8 +545,12 @@ static void sigchld_handler(int sig)
  * main — service manager entry point.
  *
  * Called by init via fork+exec. Runs as a normal process (not PID 1).
- * If this process crashes, init's SIGCHLD handler reaps it as a zombie.
- * Restarting the service manager from init is a future improvement.
+ * If this process crashes, init reaps it, kills the orphaned services and
+ * starts a replacement (krespawn_services() in init.c).
+ *
+ * SIGTERM keeps its default disposition on purpose: at shutdown init sends
+ * SIGTERM to everything, and this process must die rather than "helpfully"
+ * restart the services init is trying to stop.
  *
  * Startup sequence:
  *   1. parse_config()     — fill services[] from /etc/blackhand/services.conf
@@ -461,7 +566,7 @@ int main(void)
 
 	if (num_services == 0)
 	{
-		write(2, "service_manager: no services found in config, aborting\n", 56);
+		slog("service_manager: no services found in config, aborting\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -482,16 +587,11 @@ int main(void)
 	for (;;)
 	{
 		sleep(1);
-		time_t now = time(NULL);
+		time_t now = kmono_sec();
 		for (int i = 0; i < num_services; i++)
 		{
-			if (services[i].pid == 0 &&
-			    services[i].restart_on_failure &&
-			    services[i].next_restart_at > 0 &&
-			    now >= services[i].next_restart_at)
-			{
+			if (restart_is_due(&services[i], now))
 				start_service(&services[i]);
-			}
 		}
 	}
 

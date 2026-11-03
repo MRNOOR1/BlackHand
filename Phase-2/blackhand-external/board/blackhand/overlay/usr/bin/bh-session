@@ -1,0 +1,19 @@
+#!/bin/sh
+# The ONE place the UI session is defined.
+#   bh-session             ensure session 'bh' exists, then attach (tty1, SSH)
+#   bh-session --detached  ensure it exists, then exit (rcS: no tty at boot)
+# The UI uses absolute /data/... paths (app_paths.h), so no cd is needed.
+SOCK=/run/blackhand.sock
+export LANG=C.UTF-8
+# Wait (max 30 s) for the storage daemon: the UI loads contacts once at start.
+# rcS runs before blackhand-svc-mgr, so the socket is absent on first boot.
+UI_LOOP='n=0; while [ ! -S /run/bh-storage.sock ] && [ "$n" -lt 30 ]; do sleep 1; n=$((n+1)); done; while :; do /usr/bin/blackhand-ui; sleep 1; done'
+
+if [ "$1" = "--detached" ]; then
+    tmux -u -S "$SOCK" has-session -t =bh 2>/dev/null && exit 0
+    # 30x17 = config.h PHONE_COLS x PHONE_SCREEN_ROWS (240x280 / 8x16 font).
+    # -x/-y only size this detached session; with 'window-size smallest' (see
+    # tmux.conf) a bigger attached client (SSH) still sees 30x17.
+    exec tmux -u -S "$SOCK" new-session -d -x 30 -y 17 -s bh "$UI_LOOP"
+fi
+exec tmux -u -S "$SOCK" new-session -A -s bh "$UI_LOOP"

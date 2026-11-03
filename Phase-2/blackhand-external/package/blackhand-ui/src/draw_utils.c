@@ -4,6 +4,7 @@
 #include "services/theme_service.h"
 
 #include <string.h>
+#include <stdio.h>
 
 void ghost_set(struct ncplane *n, uint32_t fg) {
     ncplane_set_fg_rgb(n, fg);
@@ -43,28 +44,36 @@ void ghost_label_value(struct ncplane *n,
     ghost_text(n, row, value_col, theme_text_primary(), value);
 }
 
-/*
- * ghost_softkeys() now renders the active theme's decorative footer strip
- * (wordmark, corner ticks, ornament, sparkline, coordinates ...). The legacy
- * soft-key label arguments are accepted for source compatibility but the
- * footer is theme-owned, exactly like the design pack's gallery. Functional
- * key hints follow the global 6-key convention (Q back / E action).
- */
+/* Functional actions remain visible in every theme. */
 void ghost_softkeys(struct ncplane *n, const char *left_label, const char *right_label) {
-    (void)left_label;
-    (void)right_label;
     bh_footer(n, NULL);
+    if (!left_label && !right_label) return;
+    unsigned rows, cols; ncplane_dim_yx(n, &rows, &cols);
+    int available = (int)cols - 2 * CONTENT_COL;
+    if (available < 4 || rows < 3) return;
+    int half = available / 2;
+    char left[64], right[64];
+    snprintf(left, sizeof(left), "%.*s", half, left_label ? left_label : "");
+    snprintf(right, sizeof(right), "%.*s", half, right_label ? right_label : "");
+    ghost_fill_rect(n, (int)rows - 2, CONTENT_COL, 1, available, ' ', theme_text_primary(), theme_bg());
+    ghost_text(n, (int)rows - 2, CONTENT_COL, theme_text_primary(), left);
+    ghost_text(n, (int)rows - 2, (int)cols - CONTENT_COL - (int)strlen(right), theme_text_primary(), right);
 }
 
 void ghost_confirm_popup(struct ncplane *n, const char *question, int yes_selected) {
     unsigned rows, cols;
     ncplane_dim_yx(n, &rows, &cols);
-    int w = 30;
+    /* Clamp the box to the plane so it never overflows the right edge: leave a
+     * 1-col margin each side, but keep enough width for the "[A] YES / [Q] NO"
+     * row (needs ~21 cols). */
+    int w = (int)cols - 2;
+    if (w > 28) w = 28;
+    if (w < 21) w = 21;
     int h = 5;
     int top = ((int)rows - h) / 2;
     int left = ((int)cols - w) / 2;
     if (top < 3) top = 3;
-    if (left < 2) left = 2;
+    if (left < 1) left = 1;
 
     (void)yes_selected;
     ghost_fill_rect(n, top, left, h, w, ' ', theme_text_primary(), theme_bg());

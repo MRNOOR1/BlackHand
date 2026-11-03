@@ -288,4 +288,15 @@ int screen_settings_is_pin_entry_mode(void);
  *       break;
  */
 
+int screen_notes_flush(void);
+int screen_messages_flush(void);
+
+int screen_calls_is_live(void);
+
+int screen_settings_take_poweroff_request(void);
+void screen_settings_poweroff_failed(void);
+
+int screen_messages_reset_draft(void);
+void screen_notes_reset_editor(void);
+
 #endif /* BLACKHAND_UI_H */

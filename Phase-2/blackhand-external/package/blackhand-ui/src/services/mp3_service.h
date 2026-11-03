@@ -52,6 +52,7 @@ typedef struct {
 
 typedef enum {
 	MP3_STOPPED,
+    MP3_ERROR,
 	MP3_PLAYING,
 	MP3_PAUSED
 } mp3_playback_state;
@@ -89,14 +90,21 @@ unsigned           mp3_service_get_total_duration(void);
 size_t             mp3_service_get_visualizer(unsigned char *out_levels, size_t max_levels);
 void               mp3_service_update(void);
 
-/* Current track info */
-const char *mp3_service_current_track_name(void);
-const char *mp3_service_current_collection_name(void);
-const char *mp3_service_current_category_name(void);
+/* Current track info.
+ *
+ * These copy into a caller-supplied buffer rather than returning a pointer
+ * into the track library: the library is rebuilt (freed + reallocated) by
+ * mp3_service_rescan() and can be indexed from three threads (render,
+ * headphone-input, AVRCP D-Bus), so a raw pointer handed back across
+ * threads could be dangling by the time the caller dereferences it. `out`
+ * is always NUL-terminated (truncated if `out_sz` is too small); nothing
+ * is written when `out` is NULL or `out_sz` is 0. */
+void mp3_service_current_track_name(char *out, size_t out_sz);
+void mp3_service_current_collection_name(char *out, size_t out_sz);
+void mp3_service_current_category_name(char *out, size_t out_sz);
 
-/* Volume control */
-int  mp3_service_get_volume(void);
-void mp3_service_set_volume(int percent); /* 0-100 */
+/* Volume is owned by the hardware mixer via the audio daemon (audio_ipc),
+ * not by this service. mpg123 decodes at unity gain. */
 
 /* Backward compatibility - flat track count */
 size_t mp3_service_count(void);

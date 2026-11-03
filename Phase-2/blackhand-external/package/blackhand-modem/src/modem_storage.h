@@ -3,7 +3,7 @@
  *
  * The modem service is THE writer of communication history (the flow is
  * URC event → here → /data/numbers/<number>/...). The UI only reads.
- * All functions are fire-and-forget: failures are logged, never fatal —
+ * Failures are logged, never fatal —
  * a missing storage daemon must not break call handling.
  */
 #ifndef MODEM_STORAGE_H
@@ -15,7 +15,11 @@
 void storage_record_call(const char *number, const char *direction,
                          const char *outcome, long ts, int duration);
 
-void storage_record_sms(const char *number, const char *direction,
+/* 0 only after storage acknowledges persistence; otherwise -1. */
+int storage_record_sms(const char *number, const char *direction,
                         const char *body);
 
 #endif
+
+/* Latched until process restart; a missed write needs user intervention. */
+int storage_write_failed(void);

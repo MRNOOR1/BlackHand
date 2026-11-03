@@ -24,14 +24,17 @@ typedef enum {
     SETT_MODE_PIN_ENTRY,
     SETT_MODE_PIN_CHANGE,
     SETT_MODE_WIPE_CONFIRM,
+    SETT_MODE_WIPE_RESULT,
+    SETT_MODE_POWEROFF_CONFIRM,
 } settings_mode_t;
 
-#define MAIN_ITEM_COUNT SETTINGS_MAIN_ITEM_COUNT
+#define MAIN_ITEM_COUNT 5
 static const char *main_items[] = {
     SETTINGS_MAIN_ITEM_APPEARANCE,
     SETTINGS_MAIN_ITEM_SECURITY,
     SETTINGS_MAIN_ITEM_CONNECTIVITY,
     SETTINGS_MAIN_ITEM_SYSTEM_INFO,
+    "POWER OFF",
 };
 
 typedef enum {
@@ -53,9 +56,19 @@ static char pin_buf[8] = {0};
 static int pin_len = 0;
 static int pin_purpose = 0;
 static char pin_new_buf[8] = {0};
+static char pin_old_buf[8] = {0};
 static char pin_error[64] = {0};
 
 static int s_wipe_yes = 0;
+static int s_poweroff_requested = 0;
+static int s_poweroff_error = 0;
+
+/* Set by wipe_phone_data(): distinguishes "some data survived the wipe"
+ * (s_wipe_failed) from "everything was erased, but contacts.json had been
+ * corrupt" (s_wipe_corrupt_found) — the wipe result popup needs to say
+ * which happened; a corrupt file being removed is not a failed wipe. */
+static int s_wipe_failed = 0;
+static int s_wipe_corrupt_found = 0;
 
 static void put_clipped(struct ncplane *p, int row, int col, int max_w, const char *text) {
     if (!text || max_w <= 0) return;
@@ -68,31 +81,52 @@ static void put_clipped(struct ncplane *p, int row, int col, int max_w, const ch
     ncplane_putstr_yx(p, row, col, buf);
 }
 
-static void wipe_phone_data(void) {
+/* Returns 1 if every deletion succeeded, 0 if any item was left behind.
+ * White Wipe is a data-destruction feature: a caller MUST check this and
+ * tell the user, rather than reporting a clean wipe that half-happened. */
+static int wipe_phone_data(void) {
+    int all_ok = 1;
     size_t count = 0;
+    s_wipe_corrupt_found = 0;
 
     const Contact **contacts = contact_service_list_all(&count);
     while (count > 0 && contacts && contacts[0] && contacts[0]->id) {
-        contact_service_delete(contacts[0]->id);
+        /* contact_service_delete() only drops the cache entry on IPC
+         * success (see contacts_service.c). If the storage daemon is
+         * unreachable/slow, this call keeps failing on the SAME first
+         * contact forever — bail out rather than hang the UI thread. */
+        if (contact_service_delete(contacts[0]->id) != 0) { all_ok = 0; break; }
         contacts = contact_service_list_all(&count);
     }
+    /* Guaranteed final pass: this loop enumerates via contacts.list, which
+     * (correctly) refuses to fake data for a corrupt contacts.json — so a
+     * corrupt file is invisible to it and would survive the wipe. Clobber
+     * it unconditionally now; that is what an explicit factory reset is for. */
+    int contacts_rc = contact_service_wipe_all();
+    if (contacts_rc < 0) all_ok = 0;
+    else if (contacts_rc == 1) s_wipe_corrupt_found = 1;
 
     Note **notes = notes_service_list_all(&count);
     while (count > 0 && notes && notes[0]) {
-        notes_service_delete_note(notes[0]);
+        if (notes_service_delete_note(notes[0]) != 0) { all_ok = 0; break; }
         notes = notes_service_list_all(&count);
     }
 
     const VoiceMemo **memos = voice_memo_service_list_all(&count);
     while (count > 0 && memos && memos[0] && memos[0]->filename) {
-        voice_memo_service_delete(memos[0]->filename);
+        if (voice_memo_service_delete(memos[0]->filename) != 0) { all_ok = 0; break; }
         memos = voice_memo_service_list_all(&count);
     }
 
-    comm_service_reset();
-    settings_service_reset_defaults();
-    pin_service_reset();
+    if (comm_service_reset() != 0) all_ok = 0;
+    if (screen_messages_reset_draft() != 0) all_ok = 0;
+    if (notes_service_note_count() == 0) screen_notes_reset_editor();
+    if (all_ok) {
+        settings_service_reset_defaults();
+        if (pin_service_reset() != 0) all_ok = 0;
+    }
     theme_service_sync_from_settings();
+    return all_ok;
 }
 
 static void reset_pin_entry(void) {
@@ -240,8 +274,8 @@ static void draw_info(struct ncplane *phone) {
     int row = CONTENT_START_ROW + 3;
     ghost_label_value(phone, row,     CONTENT_COL, CONTENT_COL + 12, "MODEL", "BlackHand OS");
     ghost_label_value(phone, row + 1, CONTENT_COL, CONTENT_COL + 12, "VERSION", "Phase 2.0");
-    ghost_label_value(phone, row + 2, CONTENT_COL, CONTENT_COL + 12, "PLATFORM", "RPi5");
-    ghost_label_value(phone, row + 3, CONTENT_COL, CONTENT_COL + 12, "DISPLAY", "HyperPixel 4");
+    ghost_label_value(phone, row + 2, CONTENT_COL, CONTENT_COL + 12, "PLATFORM", "RPi4");
+    ghost_label_value(phone, row + 3, CONTENT_COL, CONTENT_COL + 12, "DISPLAY", "240x304");
 
     ghost_softkeys(phone, "[Back]", "");
 }
@@ -278,7 +312,49 @@ static void draw_pin_entry(struct ncplane *phone) {
 }
 
 static void draw_wipe_confirm(struct ncplane *phone) {
-    ghost_confirm_popup(phone, "ERASE ALL DATA?", s_wipe_yes);
+    ghost_text(phone, CONTENT_START_ROW, CONTENT_COL, theme_text_primary(), "WIPE PRIVATE DATA");
+    ghost_text(phone, CONTENT_START_ROW + 1, CONTENT_COL, theme_text_muted(), "Contacts, SMS, calls");
+    ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL, theme_text_muted(), "Notes, memos, prefs");
+    ghost_text(phone, CONTENT_START_ROW + 3, CONTENT_COL, theme_text_muted(), "Music/BT kept");
+    ghost_text(phone, CONTENT_START_ROW + 5, CONTENT_COL, theme_text_primary(),
+               s_wipe_yes ? "Cancel   > ERASE" : "> Cancel   Erase");
+    ghost_softkeys(phone, "[Back]", "[Select]");
+}
+
+/* Shown whenever the wipe result needs explaining rather than just
+ * silently returning home: either it stopped partway (storage IPC failure
+ * mid-delete, s_wipe_failed) or it fully succeeded but found a corrupt
+ * contacts.json along the way (s_wipe_corrupt_found). Either way, say so
+ * explicitly rather than letting the caller assume a clean, unremarkable
+ * wipe happened. */
+static void draw_wipe_result(struct ncplane *phone) {
+    unsigned rows, cols;
+    ncplane_dim_yx(phone, &rows, &cols);
+
+    int w = SETTINGS_PIN_POPUP_WIDTH;
+    int h = SETTINGS_PIN_POPUP_HEIGHT;
+    int top = ((int)rows - h) / 2;
+    int left = ((int)cols - w) / 2;
+    if (top < UI_POPUP_MIN_TOP) top = UI_POPUP_MIN_TOP;
+    if (left < UI_POPUP_MIN_LEFT) left = UI_POPUP_MIN_LEFT;
+
+    ghost_fill_rect(phone, top, left, h, w, ' ', theme_text_primary(), theme_bg());
+    if (s_wipe_failed) {
+        ghost_text(phone, top + UI_POPUP_TITLE_ROW_OFFSET, left + UI_POPUP_TEXT_INSET_X,
+                   theme_text_primary(), "WIPE INCOMPLETE");
+        ghost_text(phone, top + UI_POPUP_INPUT_ROW_OFFSET, left + UI_POPUP_TEXT_INSET_X,
+                   theme_text_muted(), "some data remains");
+    } else {
+        /* Wipe fully succeeded, but contacts.json had been corrupt — the
+         * per-contact loop above could never see it, so the guaranteed
+         * final pass erased it directly. Tell the user, don't just erase
+         * it silently: they should know their old contacts were unreadable. */
+        ghost_text(phone, top + UI_POPUP_TITLE_ROW_OFFSET, left + UI_POPUP_TEXT_INSET_X,
+                   theme_text_primary(), "WIPE COMPLETE");
+        ghost_text(phone, top + UI_POPUP_INPUT_ROW_OFFSET, left + UI_POPUP_TEXT_INSET_X,
+                   theme_text_muted(), "bad data removed");
+    }
+    ghost_softkeys(phone, "", "[OK]");
 }
 
 void screen_settings_draw(struct ncplane *phone) {
@@ -293,19 +369,27 @@ void screen_settings_draw(struct ncplane *phone) {
             draw_security(phone);
             draw_pin_entry(phone);
             break;
+        case SETT_MODE_POWEROFF_CONFIRM:
+            ghost_confirm_popup(phone, s_poweroff_error ? "SAVE FAILED; RETRY?" : "POWER OFF?", 1);
+            break;
         case SETT_MODE_WIPE_CONFIRM:
             draw_security(phone);
             draw_wipe_confirm(phone);
+            break;
+        case SETT_MODE_WIPE_RESULT:
+            draw_security(phone);
+            draw_wipe_result(phone);
             break;
     }
 }
 
 static screen_id handle_pin_input(uint32_t key) {
     switch (key) {
-        case KEY_SOFT_LEFT_ACTION:
+        case KEY_SOFT_LEFT_ACTION:          /* Q = cancel */
             reset_pin_entry();
             mode = SETT_MODE_SECURITY;
             return SCREEN_SETTINGS;
+        case KEY_ACTION_SECONDARY:          /* D = backspace */
         case NCKEY_BACKSPACE:
         case 127:
             if (pin_len > 0) {
@@ -327,16 +411,25 @@ static screen_id handle_pin_input(uint32_t key) {
                             s_wipe_yes = 0;
                             mode = SETT_MODE_WIPE_CONFIRM;
                         } else {
-                            snprintf(pin_error, sizeof(pin_error), "WRONG PIN");
+                            int lockout = pin_service_lockout_remaining_sec();
+                            if (lockout > 0)
+                                snprintf(pin_error, sizeof(pin_error), "LOCKED %ds", lockout);
+                            else
+                                snprintf(pin_error, sizeof(pin_error), "WRONG PIN");
                             pin_len = 0;
                             pin_buf[0] = '\0';
                         }
                     } else if (pin_purpose == 1) {
                         if (pin_service_verify(pin_buf)) {
+                            memcpy(pin_old_buf, pin_buf, sizeof(pin_old_buf));
                             reset_pin_entry();
                             pin_purpose = 2;
                         } else {
-                            snprintf(pin_error, sizeof(pin_error), "WRONG PIN");
+                            int lockout = pin_service_lockout_remaining_sec();
+                            if (lockout > 0)
+                                snprintf(pin_error, sizeof(pin_error), "LOCKED %ds", lockout);
+                            else
+                                snprintf(pin_error, sizeof(pin_error), "WRONG PIN");
                             pin_len = 0;
                             pin_buf[0] = '\0';
                         }
@@ -346,7 +439,13 @@ static screen_id handle_pin_input(uint32_t key) {
                         pin_purpose = 3;
                     } else if (pin_purpose == 3) {
                         if (strcmp(pin_buf, pin_new_buf) == 0) {
-                            pin_service_update(pin_service_get(), pin_new_buf);
+                            if (pin_service_update(pin_old_buf, pin_new_buf) != 0) {
+                                snprintf(pin_error, sizeof(pin_error), "PIN SAVE FAILED");
+                                pin_len = 0; pin_buf[0] = '\0';
+                                return SCREEN_SETTINGS;
+                            }
+                            memset(pin_old_buf, 0, sizeof(pin_old_buf));
+                            memset(pin_new_buf, 0, sizeof(pin_new_buf));
                             reset_pin_entry();
                             mode = SETT_MODE_SECURITY;
                         } else {
@@ -363,9 +462,32 @@ static screen_id handle_pin_input(uint32_t key) {
 }
 
 screen_id screen_settings_input(uint32_t key) {
+    if (mode == SETT_MODE_POWEROFF_CONFIRM) {
+        if (key == KEY_ACTION_PRIMARY || key == KEY_SOFT_RIGHT_ACTION || key == NCKEY_ENTER)
+            s_poweroff_requested = 1;
+        if (key == KEY_SOFT_LEFT_ACTION) mode = SETT_MODE_MAIN;
+        return SCREEN_SETTINGS;
+    }
+
 
     if (mode == SETT_MODE_PIN_ENTRY || mode == SETT_MODE_PIN_CHANGE) {
         return handle_pin_input(key);
+    }
+
+    if (mode == SETT_MODE_WIPE_RESULT) {
+        switch (key) {
+            case NCKEY_ENTER:
+            case '\n':
+            case KEY_SOFT_LEFT_ACTION:
+            case KEY_SOFT_RIGHT_ACTION:
+            case KEY_ACTION_PRIMARY:
+            case KEY_ACTION_SECONDARY:
+                mode = SETT_MODE_MAIN;
+                s_selected = 0;
+                return SCREEN_HOME;
+            default:
+                return SCREEN_SETTINGS;
+        }
     }
 
     if (mode == SETT_MODE_WIPE_CONFIRM) {
@@ -381,15 +503,20 @@ screen_id screen_settings_input(uint32_t key) {
             case NCKEY_ENTER:
             case '\n':
             case KEY_SOFT_RIGHT_ACTION:
+            case KEY_ACTION_PRIMARY:         /* A = confirm the highlighted choice */
                 if (s_wipe_yes) {
-                    wipe_phone_data();
+                    s_wipe_failed = (wipe_phone_data() == 0);
+                    if (s_wipe_failed || s_wipe_corrupt_found) {
+                        mode = SETT_MODE_WIPE_RESULT;
+                        return SCREEN_SETTINGS;
+                    }
                     mode = SETT_MODE_MAIN;
                     s_selected = 0;
                     return SCREEN_HOME;
                 }
                 mode = SETT_MODE_SECURITY;
                 return SCREEN_SETTINGS;
-            case KEY_SOFT_LEFT_ACTION:
+            case KEY_SOFT_LEFT_ACTION:       /* Q = cancel */
                 mode = SETT_MODE_SECURITY;
                 return SCREEN_SETTINGS;
             default:
@@ -408,8 +535,8 @@ screen_id screen_settings_input(uint32_t key) {
                 return SCREEN_SETTINGS;
             case NCKEY_ENTER:
             case '\n':
-            case KEY_SOFT_RIGHT_ACTION:
-            case KEY_ACTION_PRIMARY:
+            case KEY_SOFT_RIGHT_ACTION:      /* E = enter submenu (Themes) */
+            case KEY_ACTION_PRIMARY:         /* A = select / toggle */
                 if (s_sub_selected == APP_NIGHT_MODE) {
                     settings_service_toggle_by_key(SETTINGS_KEY_NIGHT_MODE);
                     theme_service_sync_from_settings();
@@ -417,8 +544,14 @@ screen_id screen_settings_input(uint32_t key) {
                     return SCREEN_THEME;
                 }
                 return SCREEN_SETTINGS;
-            case KEY_SOFT_LEFT_ACTION:
-            case KEY_ACTION_SECONDARY:
+            case KEY_ACTION_SECONDARY:       /* D = reset to default (where applicable) */
+                if (s_sub_selected == APP_NIGHT_MODE) {
+                    settings_service_set_bool(SETTINGS_KEY_NIGHT_MODE,
+                                              SETTINGS_DEFAULT_NIGHT_MODE);
+                    theme_service_sync_from_settings();
+                }
+                return SCREEN_SETTINGS;
+            case KEY_SOFT_LEFT_ACTION:       /* Q = back a level */
                 mode = SETT_MODE_MAIN;
                 s_sub_selected = 0;
                 return SCREEN_SETTINGS;
@@ -437,8 +570,8 @@ screen_id screen_settings_input(uint32_t key) {
                 return SCREEN_SETTINGS;
             case NCKEY_ENTER:
             case '\n':
-            case KEY_SOFT_RIGHT_ACTION:
-            case KEY_ACTION_PRIMARY:
+            case KEY_SOFT_RIGHT_ACTION:      /* E = enter submenu / select */
+            case KEY_ACTION_PRIMARY:         /* A = select / toggle */
                 if (s_sub_selected == SEC_HAND_WHITE) {
                     settings_service_toggle_by_key(SETTINGS_KEY_HAND_WHITE);
                     theme_service_sync_from_settings();
@@ -452,8 +585,14 @@ screen_id screen_settings_input(uint32_t key) {
                     mode = SETT_MODE_PIN_CHANGE;
                 }
                 return SCREEN_SETTINGS;
-            case KEY_SOFT_LEFT_ACTION:
-            case KEY_ACTION_SECONDARY:
+            case KEY_ACTION_SECONDARY:       /* D = reset to default (where applicable) */
+                if (s_sub_selected == SEC_HAND_WHITE) {
+                    settings_service_set_bool(SETTINGS_KEY_HAND_WHITE,
+                                              SETTINGS_DEFAULT_HAND_WHITE);
+                    theme_service_sync_from_settings();
+                }
+                return SCREEN_SETTINGS;
+            case KEY_SOFT_LEFT_ACTION:       /* Q = back a level */
                 mode = SETT_MODE_MAIN;
                 s_sub_selected = 0;
                 return SCREEN_SETTINGS;
@@ -466,13 +605,14 @@ screen_id screen_settings_input(uint32_t key) {
         switch (key) {
             case NCKEY_ENTER:
             case '\n':
-            case KEY_SOFT_RIGHT_ACTION:
-            case KEY_ACTION_PRIMARY:
+            case KEY_SOFT_RIGHT_ACTION:      /* E = enter submenu (Bluetooth) */
+            case KEY_ACTION_PRIMARY:         /* A = select */
                 return SCREEN_BLUETOOTH;
-            case KEY_SOFT_LEFT_ACTION:
-            case KEY_ACTION_SECONDARY:
+            case KEY_SOFT_LEFT_ACTION:       /* Q = back a level */
                 mode = SETT_MODE_MAIN;
                 return SCREEN_SETTINGS;
+            /* D = reset has nothing applicable here (Bluetooth toggles live in
+             * the Bluetooth screen), so it is a no-op. */
             default:
                 return SCREEN_SETTINGS;
         }
@@ -499,19 +639,21 @@ screen_id screen_settings_input(uint32_t key) {
             return SCREEN_SETTINGS;
         case NCKEY_ENTER:
         case '\n':
-        case KEY_SOFT_RIGHT_ACTION:
-        case KEY_ACTION_PRIMARY:
+        case KEY_SOFT_RIGHT_ACTION:      /* E = enter submenu */
+        case KEY_ACTION_PRIMARY:         /* A = select */
             s_sub_selected = 0;
             switch (s_selected) {
                 case 0: mode = SETT_MODE_APPEARANCE; break;
                 case 1: mode = SETT_MODE_SECURITY; break;
                 case 2: mode = SETT_MODE_CONNECTIVITY; break;
                 case 3: mode = SETT_MODE_INFO; break;
+                case 4: mode = SETT_MODE_POWEROFF_CONFIRM; s_poweroff_error = 0; break;
             }
             return SCREEN_SETTINGS;
-        case KEY_SOFT_LEFT_ACTION:
-        case KEY_ACTION_SECONDARY:
+        case KEY_SOFT_LEFT_ACTION:       /* Q = back a level (to Home) */
             return SCREEN_HOME;
+        /* D = "reset to default" has no target on the top menu, so it does
+         * nothing here (spec: "where applicable"). */
         default:
             return SCREEN_SETTINGS;
     }
@@ -520,3 +662,8 @@ screen_id screen_settings_input(uint32_t key) {
 int screen_settings_is_pin_entry_mode(void) {
     return (mode == SETT_MODE_PIN_ENTRY || mode == SETT_MODE_PIN_CHANGE) ? 1 : 0;
 }
+
+int screen_settings_take_poweroff_request(void) {
+    int requested = s_poweroff_requested; s_poweroff_requested = 0; return requested;
+}
+void screen_settings_poweroff_failed(void) { s_poweroff_error = 1; }

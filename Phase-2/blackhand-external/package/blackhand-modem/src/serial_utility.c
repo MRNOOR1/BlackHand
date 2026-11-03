@@ -26,6 +26,15 @@ static pthread_mutex_t at_cmd_mutex = PTHREAD_MUTEX_INITIALIZER;
 // we're talking to the right interface).
 static const char *PORT_CANDIDATES[] = {
 	"/dev/blackhand-modem-at",
+	/* CM4 carrier board: the modem hangs off UART2 (GPIO0/1), enabled by
+	 * dtoverlay=uart2 in config.txt, which enumerates as ttyAMA1. Probed
+	 * before the USB ports because on that board the CM4's USB never
+	 * reaches the modem at all, so no ttyUSB* will ever appear.
+	 *
+	 * ERRATA: that carrier wires UART2 TX/RX SWAPPED, so this port will not
+	 * answer either until the lines are crossed in hardware. Listing it
+	 * costs one failed open and keeps the sweep honest about what it tried. */
+	"/dev/ttyAMA1",
 	"/dev/ttyUSB3",   /* this unit's AT port lives here */
 	"/dev/ttyUSB2",   /* stock SIM7600 layout */
 	"/dev/ttyUSB4",
@@ -193,6 +202,38 @@ int close_port(int fd)
 	return 0;
 }
 
+/*
+ * close_port_locked — close the AT-port fd while holding at_cmd_mutex.
+ *
+ * at_cmd_mutex already brackets the FULL duration of every at_cmd()/
+ * at_cmd_sms() transaction (locked on entry, unlocked right before return),
+ * so taking it here before close() forces the close to wait for any AT
+ * command currently in flight on this fd to finish, and blocks any new AT
+ * command from starting until the close (and the caller's subsequent fd = -1)
+ * is done.
+ *
+ * Without this, at_cmd_mutex only serialised AT traffic on a given fd value —
+ * it did nothing to stop a close() from running concurrently with a write()/
+ * read() still in progress on that same value. A close() followed elsewhere
+ * by a fresh open() can hand the same integer to an unrelated port while the
+ * stale write()/read() is still using it (classic fd-reuse hazard). Callers
+ * that tear down the port (modem_reader_teardown, modem_select_port in
+ * Modem.c) must use this instead of close_port() directly.
+ *
+ * Lock ordering: callers hold bringup_lock (Modem.c) for the whole teardown,
+ * and only take at_cmd_mutex here, nested inside it -- the same order
+ * modem_configure() already establishes (called with bringup_lock held, then
+ * at_cmd() takes at_cmd_mutex inside it). No path ever acquires at_cmd_mutex
+ * first and then tries for bringup_lock, so this cannot deadlock.
+ */
+int close_port_locked(int fd)
+{
+	pthread_mutex_lock(&at_cmd_mutex);
+	close_port(fd);
+	pthread_mutex_unlock(&at_cmd_mutex);
+	return 0;
+}
+
 int read_line(int fd, char *buf, int max, int timeout_ms)
 {
 	int pos = 0;
@@ -208,8 +249,16 @@ int read_line(int fd, char *buf, int max, int timeout_ms)
 		if (current_time >= deadline)
 			return 0;
 
-		if (pos == max)
-			return -1;
+		if (pos >= max - 1)
+		{
+			// Line longer than the buffer: return the truncated line rather
+			// than -1. -1 is reserved strictly for fd errors, so an
+			// over-length URC can never tear down the reader thread (H4).
+			// The remaining bytes are read as the next line — benign for URC
+			// matching, which just fails to match and accumulates.
+			buf[pos] = '\0';
+			return pos;
+		}
 
 		char c;
 		int r = read(fd, &c, 1);
@@ -245,6 +294,36 @@ int read_line(int fd, char *buf, int max, int timeout_ms)
 	return 0;
 }
 
+// Writes the whole buffer, retrying short writes and EINTR. Returns 0 on
+// success, -1 on a real write error. A blocking serial write can be cut short
+// by a signal (EINTR) or return fewer bytes than asked — the old open-coded
+// loops broke out on the first n<0 and silently truncated the command/body.
+static int write_all(int fd, const char *buf, size_t len)
+{
+	while (len > 0) {
+		ssize_t n = write(fd, buf, len);
+		if (n < 0) {
+			if (errno == EINTR)
+				continue;
+			return -1;
+		}
+		buf += n;
+		len -= (size_t)n;
+	}
+	return 0;
+}
+
+static void make_deadline(struct timespec *ts, int timeout_ms)
+{
+	clock_gettime(CLOCK_REALTIME, ts);
+	ts->tv_sec  += timeout_ms / 1000;
+	ts->tv_nsec += (timeout_ms % 1000) * 1000000L;
+	if (ts->tv_nsec >= 1000000000L) {
+		ts->tv_sec  += 1;
+		ts->tv_nsec -= 1000000000L;
+	}
+}
+
 const char *at_cmd(int fd, const char *cmd, int timeout_ms)
 {
 	static __thread char buffer[BUFFERSIZE];
@@ -253,29 +332,17 @@ const char *at_cmd(int fd, const char *cmd, int timeout_ms)
 	memset(buffer, 0, BUFFERSIZE);
 	char full_cmd[256];
 	snprintf(full_cmd, sizeof(full_cmd), "%s\r", cmd);
-	char *ptr = full_cmd;
 	size_t len = strlen(full_cmd);
 
 	pthread_mutex_lock(&response_mutex);
 	response_ready = 0;
 
-	while (len > 0)
-	{
-		ssize_t n = write(fd, ptr, len);
-		if (n < 0)
-			break;
-		ptr += n;
-		len -= n;
-	}
+	// A write failure just leaves response empty; the timed wait below then
+	// times out and the caller treats the empty buffer as an error.
+	write_all(fd, full_cmd, len);
 
 	struct timespec deadline;
-	clock_gettime(CLOCK_REALTIME, &deadline);
-	deadline.tv_sec  += timeout_ms / 1000;
-	deadline.tv_nsec += (timeout_ms % 1000) * 1000000L;
-	if (deadline.tv_nsec >= 1000000000L) {
-		deadline.tv_sec  += 1;
-		deadline.tv_nsec -= 1000000000L;
-	}
+	make_deadline(&deadline, timeout_ms);
 
 	int rc = 0;
 	while (response_ready == 0 && rc == 0)
@@ -285,6 +352,72 @@ const char *at_cmd(int fd, const char *cmd, int timeout_ms)
 		strncpy(buffer, response_buffer, BUFFERSIZE - 1);
 	buffer[BUFFERSIZE - 1] = '\0';
 	pthread_mutex_unlock(&response_mutex);
+	pthread_mutex_unlock(&at_cmd_mutex);
+	return buffer;
+}
+
+// Full CMGS transaction (prompt → body → Ctrl-Z → wait) under a SINGLE
+// at_cmd_mutex hold. This is what stops a concurrent AT+CSQ poll from injecting
+// bytes into the SMS body or stealing response_buffer while we wait (H5).
+// Returns a thread-local buffer holding the final modem response; the caller
+// inspects it for "+CMGS:" (sent) or "+CMS ERROR" (failed). An empty buffer
+// (no prompt / write error) is treated by the caller as an error.
+const char *at_cmd_sms(int fd, const char *number, const char *message,
+                       int prompt_timeout_ms, int body_timeout_ms)
+{
+	static __thread char buffer[BUFFERSIZE];
+	buffer[0] = '\0';
+
+	pthread_mutex_lock(&at_cmd_mutex);
+
+	char cmd[128];
+	snprintf(cmd, sizeof(cmd), "AT+CMGS=\"%s\"\r", number);
+
+	// 1. Send the CMGS command and wait for the "> " body-input prompt.
+	pthread_mutex_lock(&response_mutex);
+	response_ready = 0;
+	if (write_all(fd, cmd, strlen(cmd)) < 0) {
+		pthread_mutex_unlock(&response_mutex);
+		pthread_mutex_unlock(&at_cmd_mutex);
+		return buffer;
+	}
+
+	struct timespec deadline;
+	make_deadline(&deadline, prompt_timeout_ms);
+	int rc = 0;
+	while (response_ready == 0 && rc == 0)
+		rc = pthread_cond_timedwait(&response_cond, &response_mutex, &deadline);
+	int got_prompt = (response_ready && strstr(response_buffer, ">") != NULL);
+	response_ready = 0;
+	pthread_mutex_unlock(&response_mutex);
+
+	if (!got_prompt) {
+		pthread_mutex_unlock(&at_cmd_mutex);
+		return buffer;
+	}
+
+	// 2. Send the body + Ctrl-Z, then wait for the final +CMGS:/ERROR line.
+	pthread_mutex_lock(&response_mutex);
+	response_ready = 0;
+	char ctrlz = 0x1A;
+	if (write_all(fd, message, strlen(message)) < 0 ||
+	    write_all(fd, &ctrlz, 1) < 0) {
+		pthread_mutex_unlock(&response_mutex);
+		pthread_mutex_unlock(&at_cmd_mutex);
+		return buffer;
+	}
+
+	make_deadline(&deadline, body_timeout_ms);
+	rc = 0;
+	while (response_ready == 0 && rc == 0)
+		rc = pthread_cond_timedwait(&response_cond, &response_mutex, &deadline);
+
+	if (response_ready) {
+		strncpy(buffer, response_buffer, BUFFERSIZE - 1);
+		buffer[BUFFERSIZE - 1] = '\0';
+	}
+	pthread_mutex_unlock(&response_mutex);
+
 	pthread_mutex_unlock(&at_cmd_mutex);
 	return buffer;
 }

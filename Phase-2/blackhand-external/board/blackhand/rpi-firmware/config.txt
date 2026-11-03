@@ -1,62 +1,155 @@
-# Black Hand OS — HyperPixel 4.0
+# Black Hand OS — CM4 Lite on the BlackHand carrier board
 #
-# Display: firmware-driven DPI (not KMS — avoids circular dep on kernel 6.6)
-# Touch:   i2c-gpio overlay for Goodix GT911 on pins 10/11
-# Panel init: hyperpixel4-init userspace tool (SPI bit-bang)
+# DEV WIRING (current): the display is wired to the Pi-style GPIO header pins
+# instead of the carrier's FPC2 connector, so the bring-up matches the
+# measured, working Pi 4 setup in Phase-2/DISPLAY-SETUP-BRIEF.md. The custom
+# carrier is not fully proven yet; when it is, restore the FPC2/SPI4 wiring
+# documented at the bottom of this file.
+#
+# CM4 Lite = SD card boot (card in CARD1). No eMMC, no rpiboot.
+#
+# ── FIRST POWER-ON, IN ORDER ────────────────────────────────────────────────
+#   1. SW1 must be in the NON-BOOT position. In the other position SW1 grounds
+#      nRPIBOOT, and a CM4 with nRPIBOOT low sits in USB boot mode waiting for
+#      a host — it never looks at the SD card and the board appears dead.
+#      Side effect of the non-BOOT position: USB-C data routes to the modem,
+#      not the CM4. That is fine for now (see ERRATA).
+#   2. Press SW6 to power up. The CM4 5 V rail is gated by a flip-flop latch,
+#      so applying USB-C power alone does NOT boot it.
+#   3. Serial console on P1 (1.27 mm header, left edge): pin 1 GND, 2 RX, 3 TX.
+#      3.3 V USB-UART, 115200 8N1. With no panel attached this is the ONLY
+#      output — see enable_uart below and console= in cmdline.txt.
+#
+# ── ORDERING RULE (easy to get wrong) ───────────────────────────────────────
+# A `dtparam=` line applies to the most recent `dtoverlay=` above it. Base
+# parameters must therefore appear BEFORE the first dtoverlay. The previous
+# revision of this file had `dtparam=audio=on` after the display overlay,
+# where it was silently passed to that overlay instead of the base DT.
 
 arm_64bit=1
 kernel=Image
-gpu_mem=256
-
-# ── Firmware-driven DPI — exact Pimoroni Pi 4 values ──
-# Panel is natively 480x800 (portrait).
-enable_dpi_lcd=1
-dpi_group=2
-dpi_mode=87
-dpi_output_format=0x7f216
-dpi_timings=480 0 10 16 59 800 0 15 113 15 0 0 0 60 0 32000000 6
-
-# Match the native panel resolution (portrait)
-framebuffer_width=480
-framebuffer_height=800
-
-# Rotate 180 degrees (flip both axes)
-display_rotate=2
-
-# NO vc4 overlay — let firmware own the display entirely.
-
-# enable_uart=1 fixes the VPU core_freq to 250 MHz so the mini-UART baud
-# rate is stable. It does NOT swap the UARTs on Pi 4 — PL011 (ttyAMA0)
-# stays on Bluetooth. Without this, mini-UART baud drifts at load.
-#
-# krnbt=on is intentionally ABSENT. With krnbt=on the VideoCore firmware
-# skips its own UART initialisation and hands the BCM43455 directly to
-# the Linux serdev driver. That changes the UART clock-switch sequence and
-# causes "command 0x0a0a tx timeout" (-110 ETIMEDOUT) during firmware
-# patch upload — the chip never gets its UART reconfigured to 3 Mbaud.
-# Without krnbt, the VC firmware does the UART setup correctly first.
-# The RPi downstream DT already has the bcm43438-bt serdev node built in,
-# so hci0 still appears automatically without the krnbt flag.
-enable_uart=1
-
-# ── I2C-GPIO bus for touchscreen ──
-# The Goodix GT911 touch controller sits on GPIO 10 (SDA) / GPIO 11 (SCL).
-# We create a bit-banged I2C bus (bus 3) using the i2c-gpio overlay.
-dtoverlay=i2c-gpio,bus=3,i2c_gpio_sda=10,i2c_gpio_scl=11,i2c_gpio_delay_us=4
-
-# ── Goodix touchscreen on the I2C-GPIO bus ──
-# Custom overlay that defines the GT911 at addresses 0x14 and 0x5d
-# with interrupt on GPIO 27.
-dtoverlay=hyperpixel4-touch
-
-# Enable onboard audio (headphone jack / HDMI)
-dtparam=audio=on
-
-# ── Silence cosmetic dmesg warnings (UART pinctrl + BT regulator) ──
-# Declares what the Pi firmware already configured at power-on so Linux
-# stops logging "no valid maps for state default" and "supply not found".
-dtoverlay=blackhand-fixes
-
+gpu_mem=64
 disable_splash=1
 boot_delay=0
 
+# ── Base parameters — MUST stay above the first dtoverlay ───────────────────
+enable_uart=1          # console on UART0 (GPIO14/15) → P1 header
+dtparam=i2c_arm=on     # I2C1 → CN9, CN10, INA219 power monitor at 0x40
+dtparam=audio=on       # see ERRATA: this carrier exposes no analog audio out
+dtparam=spi=on         # SPI0 (GPIO 8/9/10/11) — required for the display below
+
+# ── Display: KMS panel-mipi-dbi over SPI0 (Waveshare 1.83", header-wired) ───
+# Pins match the measured, working bring-up from DISPLAY-SETUP-BRIEF.md §3.
+# Jumper-wired to the Pi-style header on the carrier (not FPC2):
+#
+#   Module pad  BCM   Function           Pi physical pin
+#   VCC         —     3.3 V              1
+#   GND         —     GND                6
+#   DIN / MOSI  10    SPI0_MOSI          19
+#   CLK / SCLK  11    SPI0_SCLK          23
+#   CS          8     SPI0_CE0           24
+#   DC          25    GPIO               22
+#   RST         27    GPIO               13
+#   BL          18    GPIO (gpio-blk)    12
+#   MISO        —     NOT CONNECTED      —   (panel is write-only)
+#
+# The init sequence is NOT here — it lives in the firmware blob panel.bin
+# (built from board/blackhand/panel/ and linked into the kernel via
+# CONFIG_EXTRA_FIRMWARE; see board/blackhand/linux/bcm2711.config).
+#
+# write-only is mandatory: MISO is unwired, there is no read path from the
+# panel at all — no register read-back, no ID check.
+#
+# speed=8000000 matches Waveshare's conservative demo. The onboard level
+# shifter — not the controller — caps SPI at ~25 MHz. Raise only after the
+# panel is known good. mipi-dbi-spi always clocks init commands at 10 MHz
+# regardless; this value only affects pixel data.
+dtoverlay=mipi-dbi-spi,spi0-0,speed=8000000
+dtparam=write-only
+dtparam=width=240,height=280
+dtparam=x-offset=0,y-offset=0
+dtparam=reset-gpio=27,dc-gpio=25
+dtparam=backlight-gpio=18
+
+# ── Modem UART ──────────────────────────────────────────────────────────────
+# UART2 on GPIO0/1. See ERRATA — the carrier wires this TX/RX swapped, so the
+# modem will not answer until that is fixed in hardware or crossed externally.
+# dtoverlay=uart2 — DELIBERATELY DISABLED, DO NOT RE-ENABLE.
+# On this carrier the CM4↔modem UART is wired TX-to-TX: CM4 pin 36 (GPIO0,
+# TXD2) goes to the modem's TXD. Enabling uart2 turns GPIO0 into an output,
+# so two outputs drive the same net against each other. That is a hardware
+# fault awaiting a board rework, not something config.txt can fix — and the
+# modem is unreachable over USB on this carrier anyway, so enabling it buys
+# nothing and risks the pins.
+
+# ── ERRATA (carrier board, all still live) ──────────────────────────────────
+#   1. LoRa has no power rail        → radio never enumerates; SPI reads 0x00.
+#   2. Modem UART TX/RX swapped      → uart2 above cannot talk to the modem.
+#   3. PD charging requests 9 V      → charger cannot supply it.
+#   4. CM4 USB never reaches modem   → no ttyUSB* path either, so the modem is
+#                                      unreachable by BOTH available routes.
+# None of these stop the board booting. They bite when exercising the radios.
+# Expected result today: display + UI + storage work; LoRa and modem do not.
+
+# ════════════════════════════════════════════════════════════════════════════
+#  CARRIER-BOARD REFERENCE — restore when the custom hardware is proven
+# ════════════════════════════════════════════════════════════════════════════
+# The block below was the active config while driving the display through the
+# carrier's FPC2 connector on SPI4, with SPI0 CE0 reserved for the (unpowered)
+# LoRa radio. Kept here so the full carrier wiring can be re-enabled without
+# rediscovering the pinout. Do NOT uncomment while the panel is wired to the
+# Pi-style header above — the two SPI buses would fight over GPIO7 and the
+# display would stop working.
+#
+# ── SPI bus split ───────────────────────────────────────────────────────────
+# The carrier steals GPIO7 — normally SPI0's CE1 — to serve as SPI4's clock for
+# the display. SPI0 must therefore be restricted to a single chip select, or
+# the two buses fight over GPIO7.
+#
+#   SPI0 CE0 (GPIO8)  → /dev/spidev0.0 → RFM95W LoRa radio
+#   SPI4     (GPIO4 CE0, GPIO6 MOSI, GPIO7 SCLK) → display on FPC2
+#
+# SPI4's MISO (GPIO5) is left unused because the panel is write-only, which
+# frees GPIO5 to serve as the LoRa reset line.
+# dtoverlay=spi0-1cs
+# dtoverlay=spi4-1cs
+#
+# ── Display on SPI4 / FPC2 — GPIOs from the carrier PCB netlist ─────────────
+# FPC2 pinout:
+#
+#   1  GND        7  D/C    GPIO21    13 TP_SCL  GPIO3  (I2C1 SCL)
+#   2  LEDK       8  CS     GPIO4     14 TP_SDA  GPIO2  (I2C1 SDA)
+#   3  LEDA       9  SCK    GPIO7     15 TP_RST  GPIO17
+#   4  VDDIO      10 DIN    GPIO6     16 TP_INT  GPIO27
+#   5  GND        11 RESET  GPIO20    17 TP_VDD  3V3
+#   6  GND        12 GND              18 GND
+#
+# The touch lines (TP_*) are recorded here for the future CST816D driver; the
+# panel overlay does not use them. NOTE: GPIO27 is TP_INT on the carrier — the
+# Pi-header wiring above uses 27 as the panel RESET, which on the carrier
+# would drive the touch interrupt line instead. Switch deliberately.
+# dtoverlay=mipi-dbi-spi,spi4-0,speed=8000000
+# dtparam=write-only
+# dtparam=width=240,height=304
+# dtparam=x-offset=0,y-offset=0
+# dtparam=reset-gpio=20,dc-gpio=21
+# dtparam=backlight-gpio=12
+#
+# Backlight on the carrier is a low-side switch, ACTIVE HIGH, off at boot.
+#   LEDA (FPC2 pin 3) is tied to 3V3. LEDK (pin 2) → R8 10R → drain of Q1
+#   (DMG1012T N-MOSFET, source at GND). Q1 gate ← GPIO12 through R9 1k, with
+#   R11 10k pulling the gate down, so the backlight stays off until the kernel
+#   drives GPIO12 high.
+#
+#   HARDWARE LIMITATION: R8 = 10R off a 3V3 LEDA rail yields roughly 10-26 mA
+#   depending on the panel's LED forward voltage. Full brightness will be DIM,
+#   and if the panel's backlight LEDs are in series rather than parallel it may
+#   not light at all. The fix is an external constant-current LED driver off the
+#   5 V rail using GPIO12 as its PWM input — a board change, not a config one.
+#
+#   PWM UPGRADE (not enabled): GPIO12 is PWM0 channel 0 via Alt0, so the panel
+#   can be driven by pwm-backlight instead of gpio-backlight, which would give
+#   the settings "brightness" key a real consumer (it currently has none):
+#       dtoverlay=pwm,pin=12,func=4
+#   Do NOT enable that alongside backlight-gpio above — two backlight drivers
+#   cannot own the same pin. Switch deliberately, once the panel is lit.

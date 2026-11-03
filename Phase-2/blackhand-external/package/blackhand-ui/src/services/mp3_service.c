@@ -1,4 +1,12 @@
+#include "services/audio_policy.h"
 #include "mp3_service.h"
+
+/* BLACKHAND_MP3_ENABLED is set by CMakeLists.txt only when libmpg123 and
+ * libout123 were found (see the BLACKHAND_UI_ENABLE_MP3 option). Without
+ * it, the real player below is compiled out and replaced by the harmless
+ * stub at the bottom of this file, so the rest of blackhand-ui still
+ * links and runs without the two audio-decode libraries. */
+#ifdef BLACKHAND_MP3_ENABLED
 
 #include <dirent.h>
 #include <math.h>
@@ -27,12 +35,14 @@ static int    cur_is_direct = 0; /* 1 if playing direct tracks in a category */
 static time_t start_time = 0;
 static unsigned pause_offset = 0;
 static unsigned total_duration = 0;
-static int volume_percent = 80;
 static int finished_naturally = 0;
 static char g_audio_root[512] = {0};
 
 /* ── Thread state ────────────────────────────────────────────────────── */
 static pthread_t player_thread;
+/* Set to 1 when a player thread has been created. It stays 1 — even after
+ * the track ends naturally — until stop_thread() claims and joins the
+ * thread. This guarantees every created thread is reaped exactly once. */
 static int thread_running = 0;
 static int stop_requested = 0;
 static pthread_mutex_t mp3_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -287,6 +297,7 @@ static void *player_thread_fn(void *arg) {
     long rate = 0;
     int channels = 0, encoding = 0;
 
+    int eof = 0;
     int err = 0;
     mh = mpg123_new(NULL, &err);
     if (!mh) goto cleanup;
@@ -303,22 +314,16 @@ static void *player_thread_fn(void *arg) {
     buffer = malloc(outblock);
     if (!buffer) goto cleanup;
 
-    /* Apply initial volume */
-    mpg123_volume(mh, (double)volume_percent / 100.0);
+    /* mpg123 decodes at unity gain. Volume is owned solely by the hardware
+     * mixer (via the audio daemon), so there is no software attenuation
+     * here — this avoids applying gain twice. */
 
     int paused_locally = 0;
-    int last_vol = volume_percent;
     while (1) {
         pthread_mutex_lock(&mp3_lock);
         int should_stop = stop_requested;
         mp3_playback_state st = state;
-        int cur_vol = volume_percent;
         pthread_mutex_unlock(&mp3_lock);
-
-        if (cur_vol != last_vol) {
-            mpg123_volume(mh, (double)cur_vol / 100.0);
-            last_vol = cur_vol;
-        }
 
         if (should_stop) break;
 
@@ -332,8 +337,7 @@ static void *player_thread_fn(void *arg) {
 
         size_t done = 0;
         int r = mpg123_read(mh, buffer, outblock, &done);
-        if (r == MPG123_DONE) break;
-        if (r != MPG123_OK && r != MPG123_NEW_FORMAT) break;
+        if (r != MPG123_OK && r != MPG123_NEW_FORMAT && r != MPG123_DONE) break;
 
         if (r == MPG123_NEW_FORMAT) {
             if (mpg123_getformat(mh, &rate, &channels, &encoding) != MPG123_OK) break;
@@ -343,13 +347,14 @@ static void *player_thread_fn(void *arg) {
         }
 
         if (done > 0) {
-            out123_play(ao, buffer, done);
+            if (out123_play(ao, buffer, done) != done) break;
             pthread_mutex_lock(&mp3_lock);
             if (out123_encsize(encoding) == 2) {
                 update_visualizer_from_pcm16((const int16_t *)buffer, done / sizeof(int16_t), channels);
             }
             pthread_mutex_unlock(&mp3_lock);
         }
+        if (r == MPG123_DONE) { eof = 1; break; }
     }
 
 cleanup:
@@ -357,13 +362,15 @@ cleanup:
     if (mh) { mpg123_close(mh); mpg123_delete(mh); }
     free(buffer);
 
+    /* Do NOT clear thread_running here. The thread has finished running,
+     * but it must still be joined by stop_thread() to be reaped; leaving
+     * thread_running set is what tells stop_thread() to join it. */
     pthread_mutex_lock(&mp3_lock);
-    thread_running = 0;
     if (!stop_requested) {
-        state = MP3_STOPPED;
+        state = eof ? MP3_STOPPED : MP3_ERROR;
         start_time = 0;
         pause_offset = 0;
-        finished_naturally = 1;
+        finished_naturally = eof;
         clear_visualizer();
     }
     pthread_mutex_unlock(&mp3_lock);
@@ -379,10 +386,6 @@ int mp3_service_init(const char *audio_root) {
     if (!audio_root || audio_root[0] == '\0') return -1;
     snprintf(g_audio_root, sizeof(g_audio_root), "%s", audio_root);
 
-    categories = NULL;
-    category_count = 0;
-    category_capacity = 0;
-
     struct stat st = {0};
     if (stat(audio_root, &st) == -1) {
         if (mkdir(audio_root, 0755) != 0) return -1;
@@ -392,6 +395,15 @@ int mp3_service_init(const char *audio_root) {
 
     DIR *root_dir = opendir(audio_root);
     if (!root_dir) return -1;
+
+    /* Build the whole library under mp3_lock. The headphone-input and
+     * AVRCP threads index into `categories` (directly, or via the
+     * current-track accessors below) at any time; without the lock held
+     * across the full scan they could walk a partially built array. */
+    pthread_mutex_lock(&mp3_lock);
+    categories = NULL;
+    category_count = 0;
+    category_capacity = 0;
 
     struct dirent *entry;
     while ((entry = readdir(root_dir)) != NULL) {
@@ -419,6 +431,7 @@ int mp3_service_init(const char *audio_root) {
             free(cat->name);
         }
     }
+    pthread_mutex_unlock(&mp3_lock);
     closedir(root_dir);
     return 0;
 }
@@ -506,6 +519,10 @@ static void stop_thread(void) {
         stop_requested = 1;
         join_thread = player_thread;
         should_join = 1;
+        /* Claim the thread under the lock: clearing thread_running now
+         * means a concurrent stop_thread() sees "no thread to join" and
+         * cannot double-join the same pthread. */
+        thread_running = 0;
     }
     state = MP3_STOPPED;
     start_time = 0;
@@ -519,12 +536,12 @@ static void stop_thread(void) {
         pthread_join(join_thread, NULL);
         pthread_mutex_lock(&mp3_lock);
         stop_requested = 0;
-        thread_running = 0;
         pthread_mutex_unlock(&mp3_lock);
     }
 }
 
 static int start_playback_thread(const char *path) {
+    if (audio_policy_call_active()) return -1;
     player_args_t *args = malloc(sizeof(player_args_t));
     if (!args) return -1;
     args->path = strdup(path);
@@ -564,6 +581,7 @@ static int start_playback_thread(const char *path) {
 }
 
 int mp3_service_play(size_t cat_idx, size_t col_idx, size_t track_idx, int is_direct) {
+    if (audio_policy_call_active()) return -1;
     pthread_mutex_lock(&s_nav_lock);
     stop_thread();
 
@@ -601,6 +619,7 @@ void mp3_service_pause(void) {
 }
 
 void mp3_service_resume(void) {
+    if (audio_policy_call_active()) return;
     pthread_mutex_lock(&mp3_lock);
     if (state == MP3_PAUSED) {
         start_time = time(NULL);
@@ -727,7 +746,12 @@ size_t mp3_service_get_visualizer(unsigned char *out_levels, size_t max_levels) 
     return count;
 }
 
-const char *mp3_service_current_track_name(void) {
+/* These copy the string out while still holding mp3_lock, instead of
+ * returning a pointer into the (possibly about-to-be-freed) track array.
+ * See the comment on the declarations in mp3_service.h. */
+
+void mp3_service_current_track_name(char *out, size_t out_sz) {
+    if (!out || out_sz == 0) return;
     pthread_mutex_lock(&mp3_lock);
     const char *result;
     if (cur_is_direct) {
@@ -737,11 +761,12 @@ const char *mp3_service_current_track_name(void) {
         const Mp3Track *t = mp3_service_get_track(cur_cat, cur_col, cur_track);
         result = t ? t->title : "Unknown";
     }
+    snprintf(out, out_sz, "%s", result);
     pthread_mutex_unlock(&mp3_lock);
-    return result;
 }
 
-const char *mp3_service_current_collection_name(void) {
+void mp3_service_current_collection_name(char *out, size_t out_sz) {
+    if (!out || out_sz == 0) return;
     pthread_mutex_lock(&mp3_lock);
     const char *result;
     if (cur_is_direct) {
@@ -750,27 +775,15 @@ const char *mp3_service_current_collection_name(void) {
         const Mp3Collection *c = mp3_service_get_collection(cur_cat, cur_col);
         result = c ? c->name : "Unknown";
     }
+    snprintf(out, out_sz, "%s", result);
     pthread_mutex_unlock(&mp3_lock);
-    return result;
 }
 
-const char *mp3_service_current_category_name(void) {
+void mp3_service_current_category_name(char *out, size_t out_sz) {
+    if (!out || out_sz == 0) return;
     pthread_mutex_lock(&mp3_lock);
     const Mp3Category *c = mp3_service_get_category(cur_cat);
-    const char *result = c ? c->name : "Unknown";
-    pthread_mutex_unlock(&mp3_lock);
-    return result;
-}
-
-int mp3_service_get_volume(void) {
-    return volume_percent;
-}
-
-void mp3_service_set_volume(int percent) {
-    if (percent < 0) percent = 0;
-    if (percent > 100) percent = 100;
-    pthread_mutex_lock(&mp3_lock);
-    volume_percent = percent;
+    snprintf(out, out_sz, "%s", c ? c->name : "Unknown");
     pthread_mutex_unlock(&mp3_lock);
 }
 
@@ -787,9 +800,21 @@ size_t mp3_service_count(void) {
 }
 
 void mp3_service_shutdown(void) {
+    /* stop_thread() takes/releases mp3_lock itself and must run first so
+     * the player thread (which touches viz_levels/state under the lock)
+     * is fully joined before we free the library it may have been
+     * reading track paths from. */
     stop_thread();
 
-    if (!categories) return;
+    /* Free + reset the library under mp3_lock. The headphone-input and
+     * AVRCP threads read `categories` (directly, or via the current-track
+     * accessors) from other threads at any time — without the lock held
+     * across the whole free, one of them could index a half-freed array. */
+    pthread_mutex_lock(&mp3_lock);
+    if (!categories) {
+        pthread_mutex_unlock(&mp3_lock);
+        return;
+    }
     for (size_t c = 0; c < category_count; c++) {
         Mp3Category *cat = &categories[c];
 
@@ -819,4 +844,62 @@ void mp3_service_shutdown(void) {
     category_capacity = 0;
     total_duration = 0;
     finished_naturally = 0;
+    pthread_mutex_unlock(&mp3_lock);
 }
+
+#else /* !BLACKHAND_MP3_ENABLED — libmpg123/libout123 not available */
+
+/* Stub matching mp3_service.h exactly. Every entry point is a harmless
+ * no-op/empty-state return so callers (screen_mp3.c, wipe_phone_data(),
+ * etc.) keep working without the MP3 player. screen_mp3.c does not
+ * actually call any of these in this configuration — it shows an
+ * "unavailable" message instead — but the stub exists so the service's
+ * public API always links regardless of build configuration. */
+
+int  mp3_service_init(const char *audio_root) { (void)audio_root; return -1; }
+void mp3_service_shutdown(void) {}
+int  mp3_service_rescan(const char *audio_root) { (void)audio_root; return -1; }
+
+size_t mp3_service_category_count(void) { return 0; }
+const Mp3Category *mp3_service_get_category(size_t index) { (void)index; return NULL; }
+size_t mp3_service_collection_count(size_t category_index) { (void)category_index; return 0; }
+const Mp3Collection *mp3_service_get_collection(size_t category_index, size_t collection_index) {
+    (void)category_index; (void)collection_index; return NULL;
+}
+size_t mp3_service_track_count(size_t category_index, size_t collection_index) {
+    (void)category_index; (void)collection_index; return 0;
+}
+const Mp3Track *mp3_service_get_track(size_t category_index, size_t collection_index, size_t track_index) {
+    (void)category_index; (void)collection_index; (void)track_index; return NULL;
+}
+
+size_t mp3_service_direct_track_count(size_t category_index) { (void)category_index; return 0; }
+const Mp3Track *mp3_service_get_direct_track(size_t category_index, size_t track_index) {
+    (void)category_index; (void)track_index; return NULL;
+}
+
+int  mp3_service_play(size_t cat_idx, size_t col_idx, size_t track_idx, int is_direct) {
+    (void)cat_idx; (void)col_idx; (void)track_idx; (void)is_direct; return -1;
+}
+void mp3_service_pause(void) {}
+void mp3_service_resume(void) {}
+void mp3_service_stop(void) {}
+int  mp3_service_next(void) { return -1; }
+int  mp3_service_prev(void) { return -1; }
+
+mp3_playback_state mp3_service_get_state(void) { return MP3_STOPPED; }
+int      mp3_service_get_current_index(void) { return -1; }
+unsigned mp3_service_get_elapsed(void) { return 0; }
+unsigned mp3_service_get_total_duration(void) { return 0; }
+size_t   mp3_service_get_visualizer(unsigned char *out_levels, size_t max_levels) {
+    (void)out_levels; (void)max_levels; return 0;
+}
+void mp3_service_update(void) {}
+
+void mp3_service_current_track_name(char *out, size_t out_sz) { if (out && out_sz) out[0] = '\0'; }
+void mp3_service_current_collection_name(char *out, size_t out_sz) { if (out && out_sz) out[0] = '\0'; }
+void mp3_service_current_category_name(char *out, size_t out_sz) { if (out && out_sz) out[0] = '\0'; }
+
+size_t mp3_service_count(void) { return 0; }
+
+#endif /* BLACKHAND_MP3_ENABLED */

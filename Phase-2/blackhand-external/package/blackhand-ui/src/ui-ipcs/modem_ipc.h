@@ -13,6 +13,7 @@ typedef struct {
     int    pending_sms;
     int    signal;
     int    gps_enabled;
+    int    storage_error;
 } ModemStatus;
 
 typedef struct {

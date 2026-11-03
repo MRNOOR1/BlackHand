@@ -4,6 +4,7 @@
 *.a
 *.so
 *.d
+!Phase-2/blackhand-external/board/blackhand/overlay/etc/init.d/
 *.elf
 *.bin
 *.hex
@@ -33,3 +34,10 @@ buildroot/
 .LSOverride
 
 # ── Documents / generated reports ────────────────────────────────────
+
+# Host regression outputs
+Phase-2/tests/build/
+Phase-2/blackhand-external/package/blackhand-init/src/selftest
+
+# Wi-Fi credentials read by post-build.sh. NEVER commit.
+Phase-2/blackhand-external/board/blackhand/wifi.env

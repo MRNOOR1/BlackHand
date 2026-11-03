@@ -1,5 +1,4 @@
 config BR2_PACKAGE_BLACKHAND_STORAGE
     bool "blackhand-storage"
-    select BR2_PACKAGE_SQLITE
     help
-      Database/storage service for contacts, SMS, settings.
+      Storage service for contacts, SMS, settings (JSON files, no SQLite).

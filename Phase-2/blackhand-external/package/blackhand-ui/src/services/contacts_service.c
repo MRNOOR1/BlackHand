@@ -25,6 +25,12 @@ static Contact  s_contacts[MAX_CONTACTS];
 static Contact *s_ptrs[MAX_CONTACTS];
 static size_t   s_count = 0;
 
+/* 1 = the last sync found contacts.json present but unparseable. The cache
+ * is left untouched (whatever it held before), matching comm_service's
+ * storage_ok precedent: "no data" and "can't read the data" must look
+ * different to the user, not both collapse to an empty list. */
+static int s_corrupt = 0;
+
 /* ── cache management ────────────────────────────────────────────────────── */
 
 static void free_cache(void)
@@ -49,7 +55,9 @@ static void sync_from_storage(void)
     free_cache();
 
     static char buf[LIST_BUF];
-    if (storage_ipc_contacts_list(buf, sizeof(buf)) != 0) return;
+    int rc = storage_ipc_contacts_list(buf, sizeof(buf));
+    s_corrupt = (rc == -2);
+    if (rc != 0) return;
 
     cJSON *arr = cJSON_Parse(buf);
     if (!arr || !cJSON_IsArray(arr)) { cJSON_Delete(arr); return; }
@@ -89,6 +97,26 @@ void contact_service_shutdown(void)
     free_cache();
 }
 
+/* 1 = contacts.json exists but the daemon could not parse it. Screens use
+ * this the same way comm_service_storage_ok() is used for history. */
+int contact_service_data_corrupt(void)
+{
+    return s_corrupt;
+}
+
+/* White Wipe only: unconditionally empties contacts.json, including a
+ * corrupt one contact_service_delete() can never reach (it works off the
+ * cache, which contacts.list — correctly — refuses to fake data for).
+ * Returns -1 on failure, 0 clean, 1 if corrupt data was found and erased. */
+int contact_service_wipe_all(void)
+{
+    int rc = storage_ipc_contacts_clear();
+    if (rc < 0) return -1;
+    free_cache();
+    s_corrupt = 0;
+    return rc;
+}
+
 Contact *contact_service_create(const char *name, const char *number)
 {
     if (!number || !number[0]) return NULL;
@@ -110,12 +138,8 @@ int contact_service_update(Contact *c, const char *new_name,
     const char *name   = (new_name   && new_name[0])   ? new_name   : c->name;
     const char *number = (new_number && new_number[0]) ? new_number : c->phone_number;
 
-    /* Number is the key — a renumber is delete-old + save-new. History under
-     * /data/numbers/ is untouched either way (it belongs to the number). */
-    if (strcmp(number, c->phone_number) != 0)
-        storage_ipc_contacts_delete(c->phone_number);
-
-    if (storage_ipc_contacts_save(name, number) != 0) return -1;
+    /* Renumber and rename in one storage transaction, with collision checks. */
+    if (storage_ipc_contacts_update(c->phone_number, name, number) != 0) return -1;
     sync_from_storage();
     return 0;
 }

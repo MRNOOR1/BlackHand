@@ -274,7 +274,6 @@ void bh_footer(struct ncplane *n, const char *tag) {
         put2(n, frow, cols - 3, t->dim, t->bg, "✶");
         break;
     case FT_DOSSIER:
-        put2(n, frow, 2, t->dim, t->bg, "REF: BLACKHAND/0.4");
         break;
     case FT_BIT: {
         /* inverted tag block on the left, wordmark right */
@@ -294,7 +293,6 @@ void bh_footer(struct ncplane *n, const char *tag) {
     case FT_WORDMARK:
     default:
         put2(n, frow, 2, t->dim, t->bg, "BLACKHAND");
-        put2(n, frow, cols - 2 - 4, t->dim, t->bg, "v0.4");
         break;
     }
 }

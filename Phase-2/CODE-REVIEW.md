@@ -1,3 +1,8 @@
+> **Historical review (June 2026): not current status.** Several findings and
+> architecture descriptions below were superseded. Use
+> [REMEDIATION-STATUS.md](REMEDIATION-STATUS.md) for current fixes, remaining work
+> and verification limits.
+
 # Black Hand OS — Phase 2 Code Review
 *Reviewed 2026-06-10. Covers every package in `blackhand-external`, the IPC contracts between them, and boot/build wiring.*
 

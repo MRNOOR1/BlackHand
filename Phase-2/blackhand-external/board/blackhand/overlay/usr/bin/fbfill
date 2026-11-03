@@ -1,0 +1,105 @@
+#!/bin/sh
+# ─────────────────────────────────────────────────────────────────────────────
+# fbfill — fill the WHOLE framebuffer with a colour, or draw a test pattern.
+#
+#   fbfill red|green|blue|white|black|yellow|cyan|magenta
+#   fbfill ff8000            any RRGGBB hex
+#   fbfill bars              white bar on the FIRST and LAST 10 rows
+#   fbfill ruler             alternating 10-row bands — count them to find
+#                            exactly how many rows the panel really shows
+#   fbfill cycle             red, green, blue, white, black — 2 s each
+#
+# Every size is computed from the framebuffer's OWN geometry via sysfs:
+# virtual_size, stride (bytes per row) and bits_per_pixel.
+#
+# WHY THAT MATTERS HERE: this panel's fbdev emulation exposes XRGB8888 —
+# 32 bpp, stride 960 — even though RGB565 is what travels over the SPI wire.
+# A fill sized as 240*284*2 = 136320 bytes covers only 142 of 284 rows: exactly
+# the TOP HALF, leaving the bottom looking dead. Never hardcode the size.
+# ─────────────────────────────────────────────────────────────────────────────
+set -e
+
+FB=${FB:-/dev/fb0}
+SYS=/sys/class/graphics/$(basename "$FB")
+[ -e "$FB" ] || { echo "fbfill: $FB not found" >&2; exit 1; }
+
+W=$(cut -d, -f1 "$SYS/virtual_size")
+H=$(cut -d, -f2 "$SYS/virtual_size")
+STRIDE=$(cat "$SYS/stride")
+BPP=$(cat "$SYS/bits_per_pixel")
+TOTAL=$((STRIDE * H))
+
+oct() { printf '%03o' "$1"; }
+
+# One pixel, little-endian, in the framebuffer's actual format.
+#   32 bpp XRGB8888 -> B G R X       16 bpp RGB565 -> lo hi
+px() {
+    if [ "$BPP" = "32" ]; then
+        printf "\\$(oct $3)\\$(oct $2)\\$(oct $1)\\000"
+    else
+        v=$(( (($1 & 248) << 8) | (($2 & 252) << 3) | ($3 >> 3) ))
+        printf "\\$(oct $((v % 256)))\\$(oct $((v / 256)))"
+    fi
+}
+
+# Grow a repeating pixel to >= $1 bytes by doubling. A byte-at-a-time loop
+# would take minutes in shell for a 272 KB screen; this takes ~17 rounds.
+build() {
+    px "$3" "$4" "$5" > "$2"
+    while [ "$(wc -c < "$2")" -lt "$1" ]; do
+        cat "$2" "$2" > "$2.d" && mv "$2.d" "$2"
+    done
+}
+
+fill() {
+    build "$TOTAL" /tmp/.fbfill "$1" "$2" "$3"
+    head -c "$TOTAL" /tmp/.fbfill > "$FB"
+    rm -f /tmp/.fbfill
+}
+
+rgb_of() {
+    case "$1" in
+        red)     echo "255 0 0"       ;; green)   echo "0 255 0"     ;;
+        blue)    echo "0 0 255"       ;; white)   echo "255 255 255" ;;
+        black)   echo "0 0 0"         ;; yellow)  echo "255 255 0"   ;;
+        cyan)    echo "0 255 255"     ;; magenta) echo "255 0 255"   ;;
+        ??????)  echo "$((0x$(echo "$1" | cut -c1-2))) $((0x$(echo "$1" | cut -c3-4))) $((0x$(echo "$1" | cut -c5-6)))" ;;
+        *)       return 1 ;;
+    esac
+}
+
+echo "fbfill: ${W}x${H}  stride=${STRIDE}B  bpp=${BPP}  total=${TOTAL}B"
+
+case "${1:-white}" in
+  bars)
+    bar=$((STRIDE * 10)); mid=$((STRIDE * (H - 20)))
+    build "$bar" /tmp/.fbw 255 255 255
+    { head -c "$bar" /tmp/.fbw; head -c "$mid" /dev/zero; head -c "$bar" /tmp/.fbw; } > "$FB"
+    rm -f /tmp/.fbw
+    echo "White bars on rows 0-9 and $((H-10))-$((H-1))."
+    echo "Both flush to the panel edges => the whole screen is addressable."
+    ;;
+  ruler)
+    band=$((STRIDE * 10))
+    build "$band" /tmp/.fbw 255 255 255
+    n=0; i=0
+    { while [ "$n" -lt "$TOTAL" ]; do
+        if [ $((i % 2)) -eq 0 ]; then head -c "$band" /tmp/.fbw
+        else head -c "$band" /dev/zero; fi
+        n=$((n + band)); i=$((i + 1))
+      done; } | head -c "$TOTAL" > "$FB"
+    rm -f /tmp/.fbw
+    echo "Alternating 10-row bands, $((H / 10)) of them across ${H} rows."
+    echo "Count the bands you can see — that is how many rows actually display."
+    ;;
+  cycle)
+    for c in red green blue white black; do
+        echo "  $c"; fill $(rgb_of "$c"); sleep 2
+    done
+    ;;
+  *)
+    set -- $(rgb_of "$1") || { echo "fbfill: unknown colour" >&2; exit 2; }
+    fill "$1" "$2" "$3"
+    echo "Filled all ${H} rows (${TOTAL} bytes)."
+    ;;
+esac

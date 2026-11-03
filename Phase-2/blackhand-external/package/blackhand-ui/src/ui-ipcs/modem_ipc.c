@@ -312,6 +312,7 @@ int modem_ipc_get_status(ModemStatus *out)
     cJSON *state = cJSON_GetObjectItem(result, "call_state");
     cJSON *sms   = cJSON_GetObjectItem(result, "pending_sms");
     cJSON *gps   = cJSON_GetObjectItem(result, "gps_enabled");
+    out->storage_error = cJSON_IsTrue(cJSON_GetObjectItem(result, "storage_error"));
 
     out->signal           = cJSON_IsNumber(sig)  ? sig->valueint   : 0;
     out->has_incoming_call= cJSON_IsTrue(inc)     ? 1               : 0;

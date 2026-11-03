@@ -82,31 +82,6 @@ keypad_layout keypad_layout_compute(int rows, int cols) {
  *  Width is always label_len + 4 (brackets + spaces).
  *  If 'highlight' is true, the button uses primary colour; otherwise muted.
  * ────────────────────────────────────────────────────────────────────────── */
-static void draw_button(struct ncplane *n, int row, int col,
-                        const char *label, int highlight) {
-    uint32_t fg = highlight ? theme_text_primary() : theme_text_muted();
-    uint32_t bg = highlight ? theme_border() : theme_bg();
-
-    /* Draw bracket + label + bracket */
-    ncplane_set_fg_rgb(n, fg);
-    ncplane_set_bg_rgb(n, bg);
-    ncplane_putstr_yx(n, row, col, "[");
-
-    ncplane_set_fg_rgb(n, highlight ? theme_bg() : theme_text_muted());
-    ncplane_set_bg_rgb(n, bg);
-    ncplane_putstr_yx(n, row, col + 1, " ");
-    ncplane_putstr_yx(n, row, col + 2, label);
-    int label_len = (int)strlen(label);
-    ncplane_putstr_yx(n, row, col + 2 + label_len, " ");
-
-    ncplane_set_fg_rgb(n, fg);
-    ncplane_putstr_yx(n, row, col + 3 + label_len, "]");
-
-    /* Reset to default */
-    ncplane_set_fg_rgb(n, theme_text_muted());
-    ncplane_set_bg_rgb(n, theme_bg());
-}
-
 static void draw_button_fixed(struct ncplane *n, int row, int col, int width,
                               const char *label, int highlight) {
     int label_len = (int)strlen(label);

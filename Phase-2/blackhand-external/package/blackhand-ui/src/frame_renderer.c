@@ -12,83 +12,49 @@
 #include "services/theme_service.h"
 
 
-void draw_battery(struct ncplane *phone, int percent,
-                         bool charging, int tick) {
+/*
+ * Rounded-corner safety (spi-display-bringup.md §6.3, recomputed for 10x18).
+ *
+ * The panel corners are rounded (~28 px radius). With the 10x18 font that is
+ * 2.8 cols wide x 1.55 rows tall, so it clips only the first and last character
+ * rows: on those two rows, columns 0-2 and (cols-3)..(cols-1) sit under the
+ * bezel and must never carry a glyph. Rows 1..(rows-2) are full width.
+ *
+ * The frame draws a DOUBLE-LINE border (theme_border() colored) that mirrors
+ * the glass:
+ *   - Top/bottom runs and their corner turns (╔ ╗ ╚ ╝) are inset to the safe
+ *     span [BORDER_CORNER_INSET, cols-1-BORDER_CORNER_INSET]; no glyph lands in
+ *     an extreme corner cell.
+ *   - Left/right sides (║) run only on the full-width rows 1..(rows-2), on the
+ *     extreme columns, so they never touch a rounded corner cell.
+ * The bottom row is thus a finished double-line edge (cols inset..), not empty
+ * bleed; only the four corner cells stay background-only.
+ */
+#define BORDER_CORNER_INSET 3   /* first safe column on the top/bottom rows */
 
-    int segs = (percent + 24) / 25;
-    if (segs > 4) segs = 4;
-    if (segs < 0) segs = 0;
+static void draw_border(struct ncplane *phone, int rows, int cols) {
+    ncplane_set_fg_rgb(phone, theme_border());
+    ncplane_set_bg_rgb(phone, theme_bg());
 
-    if (percent < 15 && !charging) {
-        if ((tick % 10) >= 5) {
-            ghost_set(phone, theme_bg());
-            ncplane_putstr_yx(phone, STATUS_ROW, STATUS_BATTERY_COL,
-                              "               ");
-            return;
-        }
+    int x0  = BORDER_CORNER_INSET;
+    int x1  = cols - 1 - BORDER_CORNER_INSET;   /* last safe column */
+    int top = 0, bot = rows - 1;
+    if (x1 <= x0) return;                        /* plane too narrow */
+
+    /* top and bottom double rules, corner turns inside the safe span */
+    ncplane_putstr_yx(phone, top, x0, "╔");
+    ncplane_putstr_yx(phone, top, x1, "╗");
+    ncplane_putstr_yx(phone, bot, x0, "╚");
+    ncplane_putstr_yx(phone, bot, x1, "╝");
+    for (int x = x0 + 1; x < x1; x++) {
+        ncplane_putstr_yx(phone, top, x, "═");
+        ncplane_putstr_yx(phone, bot, x, "═");
     }
 
-    char label[24];
-    static const char *bars[] = { "░░░░", "█░░░", "██░░", "███░", "████" };
-
-    if (charging) {
-        ghost_set(phone, theme_text_primary());
-        snprintf(label, sizeof(label), "BAT %s %3d%% CHG", bars[segs], percent);
-    } else if (percent < 15) {
-        ghost_set(phone, COL_GHOST_LOW);
-        snprintf(label, sizeof(label), "BAT %s %3d%% LOW", bars[segs], percent);
-    } else {
-        ghost_set(phone, theme_text_muted());
-        snprintf(label, sizeof(label), "BAT %s %3d%%", bars[segs], percent);
-    }
-    ncplane_putstr_yx(phone, STATUS_ROW, STATUS_BATTERY_COL, label);
-}
-
-void draw_signal(struct ncplane *phone, int bars,
-                        bool connected, int tick) {
-
-    unsigned rows, cols;
-    ncplane_dim_yx(phone, &rows, &cols);
-
-    int sig_col = (int)cols - 13;
-
-    if (sig_col < 1) return;
-
-    int level = bars;
-    if (level < 0) level = 0;
-    if (level > 4) level = 4;
-    static const char *sigbars[] = { "░░░░", "▓░░░", "▓▓░░", "▓▓▓░", "▓▓▓▓" };
-
-    char text[20];
-    if (!connected) {
-        ghost_set(phone, ((tick % 8) < 4) ? theme_text_muted() : theme_border());
-        snprintf(text, sizeof(text), "SIG ░░░░ LOST");
-    } else {
-        ghost_set(phone, theme_text_muted());
-        snprintf(text, sizeof(text), "SIG %s", sigbars[level]);
-    }
-    ncplane_putstr_yx(phone, STATUS_ROW, sig_col, text);
-}
-
-void draw_status_bar(struct ncplane *phone, int tick) {
-    battery_status_t  batt = hardware_get_battery();
-    cellular_status_t cell = hardware_get_cellular();
-    draw_battery(phone, batt.percent,     batt.charging,  tick);
-    draw_signal (phone, cell.signal_bars, cell.connected, tick);
-
-    unsigned rows, cols;
-    ncplane_dim_yx(phone, &rows, &cols);
-    (void)rows;
-
-    time_t now = time(NULL);
-    struct tm tm_now;
-    if (localtime_r(&now, &tm_now)) {
-        char clockbuf[8];
-        snprintf(clockbuf, sizeof(clockbuf), "%02d:%02d", tm_now.tm_hour, tm_now.tm_min);
-        int col = (int)cols - 20;
-        if (col < 20) col = 20;
-        ghost_set(phone, theme_text_primary());
-        ncplane_putstr_yx(phone, STATUS_ROW, col, clockbuf);
+    /* left and right double sides on the full-width rows only */
+    for (int y = 1; y <= rows - 2; y++) {
+        ncplane_putstr_yx(phone, y, 0,        "║");
+        ncplane_putstr_yx(phone, y, cols - 1, "║");
     }
 }
 
@@ -101,10 +67,15 @@ void draw_frame(struct ncplane *phone, int tick,
     if (rows < (unsigned)FRAME_MIN_ROWS || cols < (unsigned)FRAME_MIN_COLS)
         return;
 
-    /* ── Full-bleed background (borderless) ───────────────────────────── */
+    /* ── Full-bleed background (covers every cell, including the four
+     *    background-only corner cells — see the corner-safety note above) ── */
     ghost_fill_rect(phone, 0, 0, (int)rows, (int)cols, ' ', theme_bg(), theme_bg());
 
-    /* ── Themed status strip (row 0, +row 1 on the instrument theme) ──── */
+    /* ── Double-line themed perimeter border ─────────────────────────────── */
+    draw_border(phone, (int)rows, (int)cols);
+
+    /* ── Themed status strip on STATUS_ROW (row 1), never on the top
+     *    corner-bleed row. The instrument theme also uses row 2. ────────── */
     bh_status_strip(phone, tick);
 
     /* ── Themed divider on row 2, carrying the screen tag. The instrument

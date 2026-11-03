@@ -38,7 +38,7 @@ echo ""
 
 # 1. Build artifacts
 echo "── 1. Build Artifacts ──"
-for f in sdcard.img Image bcm2711-rpi-4-b.dtb rootfs.ext4; do
+for f in sdcard.img Image bcm2711-rpi-cm4.dtb rootfs.ext4; do
     if [ -f "${IMAGES_DIR}/${f}" ]; then
         pass "${f} ($(du -h "${IMAGES_DIR}/${f}" | cut -f1))"
     else
@@ -50,16 +50,44 @@ done
 echo ""
 echo "── 2. Boot Partition ──"
 
-if [ -f "${IMAGES_DIR}/config.txt" ]; then
+CFG="${IMAGES_DIR}/config.txt"
+if [ -f "${CFG}" ]; then
     pass "config.txt"
-    grep -q "enable_dpi_lcd=1" "${IMAGES_DIR}/config.txt" && pass "DPI LCD enabled" || fail "enable_dpi_lcd=1 missing"
-    grep -q "dpi_timings=" "${IMAGES_DIR}/config.txt" && pass "DPI timings set" || fail "dpi_timings missing"
-    grep -q "arm_64bit=1" "${IMAGES_DIR}/config.txt" && pass "arm_64bit=1" || fail "arm_64bit=1 missing"
+    grep -q "arm_64bit=1" "${CFG}" && pass "arm_64bit=1" || fail "arm_64bit=1 missing"
+
+    # SPI panel (panel-mipi-dbi) — see spi-display-bringup.md §5.1, §7.4
+    grep -q "^dtoverlay=mipi-dbi-spi" "${CFG}" \
+        && pass "mipi-dbi-spi overlay present" \
+        || fail "dtoverlay=mipi-dbi-spi missing — SPI panel will not bind"
+    grep -q "^dtparam=write-only" "${CFG}" \
+        && pass "write-only set (MISO not wired)" \
+        || fail "dtparam=write-only missing — probe will hang reading controller ID"
+    grep -Eq "width=240([,[:space:]]|$)" "${CFG}" \
+        && pass "width=240" || fail "width=240 missing"
+    grep -Eq "height=304([,[:space:]]|$)" "${CFG}" \
+        && pass "height=304" || fail "height=304 missing"
+    grep -Eq "y-offset=0([,[:space:]]|$)" "${CFG}" \
+        && pass "y-offset=0 (measured, no offset)" || fail "y-offset=0 missing/incorrect"
+
+    # No HyperPixel/DPI leftovers in the boot config
+    if grep -Eq "enable_dpi_lcd|dpi_timings|dpi_mode|hyperpixel" "${CFG}"; then
+        fail "config.txt still contains HyperPixel/DPI directives"
+    else
+        pass "config.txt free of HyperPixel/DPI directives"
+    fi
 else
     fail "config.txt NOT FOUND"
 fi
 
-[ -f "${IMAGES_DIR}/cmdline.txt" ] && pass "cmdline.txt" || fail "cmdline.txt NOT FOUND"
+CMDLINE="${IMAGES_DIR}/cmdline.txt"
+if [ -f "${CMDLINE}" ]; then
+    pass "cmdline.txt"
+    grep -q "fbcon=font:10x18" "${CMDLINE}" \
+        && pass "console font 10x18" \
+        || fail "fbcon=font:10x18 missing — wrong console geometry"
+else
+    fail "cmdline.txt NOT FOUND"
+fi
 
 for f in start4.elf fixup4.dat; do
     [ -f "${IMAGES_DIR}/${f}" ] && pass "${f}" || fail "${f} NOT FOUND — Pi won't boot"
@@ -69,7 +97,7 @@ done
 echo ""
 echo "── 3. DTB Symbols ──"
 
-DTB="${IMAGES_DIR}/bcm2711-rpi-4-b.dtb"
+DTB="${IMAGES_DIR}/bcm2711-rpi-cm4.dtb"
 DTC=""
 for c in "${BUILD_DIR}/host/bin/linux-dtc" "${BUILD_DIR}/host/bin/dtc" "$(which dtc 2>/dev/null || true)"; do
     [ -n "${c}" ] && [ -x "${c}" ] && { DTC="${c}"; break; }
@@ -90,7 +118,7 @@ echo "── 4. Rootfs — Init & Binaries ──"
 [ -f "${TARGET_DIR}/etc/init.d/rcS" ] && [ -x "${TARGET_DIR}/etc/init.d/rcS" ] \
     && pass "rcS (executable)" || fail "rcS missing or not executable"
 
-for bin in /sbin/init /bin/sh /usr/sbin/dropbear /usr/bin/fbv; do
+for bin in /sbin/init /bin/sh /usr/sbin/dropbear /usr/bin/fbfill; do
     if [ -e "${TARGET_DIR}${bin}" ] || [ -L "${TARGET_DIR}${bin}" ]; then
         pass "$(basename ${bin})"
     else
@@ -98,20 +126,76 @@ for bin in /sbin/init /bin/sh /usr/sbin/dropbear /usr/bin/fbv; do
     fi
 done
 
-# 5. HyperPixel init tool
+# 4b. tmux-hosted UI session
 echo ""
-echo "── 5. HyperPixel Init ──"
+echo "── 4b. tmux UI Session ──"
 
-if [ -e "${TARGET_DIR}/usr/bin/hyperpixel4-init" ]; then
-    pass "hyperpixel4-init binary installed"
+[ -e "${TARGET_DIR}/usr/bin/tmux" ] && pass "tmux" || fail "tmux NOT FOUND — check BR2_PACKAGE_TMUX=y"
+[ -f "${TARGET_DIR}/etc/tmux.conf" ] && pass "tmux.conf" || fail "tmux.conf NOT FOUND"
+[ -f "${TARGET_DIR}/usr/bin/bh-session" ] && [ -x "${TARGET_DIR}/usr/bin/bh-session" ] \
+    && pass "bh-session (executable)" || fail "bh-session missing or not executable"
+[ -f "${TARGET_DIR}/usr/share/terminfo/t/tmux-256color" ] \
+    && pass "tmux-256color terminfo" \
+    || fail "tmux-256color terminfo NOT FOUND — check BR2_PACKAGE_NCURSES_ADDITIONAL_TERMINFO"
+# The UI is no longer a svc-mgr service, so services.conf can no longer prove it
+# gets launched. rcS is the only thing that starts it now — if this block is
+# removed the device boots with no UI at all and every other check still passes.
+grep -q "bh-session --detached" "${TARGET_DIR}/etc/init.d/rcS" \
+    && grep -q "new-session -d .* -s bh" "${TARGET_DIR}/usr/bin/bh-session" \
+    && pass "rcS creates the detached 'bh' session (via bh-session --detached)" \
+    || fail "rcS does NOT create the tmux session — nothing will start the UI"
+# tty1 (the phone's own screen) is a tmux client spawned by PID 1; without it
+# the UI runs but is only reachable over SSH. grep -a: init is a binary.
+grep -aq "/usr/bin/bh-session" "${TARGET_DIR}/sbin/blackhand-init" \
+    && pass "init attaches bh-session on tty1" \
+    || fail "init does NOT reference bh-session — UI invisible on the phone screen"
+
+# 5. SPI panel firmware + display sanity — see spi-display-bringup.md §4, §7.4
+echo ""
+echo "── 5. SPI Panel (panel-mipi-dbi) ──"
+
+# panel.bin ships in the rootfs overlay and is also linked into the kernel via
+# CONFIG_EXTRA_FIRMWARE. The overlay copy is the reliable place to inspect it.
+PANEL_BIN="${TARGET_DIR}/lib/firmware/panel.bin"
+if [ -f "${PANEL_BIN}" ]; then
+    pass "panel.bin present ($(du -h "${PANEL_BIN}" | cut -f1))"
+    # Format: offset 0, 8-byte magic "MIPI DBI" (panel-mipi-dbi.c). Reject a bad
+    # blob here rather than discovering it via a dead panel on the bench.
+    if [ "$(head -c 8 "${PANEL_BIN}")" = "MIPI DBI" ]; then
+        pass "panel.bin has valid 'MIPI DBI' magic"
+    else
+        fail "panel.bin magic invalid — kernel will reject the init blob"
+    fi
 else
-    fail "hyperpixel4-init NOT FOUND — display will stay black"
+    fail "panel.bin NOT FOUND in ${TARGET_DIR}/lib/firmware — panel init blob missing"
 fi
 
-if [ -f "${TARGET_DIR}/etc/init.d/rcS" ] && grep -q "hyperpixel4-init" "${TARGET_DIR}/etc/init.d/rcS"; then
-    pass "rcS calls hyperpixel4-init"
+# Kernel modules MUST NOT be compressed: busybox modprobe/insmod cannot handle
+# .ko.xz/.gz/.zst and depmod won't index them (spi-display-bringup.md §8.3).
+COMPRESSED_KO="$(find "${TARGET_DIR}/lib/modules" \
+    \( -name '*.ko.xz' -o -name '*.ko.gz' -o -name '*.ko.zst' \) 2>/dev/null | head -1 || true)"
+if [ -n "${COMPRESSED_KO}" ]; then
+    fail "compressed kernel modules present (e.g. ${COMPRESSED_KO}) — busybox cannot load them"
 else
-    fail "rcS does NOT call hyperpixel4-init"
+    pass "no compressed kernel modules (*.ko.xz/.gz/.zst)"
+fi
+
+# No HyperPixel/DPI leftovers anywhere in the staged tree.
+if [ -e "${TARGET_DIR}/usr/bin/hyperpixel4-init" ]; then
+    fail "hyperpixel4-init binary still in rootfs — obsolete DPI tool"
+else
+    pass "no hyperpixel4-init binary in rootfs"
+fi
+# cmdline.txt is a single directive line (no comments), so an -i scan is safe.
+# config.txt is covered by the directive check in section 2 (RPi directives are
+# lowercase, matched case-sensitively) — its explanatory comment legitimately
+# names HyperPixel, so we do not -i scan it here.
+HP_CMDLINE="$(grep -Ei "hyperpixel|enable_dpi_lcd|dpi_timings" "${IMAGES_DIR}/cmdline.txt" 2>/dev/null || true)"
+HP_DTBO="$(find "${IMAGES_DIR}/overlays" -iname '*hyperpixel*' 2>/dev/null | head -1 || true)"
+if [ -n "${HP_CMDLINE}" ] || [ -n "${HP_DTBO}" ]; then
+    fail "HyperPixel/DPI leftovers found in boot files (${HP_CMDLINE} ${HP_DTBO})"
+else
+    pass "no HyperPixel/DPI leftovers in boot files"
 fi
 
 # 6. BlackHand init system
@@ -135,10 +219,10 @@ fi
 # services config — read by service manager on startup
 if [ -f "${TARGET_DIR}/etc/blackhand/services.conf" ]; then
     pass "services.conf"
-    # verify all four services are listed
+    # verify the services are listed
     grep -q "blackhand-audio"   "${TARGET_DIR}/etc/blackhand/services.conf" && pass "  services.conf: blackhand-audio listed"   || fail "  services.conf: blackhand-audio MISSING"
     grep -q "blackhand-modem"   "${TARGET_DIR}/etc/blackhand/services.conf" && pass "  services.conf: blackhand-modem listed"   || fail "  services.conf: blackhand-modem MISSING"
-    grep -q "blackhand-ui"      "${TARGET_DIR}/etc/blackhand/services.conf" && pass "  services.conf: blackhand-ui listed"      || fail "  services.conf: blackhand-ui MISSING"
+    grep -q "^\[blackhand-ui\]" "${TARGET_DIR}/etc/blackhand/services.conf" && fail "  services.conf: [blackhand-ui] present — tmux already runs the UI (two supervisors)" || pass "  services.conf: UI not a service (tmux hosts it)"
 else
     fail "services.conf NOT FOUND — service manager will abort on boot"
 fi

@@ -1,3 +1,4 @@
+#include "gps_service.h"
 #include "modem_dispatch.h"
 #include "Modem.h"
 #include "serial_utility.h"
@@ -116,8 +117,8 @@ static void handle_reject(int fd, int id, cJSON *params)
 	// A rejected ringing call is just a hangup before pickup.
 	(void)params;
 	REQUIRE_MODEM_OR_FAIL(fd, id);
-	modem_hangup();
-	send_result_str(fd, id, "ok");
+	int rc = modem_hangup();
+	send_result_str(fd, id, rc > 0 ? "ok" : "error");
 }
 
 static void handle_send_sms(int fd, int id, cJSON *params)
@@ -151,6 +152,26 @@ static void handle_pop_pending_sms(int fd, int id, cJSON *params)
 	}
 	modem_clear_pending_sms();
 	send_result_obj(fd, id, arr);
+}
+
+static void handle_gps_power(int fd, int id, int enabled) {
+    REQUIRE_MODEM_OR_FAIL(fd, id);
+    if (gps_set_enabled(fn, enabled) != 0) send_err(fd, id, "GPS power command failed");
+    else send_result_str(fd, id, "ok");
+}
+static void handle_gps_location(int fd, int id) {
+    REQUIRE_MODEM_OR_FAIL(fd, id);
+    ModemGpsFix fix;
+    int valid = gps_get_fix(fn, &fix) == 0;
+    cJSON *obj = cJSON_CreateObject();
+    cJSON_AddStringToObject(obj, "fix", valid ? "gps" : "none");
+    if (valid) {
+        cJSON_AddNumberToObject(obj, "latitude", fix.latitude);
+        cJSON_AddNumberToObject(obj, "longitude", fix.longitude);
+        cJSON_AddNumberToObject(obj, "altitude", fix.altitude);
+        cJSON_AddNumberToObject(obj, "speed", fix.speed);
+    }
+    send_result_obj(fd, id, obj);
 }
 
 static void handle_set_port(int fd, int id, cJSON *params)
@@ -192,9 +213,10 @@ static void handle_modem_status(int fd, int id, cJSON *params)
 	modem_get_incoming_number(num, sizeof(num));
 	cJSON_AddStringToObject(obj, "incoming_number", num);
 
-	// SMS / GPS aren't tracked yet — return defaults so the UI parses cleanly.
-	cJSON_AddNumberToObject(obj, "pending_sms", 0);
-	cJSON_AddBoolToObject  (obj, "gps_enabled", 0);
+	// Report queue/storage health and last acknowledged GPS power state.
+	cJSON_AddNumberToObject(obj, "pending_sms", modem_pending_sms_count());
+	cJSON_AddBoolToObject(obj, "storage_error", storage_write_failed());
+	cJSON_AddBoolToObject  (obj, "gps_enabled", modem_present && gps_get_enabled(fn) == 1);
 
 	send_result_obj(fd, id, obj);
 }
@@ -231,6 +253,9 @@ void modem_dispatch_handle(int client_fd, const char *json)
 	else if (strcmp(m, "set_port")         == 0) handle_set_port        (client_fd, id, params);
 	else if (strcmp(m, "send_sms")         == 0) handle_send_sms        (client_fd, id, params);
 	else if (strcmp(m, "modem_status")     == 0) handle_modem_status    (client_fd, id, params);
+	else if (strcmp(m, "gps_enable") == 0) handle_gps_power(client_fd, id, 1);
+	else if (strcmp(m, "gps_disable") == 0) handle_gps_power(client_fd, id, 0);
+	else if (strcmp(m, "get_location") == 0) handle_gps_location(client_fd, id);
 	else if (strcmp(m, "pop_pending_sms")  == 0) handle_pop_pending_sms (client_fd, id, params);
 	else send_err(client_fd, id, "unknown method");
 

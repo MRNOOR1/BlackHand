@@ -55,12 +55,12 @@ typedef enum {
 
 /* Footer style for the bottom strip. */
 typedef enum {
-    FT_WORDMARK,  /* BLACKHAND . v0.4                  */
+    FT_WORDMARK,  /* BLACKHAND wordmark                */
     FT_REDLINE,   /* corner ticks + BH-OS              (redline) */
     FT_DIAMOND,   /* * BLACKHAND *                     (rushnyk) */
     FT_UTC,       /* sparkline + NET:LTE               (instrument) */
     FT_RITE,      /* INIT OK *                         (boot) */
-    FT_DOSSIER,   /* REF: BLACKHAND/0.4                (dossier) */
+    FT_DOSSIER,   /* REF: BLACKHAND                    (dossier) */
     FT_BIT,       /* inverted tag + wordmark           (one-bit) */
     FT_POLAR      /* GPS coordinates                   (polar) */
 } footer_style_t;
@@ -115,5 +115,7 @@ uint32_t theme_affirm_border(void);
 uint32_t theme_affirm_text(void);
 uint32_t theme_destruct_border(void);
 uint32_t theme_destruct_text(void);
+
+void theme_service_preview(int index);
 
 #endif

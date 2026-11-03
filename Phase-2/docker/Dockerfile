@@ -34,6 +34,13 @@ RUN locale-gen en_US.UTF-8
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
 
+# Buildroot refuses to run as root (host packages abort their configure).
+# Build as an unprivileged user; /work is writable by it.
+RUN useradd -m -s /bin/bash builder \
+    && mkdir -p /work \
+    && chown builder:builder /work
+USER builder
+
 WORKDIR /work
 
-ENTRYPOINT ["bash", "-lc", "BUILDROOT_REPO=${BUILDROOT_REPO:-https://github.com/buildroot/buildroot.git}; BUILDROOT_BRANCH=${BUILDROOT_BRANCH:-master}; BUILDROOT_DIR=${BUILDROOT_DIR:-/work/buildroot}; if [[ ! -d \"${BUILDROOT_DIR}\" ]]; then git clone --depth 1 --branch \"${BUILDROOT_BRANCH}\" \"${BUILDROOT_REPO}\" \"${BUILDROOT_DIR}\"; fi; cd \"${BUILDROOT_DIR}\"; exec bash"]
+ENTRYPOINT ["bash", "-lc", "BUILDROOT_REPO=${BUILDROOT_REPO:-https://github.com/buildroot/buildroot.git}; BUILDROOT_BRANCH=${BUILDROOT_BRANCH:-2024.02.x}; BUILDROOT_DIR=${BUILDROOT_DIR:-/work/buildroot}; if [[ ! -d \"${BUILDROOT_DIR}\" ]]; then git clone --depth 1 --branch \"${BUILDROOT_BRANCH}\" \"${BUILDROOT_REPO}\" \"${BUILDROOT_DIR}\"; fi; cd \"${BUILDROOT_DIR}\"; exec bash"]

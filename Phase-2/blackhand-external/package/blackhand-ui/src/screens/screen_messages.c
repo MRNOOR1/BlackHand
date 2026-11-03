@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "config.h"
+#include "services/draft_service.h"
 #include "draw_utils.h"
 #include "bh_skin.h"
 #include "services/comm_service.h"
@@ -33,7 +34,8 @@ static char   s_compose_body[160]  = "";
 static multitap_state s_mt;
 static int    s_mt_ready = 0;
 static int    s_send_feedback = 0; /* 1=sent ok, -1=error, 0=idle */
-static int    s_send_ticks = 0;
+static int    s_draft_loaded = 0;
+static int    s_draft_dirty = 0;
 
 /* Thread view scroll: index of the first visible message. */
 static int    s_thread_scroll = 0;
@@ -46,11 +48,23 @@ static void ensure_mt(void) {
 
 static void enter_compose(const char *preset_number) {
     ensure_mt();
+    if (!s_draft_loaded) {
+        if (draft_service_load(s_compose_number, sizeof(s_compose_number),
+                               s_compose_body, sizeof(s_compose_body)) != 0) {
+            s_send_feedback = -3; /* preserve corrupt/unreadable draft for recovery */
+            return;
+        }
+        s_draft_loaded = 1;
+    }
     s_state = MSG_COMPOSE;
-    s_compose_field = (preset_number && preset_number[0]) ? 1 : 0;
-    snprintf(s_compose_number, sizeof(s_compose_number), "%s",
-             preset_number ? preset_number : "");
-    s_compose_body[0] = '\0';
+    /* An explicit reply/compose target always wins over a leftover draft for
+     * a different number — silently keeping the old number here would send
+     * that draft to the wrong recipient. A plain "New" from the inbox
+     * (preset_number NULL) still resumes whatever draft is pending. */
+    if (preset_number && preset_number[0] &&
+        strcmp(s_compose_number, preset_number) != 0)
+        snprintf(s_compose_number, sizeof(s_compose_number), "%s", preset_number);
+    s_compose_field = s_compose_number[0] ? 1 : 0;
     multitap_reset(&s_mt);
     multitap_set_field(&s_mt, s_compose_field);
     s_send_feedback = 0;
@@ -128,7 +142,8 @@ void screen_messages_draw(struct ncplane *phone)
         /* Send feedback */
         if (s_send_feedback != 0) {
             ghost_text(phone, top + 6, CONTENT_COL, theme_text_muted(),
-                       s_send_feedback > 0 ? "Message sent!" : "Send failed");
+                       s_send_feedback > 0 ? "Message sent!" :
+                       s_send_feedback == -2 ? "Draft save failed" : "Send failed; kept");
         }
 
         /* char counter in the footer position (blueprint SEND) */
@@ -164,7 +179,7 @@ void screen_messages_draw(struct ncplane *phone)
 
         if (n == 0) {
             ghost_text(phone, list_start, CONTENT_COL, theme_text_muted(),
-                       "No messages in this conversation");
+                       "No messages yet");
         }
 
         for (int i = 0; i < visible; i++) {
@@ -183,16 +198,22 @@ void screen_messages_draw(struct ncplane *phone)
             ncplane_putstr_yx(phone, list_start + i, CONTENT_COL, line);
         }
 
-        bh_action_cells(phone, "REPLY", "", 0);
+        bh_action_cells(phone, "REPLY", "CALL", 0);
         return;
     }
 
     /* ── inbox ── */
-    if (!comm_service_storage_ok()) {
+    if (s_send_feedback == -3) {
+        ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL,
+                   theme_destruct_text(), "Draft unreadable");
+    } else if (s_send_feedback == -4) {
+        ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL,
+                   theme_destruct_text(), "Thread unreadable");
+    } else if (!comm_service_storage_ok()) {
         ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL,
                    theme_text_primary(), "! STORAGE OFFLINE");
         ghost_text(phone, CONTENT_START_ROW + 3, CONTENT_COL,
-                   theme_text_muted(), "history unavailable (bh-storage down)");
+                   theme_text_muted(), "history unavailable");
     } else if (!modem_ipc_is_online()) {
         ghost_text(phone, CONTENT_START_ROW + 2, CONTENT_COL,
                    theme_text_primary(), "! MODEM OFFLINE");
@@ -238,7 +259,7 @@ void screen_messages_draw(struct ncplane *phone)
         }
     }
 
-    ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(), "Left:Delete  Right:Compose");
+    ghost_text(phone, footer - 1, CONTENT_COL, theme_text_muted(), "A:Open  D:Del  E:New");
     ghost_softkeys(phone, "[Back]", "[New]");
     if (s_delete_prompt) draw_delete_popup(phone, rows, cols);
 }
@@ -250,6 +271,7 @@ screen_id screen_messages_input(uint32_t key)
     /* ── compose ── */
     if (s_state == MSG_COMPOSE) {
         ensure_mt();
+        s_draft_dirty = 1;
         char *active    = (s_compose_field == 0) ? s_compose_number : s_compose_body;
         size_t active_sz = (s_compose_field == 0) ? sizeof(s_compose_number)
                                                    : sizeof(s_compose_body);
@@ -265,9 +287,11 @@ screen_id screen_messages_input(uint32_t key)
                 return SCREEN_MESSAGES;
             case KEY_SOFT_LEFT_ACTION:
                 multitap_reset(&s_mt);
-                s_state = MSG_INBOX;
+                if (screen_messages_flush() == 0) s_state = MSG_INBOX;
                 return SCREEN_MESSAGES;
-            case KEY_SOFT_RIGHT_ACTION:
+            case KEY_SOFT_RIGHT_ACTION:    /* E = cycle input mode (case) */
+                multitap_toggle_case(&s_mt);
+                return SCREEN_MESSAGES;
             case KEY_ACTION_PRIMARY: {     /* A = send */
                 /* Send */
                 if (s_compose_number[0] && s_compose_body[0]) {
@@ -289,14 +313,15 @@ screen_id screen_messages_input(uint32_t key)
                     if (rc == 0) {
                         comm_service_message_add_full(
                             "Me", s_compose_number, s_compose_body, 1);
+                        s_compose_body[0] = '\0';
                         s_send_feedback = 1;
+                        screen_messages_flush();
                     } else {
                         s_send_feedback = -1;
                     }
-                    s_send_ticks = 0;
+                    if (rc != 0) screen_messages_flush();
                 }
-                /* Stay in compose briefly to show feedback, then return */
-                s_state = MSG_INBOX;
+                /* Keep feedback visible; failed sends retain the draft. */
                 multitap_reset(&s_mt);
                 return SCREEN_MESSAGES;
             }
@@ -347,15 +372,17 @@ screen_id screen_messages_input(uint32_t key)
                 return SCREEN_MESSAGES;
             case KEY_SOFT_RIGHT_ACTION:
             case NCKEY_ENTER: case '\n':
-            case KEY_ACTION_PRIMARY:       /* A = reply */
+            case KEY_ACTION_PRIMARY:       /* A = open reply compose */
                 enter_compose(comm_service_thread_number());
                 return SCREEN_MESSAGES;
-            case KEY_SOFT_LEFT_ACTION:
+            case KEY_SOFT_LEFT_ACTION:     /* Q = back to conversation list */
             case NCKEY_LEFT:
-            case KEY_ACTION_SECONDARY:     /* D = back to inbox */
                 comm_service_sync();
                 s_state = MSG_INBOX;
                 return SCREEN_MESSAGES;
+            case KEY_ACTION_SECONDARY:
+                screen_calls_start_outgoing(NULL, comm_service_thread_number());
+                return SCREEN_CALLS;
             default:
                 return SCREEN_MESSAGES;
         }
@@ -368,7 +395,9 @@ screen_id screen_messages_input(uint32_t key)
                 s_delete_yes = 0; return SCREEN_MESSAGES;
             case NCKEY_RIGHT: case NCKEY_DOWN:
                 s_delete_yes = 1; return SCREEN_MESSAGES;
-            case NCKEY_ENTER: case '\n': case KEY_SOFT_RIGHT_ACTION:
+            case NCKEY_ENTER: case '\n':
+            case KEY_SOFT_RIGHT_ACTION:
+            case KEY_ACTION_PRIMARY:        /* A = confirm the highlighted choice */
                 if (s_delete_yes && comm_service_message_count() > 0) {
                     comm_service_message_delete((size_t)s_selected);
                     if (s_selected >= (int)comm_service_message_count() && s_selected > 0)
@@ -376,7 +405,7 @@ screen_id screen_messages_input(uint32_t key)
                 }
                 s_delete_prompt = 0; s_delete_yes = 0;
                 return SCREEN_MESSAGES;
-            case KEY_SOFT_LEFT_ACTION:
+            case KEY_SOFT_LEFT_ACTION:      /* Q = cancel */
                 s_delete_prompt = 0; s_delete_yes = 0;
                 return SCREEN_MESSAGES;
             default:
@@ -399,14 +428,23 @@ screen_id screen_messages_input(uint32_t key)
         case NCKEY_ENTER: case '\n':
         case KEY_ACTION_PRIMARY: {         /* A = open conversation */
             const CommMessage *m = comm_service_message_at((size_t)s_selected);
-            if (m && comm_service_thread_open(m->phone) == 0) {
-                /* Open the conversation scrolled to the bottom (most recent
-                   message). The draw loop clamps to [0, count - visible],
-                   so a large value is fine, but it's clearer to compute
-                   the real end of the list. */
-                size_t n = comm_service_thread_count();
-                s_thread_scroll = (n > 0) ? (int)n - 1 : 0;
-                s_state = MSG_THREAD;
+            if (m) {
+                int rc = comm_service_thread_open(m->phone);
+                if (rc == 0) {
+                    /* Open the conversation scrolled to the bottom (most
+                       recent message). The draw loop clamps to
+                       [0, count - visible], so a large value is fine, but
+                       it's clearer to compute the real end of the list. */
+                    size_t n = comm_service_thread_count();
+                    s_thread_scroll = (n > 0) ? (int)n - 1 : 0;
+                    s_state = MSG_THREAD;
+                    s_send_feedback = 0;
+                } else if (rc == -2) {
+                    /* Present but unreadable — must not look like an empty
+                     * conversation. Same channel screen_messages already
+                     * uses for a corrupt draft. */
+                    s_send_feedback = -4;
+                }
             }
             return SCREEN_MESSAGES;
         }
@@ -422,4 +460,20 @@ screen_id screen_messages_input(uint32_t key)
         default:
             return SCREEN_MESSAGES;
     }
+}
+
+int screen_messages_flush(void) {
+    if (!s_draft_loaded || !s_draft_dirty) return 0;
+    if (draft_service_save(s_compose_number, s_compose_body) != 0) {
+        s_send_feedback = -2; return -1;
+    }
+    s_draft_dirty = 0;
+    return 0;
+}
+
+int screen_messages_reset_draft(void) {
+    if (draft_service_save("", "") != 0) return -1;
+    s_compose_number[0] = s_compose_body[0] = '\0';
+    s_draft_loaded = 1; s_draft_dirty = 0; s_state = MSG_INBOX;
+    return 0;
 }

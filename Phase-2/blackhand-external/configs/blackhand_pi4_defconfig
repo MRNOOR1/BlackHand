@@ -1,7 +1,9 @@
 # ============================================================================
-# BLACK HAND OS — Notcurses TUI on HyperPixel 4.0
+# BLACK HAND OS — Notcurses TUI on Waveshare 1.83" SPI LCD (240x280)
 # ============================================================================
 # Framebuffer console + notcurses-based phone UI.
+# Panel is driven by the in-kernel panel-mipi-dbi driver over SPI; see
+# board/blackhand/rpi-firmware/config.txt and board/blackhand/panel/.
 # ============================================================================
 
 # Architecture
@@ -17,10 +19,34 @@ BR2_BINUTILS_VERSION_2_45_X=y
 # System
 BR2_TARGET_GENERIC_HOSTNAME="blackhand"
 BR2_TARGET_GENERIC_ISSUE="Black Hand OS"
-BR2_TARGET_GENERIC_ROOT_PASSWD="blackhand"
+# Password login is disabled. Provision /boot/authorized_keys for SSH.
+#
+# EVERY '$' MUST BE DOUBLED. Buildroot expands this value through GNU Make, so a
+# single '$' followed by a character is read as a one-character variable
+# reference and silently deleted. Written unescaped, the "$6$DkV...$oAu7..." hash
+# below lost "$6", "$D" and "$o", and Buildroot then failed to recognise the
+# remainder as already-hashed and ran it through mkpasswd as if it were a
+# PLAINTEXT password -- putting a working root password in the build log.
+# Verified against the first real build's log output, character for character.
+#
+# HOW TO CONFIRM ON THE NEXT BUILD: grep the log for "mkpasswd". If mkpasswd is
+# invoked at all, the escaping is wrong again -- a pre-hashed value must be
+# written into /etc/shadow directly, never hashed a second time.
+#
+# This is a $6$ (SHA-512) hash of a discarded random secret: nobody knows the
+# plaintext, which is the intent. Password auth is off (dropbear -s) and the
+# tty2 debug shell is disabled, so key auth is the only way in.
+BR2_TARGET_GENERIC_ROOT_PASSWD="$$6$$DkVZkEcFGgnMriVI$$oAu7pYTxbXOjUI/6fHjew7ynQFYfLdAHuV4FwjTPQf2rc1DDLM7rykIUWd3nwzBBcewRtwDTXKZf.3wryQrvN."
 BR2_SYSTEM_DHCP="eth0"
+# devtmpfs-only, no udev (see DECISION-001-no-udev.md). BR2_PACKAGE_EUDEV=y
+# used to sit alongside this line with no udevd ever ending up on the image
+# (confirmed on hardware: no udevd binary anywhere, no udev process) — a
+# package requested but silently not installed. Dropped eudev instead of
+# switching the choice to BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_EUDEV: nothing
+# on this image needs hotplug today (modem sweeps ttyUSB* itself, audio
+# hotplug was never wired to udev either), and udev costs flash/RAM/boot
+# time the lightweight mandate says not to spend without a real need.
 BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_DEVTMPFS=y
-BR2_PACKAGE_EUDEV=y
 # Keep busybox so /sbin/init, /bin/sh and standard tools are present.
 # blackhand-init becomes PID 1 via init=/sbin/blackhand-init in cmdline.txt,
 # not by replacing /sbin/init — that way verify-image.sh section 4 still passes.
@@ -34,7 +60,7 @@ BR2_LINUX_KERNEL_USE_DEFCONFIG=y
 BR2_LINUX_KERNEL_DEFCONFIG="bcm2711"
 BR2_LINUX_KERNEL_IMAGE=y
 BR2_LINUX_KERNEL_DTS_SUPPORT=y
-BR2_LINUX_KERNEL_INTREE_DTS_NAME="broadcom/bcm2711-rpi-4-b"
+BR2_LINUX_KERNEL_INTREE_DTS_NAME="broadcom/bcm2711-rpi-cm4"
 BR2_LINUX_KERNEL_DTB_OVERLAY_SUPPORT=y
 BR2_LINUX_KERNEL_INSTALL_TARGET=y
 BR2_LINUX_KERNEL_NEEDS_HOST_OPENSSL=y
@@ -52,6 +78,14 @@ BR2_PACKAGE_KMOD=y
 # Notcurses TUI dependencies (auto-selected, but explicit for clarity)
 BR2_PACKAGE_NCURSES=y
 BR2_PACKAGE_NCURSES_WCHAR=y
+
+# tmux hosts the UI in a detached session (/usr/bin/bh-session attaches), so
+# the UI keeps running with the SPI panel unplugged and can be attached over SSH.
+BR2_PACKAGE_TMUX=y
+# notcurses inside tmux runs with TERM=tmux-256color; ncurses installs only a
+# few terminfo entries by default (linux, xterm-256color, ...), not this one.
+# Value is "<first letter>/<name>" (Buildroot 2024.02 ncurses Config.in).
+BR2_PACKAGE_NCURSES_ADDITIONAL_TERMINFO="t/tmux-256color"
 BR2_PACKAGE_LIBUNISTRING=y
 BR2_PACKAGE_LIBDEFLATE=y
 
@@ -70,16 +104,44 @@ BR2_PACKAGE_NOTCURSES=y
 #   blackhand-init (PID 1 + service manager) has no blackhand dependencies
 BR2_PACKAGE_BLACKHAND_IPC=y
 BR2_PACKAGE_BLACKHAND_INIT=y
+# BRING-UP ONLY: unauthenticated root shell on tty2 (Alt+F2). Rescue path while
+# SSH is unproven. REMOVE THIS LINE before shipping a production image.
+# BR2_PACKAGE_BLACKHAND_INIT_DEBUG_SHELL is not set
 BR2_PACKAGE_BLACKHAND_AUDIO=y
 BR2_PACKAGE_BLACKHAND_STORAGE=y
 BR2_PACKAGE_BLACKHAND_MODEM=y
+# LoRa text messaging (RFM95W/SX1276 over /dev/spidev0.0 — SPI0 CE0 on the
+# CM4 carrier; the display moved to SPI4). Userspace daemon;
+# needs CONFIG_SPI_SPIDEV (board/blackhand/linux/bcm2711.config).
+BR2_PACKAGE_BLACKHAND_LORA=y
 
 # ── Bluetooth firmware ───────────────────────────────────────────────────
 # BCM4345C0.hcd and BCM4345C0.raspberrypi,4-model-b.hcd are included via
 # board/blackhand/overlay/lib/firmware/brcm/ and fetched by post-build.sh.
-# BR2_PACKAGE_BRCMFMAC_SDIO_FIRMWARE_RPI* are NOT used — they are
-# deprecated in current Buildroot and trigger BR2_LEGACY=y, aborting
-# the build with "error: you have legacy config options set".
+# The BT firmware is NOT taken from BR2_PACKAGE_BRCMFMAC_SDIO_FIRMWARE_RPI_BT
+# (it is linked into the kernel, see external.mk); only the Wi-Fi half below.
+
+# ── Wi-Fi (CYW43455 on the CM4) ──────────────────────────────────────────
+# The board has no ethernet and USB-C goes to the modem: Wi-Fi is the only
+# path for SSH. Dependencies, all verified against Buildroot sources:
+#  - brcmfmac_sdio-firmware-rpi installs brcmfmac43455-sdio.{bin,txt,clm_blob}
+#    plus the ",4-compute-module" variants the CM4 DT asks for first.
+#    BR2_PACKAGE_BRCMFMAC_SDIO_FIRMWARE_RPI[_WIFI] are CURRENT symbols (in
+#    2024.02.x .. 2026.08.x); only BR2_PACKAGE_RPI_{BT,WIFI}_FIRMWARE are legacy
+#    (Config.in.legacy). _WIFI depends on !LINUX_FIRMWARE_BRCM_BCM43XXX: never
+#    enable both.
+#  - Driver: CONFIG_BRCMFMAC=m, CFG80211=m, SDIO bus (default y with MMC=y)
+#    come from the base bcm2711_defconfig; rcS must modprobe brcmfmac (no udev).
+#  - wireless-regdb: cfg80211 loads regulatory.db from /lib/firmware; without
+#    it country=AU in wpa_supplicant.conf cannot be applied.
+#  - /etc/wpa_supplicant.conf is generated by post-build.sh from
+#    BLACKHAND_WIFI_SSID / BLACKHAND_WIFI_PSK (never committed).
+#  - WPA3 (SAE) is not enabled: WPA2-PSK and WPA2/WPA3-transition APs only.
+BR2_PACKAGE_BRCMFMAC_SDIO_FIRMWARE_RPI=y
+BR2_PACKAGE_BRCMFMAC_SDIO_FIRMWARE_RPI_WIFI=y
+BR2_PACKAGE_WIRELESS_REGDB=y
+BR2_PACKAGE_WPA_SUPPLICANT=y
+BR2_PACKAGE_WPA_SUPPLICANT_NL80211=y
 
 # ── Bluetooth ────────────────────────────────────────────────────────────
 # D-Bus is a prerequisite for BlueZ — the daemon talks to bluetoothd
@@ -112,15 +174,8 @@ BR2_PACKAGE_ALSA_LIB=y
 BR2_PACKAGE_ALSA_UTILS=y
 BR2_PACKAGE_ALSA_UTILS_ARECORD=y
 BR2_PACKAGE_ALSA_UTILS_APLAY=y
-
-# HyperPixel panel init (SPI bit-bang to wake LCD controller)
-# NOTE: The vc4-kms-dpi-hyperpixel4 overlay handles panel init via
-# kernel SPI-GPIO, so this may be redundant. Kept as fallback.
-BR2_PACKAGE_HYPERPIXEL4_INIT=y
-
-# Debug tools (remove before final image)
-BR2_PACKAGE_EVTEST=y
-
+# i2c-tools: i2cdetect/i2cget to verify the CST816D touch chip on I2C1 (0x15)
+BR2_PACKAGE_I2C_TOOLS=y
 
 # Filesystem
 BR2_TARGET_ROOTFS_EXT2=y

@@ -1,3 +1,6 @@
+#include <signal.h>
+#include <errno.h>
+#include "services/audio_policy.h"
 /*
  * ╔══════════════════════════════════════════════════════════════════════════╗
  * ║  main.c — BlackHand OS  ·  Entry Point & UI Engine                     ║
@@ -214,6 +217,7 @@
 #include "services/bluetooth_service.h"
 #include "services/avrcp_service.h"
 #include "ui-ipcs/modem_ipc.h"
+#include "ui-ipcs/audio_ipc.h"
 #include "cJSON.h"
 
 
@@ -319,9 +323,28 @@ static struct ncplane *create_screen_plane(struct ncplane *phone) {
 }
 
 static uint32_t normalize_control_key(uint32_t key) {
-    /* Controls are F-keys, arrows, Enter, and digits only. Letter keys are
-     * always passed through as text input (multitap, dial, notes), so q/e/a/d
-     * /w/s never trigger soft actions or navigation. */
+    /* The BlackHand keypad has six control keys — W S A D Q E — plus the
+     * number keys. Letters are ALWAYS controls (never text): text is entered
+     * exclusively through the number keys (dial digits / T9 multitap / PIN).
+     * The six keys map onto the existing logical actions so every screen's
+     * handler works unchanged:
+     *
+     *   W → UP      S → DOWN            (scroll / navigate)
+     *   A → PRIMARY (accept/answer/call/play/send/confirm)
+     *   D → SECONDARY (reject/end/delete/stop/backspace — destructive)
+     *   Q → SOFT_LEFT  (back / cancel / discard)
+     *   E → SOFT_RIGHT (open / new / save / options / next)
+     *
+     * Arrow + F-key + Enter bindings are kept as alternates so a host
+     * keyboard can still drive the UI during development. Both upper and
+     * lower case are handled in case Shift/CapsLock is active. */
+    if (key == 'w' || key == 'W') return NCKEY_UP;
+    if (key == 's' || key == 'S') return NCKEY_DOWN;
+    if (key == 'a' || key == 'A') return KEY_ACTION_PRIMARY;
+    if (key == 'd' || key == 'D') return KEY_ACTION_SECONDARY;
+    if (key == 'q' || key == 'Q') return KEY_SOFT_LEFT_ACTION;
+    if (key == 'e' || key == 'E') return KEY_SOFT_RIGHT_ACTION;
+
     if (key == KEY_BIND_UP)     return NCKEY_UP;
     if (key == KEY_BIND_DOWN)   return NCKEY_DOWN;
     if (key == KEY_BIND_LEFT)   return NCKEY_LEFT;
@@ -363,6 +386,9 @@ static uint32_t normalize_control_key(uint32_t key) {
  *  The 'tick' counter increments every frame and drives all animations.
  *  At 10fps, tick advances 10 per second.  tick % N cycles every N/10 sec.
  * ══════════════════════════════════════════════════════════════════════════ */
+
+static volatile sig_atomic_t shutdown_requested = 0;
+static void request_shutdown(int sig) { (void)sig; shutdown_requested = 1; }
 
 int main(void) {
 
@@ -424,7 +450,7 @@ int main(void) {
      *   NCOPTION_NO_QUIT_SIGHANDLERS  don't auto-handle Ctrl-C
      */
     struct notcurses_options nc_opts = {
-        .flags = NCOPTION_SUPPRESS_BANNERS,
+        .flags = NCOPTION_SUPPRESS_BANNERS | NCOPTION_NO_QUIT_SIGHANDLERS,
     };
 
     /*
@@ -515,9 +541,47 @@ int main(void) {
     uint32_t last_dispatch_key = 0;
     struct timespec last_dispatch_ts = {0};
     time_t last_mp3_rescan_time = 0;
+    /* Set when an inbound call ducked audio so it can be resumed once the
+     * user leaves the call screen. We PAUSE (not stop) both the in-UI MP3
+     * player and any daemon playback (voice memo) so position survives. */
+    int audio_ducked_for_call = 0;
+    int resume_mp3 = 0, resume_memo = 0;
+    int communication_write_error = 0;
+    screen_id interrupted_screen = SCREEN_HOME;
+    int restore_after_call = 0;
+    struct sigaction stop_action = {0};
+    stop_action.sa_handler = request_shutdown;
+    sigemptyset(&stop_action.sa_mask);
+    sigaction(SIGTERM, &stop_action, NULL);
+    sigaction(SIGINT, &stop_action, NULL);
+    struct timespec activity_time;
+    clock_gettime(CLOCK_MONOTONIC, &activity_time);
+    long last_activity_ms = activity_time.tv_sec * 1000L + activity_time.tv_nsec / 1000000L;
+    long last_flush_ms = last_activity_ms;
+    long health_due = 0, status_due = 0, sms_due = 0, cache_due = 0;
+
 
     /* ── Event loop ─────────────────────────────────────────────────────── */
-    while (1) {
+    while (!shutdown_requested) {
+        struct timespec loop_time;
+        clock_gettime(CLOCK_MONOTONIC, &loop_time);
+        long loop_ms = loop_time.tv_sec * 1000L + loop_time.tv_nsec / 1000000L;
+        int lock_seconds = settings_service_get_timeout_sec();
+        if (lock_seconds > 0 && !screen_calls_is_live() &&
+            loop_ms - last_activity_ms >= lock_seconds * 1000L &&
+            !settings_service_get_bool(SETTINGS_KEY_HAND_WHITE)) {
+            settings_service_set_bool(SETTINGS_KEY_HAND_WHITE, true);
+            ui_dirty = 1;
+        }
+        if (settings_service_get_bool(SETTINGS_KEY_HAND_WHITE) && !screen_calls_is_live()) {
+            if (current_screen == SCREEN_THEME) theme_service_sync_from_settings();
+            current_screen = SCREEN_HOME;
+        }
+        if (loop_ms - last_flush_ms >= 5000) {
+            screen_notes_flush();
+            screen_messages_flush();
+            last_flush_ms = loop_ms;
+        }
 
         /* ── RESOLVE SCREEN NAME ───────────────────────────────────────── */
         const char *screen_name;
@@ -551,7 +615,7 @@ int main(void) {
          * only this PHONE_SCREEN_ROWS-row canvas.  The keypad is drawn on
          * the parent phone plane starting at KEYPAD_START_ROW.
          */
-        tick++;
+        tick = (tick + 1) % 1000000;
         voice_memo_service_tick();
         mp3_service_update();
 
@@ -563,30 +627,61 @@ int main(void) {
          * Health is also pulled once at tick==1 so screens know the answer
          * before the first 2s window elapses.
          */
-        if (tick == 1 || tick % 60 == 0) {
+        if (loop_ms >= health_due) {
+            health_due = loop_ms + 2000;
             modem_ipc_refresh_health();
         }
         /* Runs on EVERY screen including SCREEN_CALLS — a call can arrive
          * while the user is reading the call log or typing on the dial pad.
          * screen_calls_set_incoming() ignores the request when a live call
          * UI is already up, so repeated polls while ringing are harmless. */
-        if (tick % 30 == 0 && modem_ipc_is_online()) {
+        if (loop_ms >= status_due && modem_ipc_is_online()) {
+            status_due = loop_ms + 1000;
             ModemStatus st;
-            if (modem_ipc_get_status(&st) == 0 && st.has_incoming_call) {
+            int status_ok = modem_ipc_get_status(&st) == 0;
+            if (status_ok) communication_write_error = st.storage_error;
+            if (status_ok && st.has_incoming_call) {
                 screen_calls_set_incoming(st.incoming_number);
+                if (current_screen != SCREEN_CALLS) {
+                    if (current_screen == SCREEN_THEME) theme_service_sync_from_settings();
+                    interrupted_screen = current_screen;
+                    restore_after_call = 1;
+                }
                 current_screen = SCREEN_CALLS;
             }
         }
         // Always tick the calls screen so DIALING→ACTIVE and remote-hangup
         // detection happen without requiring user input.
         screen_calls_tick();
+        int live_call = screen_calls_is_live();
+        if (live_call && !audio_ducked_for_call) {
+            audio_policy_set_call_active(1);
+            resume_mp3 = mp3_service_get_state() == MP3_PLAYING;
+            resume_memo = voice_memo_service_state() == VM_PLAYING;
+            if (resume_mp3) mp3_service_pause();
+            if (resume_memo) voice_memo_service_play_pause();
+            VMState memo_state = voice_memo_service_state();
+            if (memo_state == VM_RECORDING || memo_state == VM_RECORDING_PAUSED)
+                voice_memo_service_record_stop(NULL);
+            audio_ducked_for_call = 1;
+        } else if (!live_call && audio_ducked_for_call) {
+            audio_policy_set_call_active(0);
+            if (resume_mp3 && mp3_service_get_state() == MP3_PAUSED) mp3_service_resume();
+            if (resume_memo && voice_memo_service_state() == VM_PAUSED) voice_memo_service_play_resume();
+            audio_ducked_for_call = 0;
+            if (restore_after_call) { current_screen = interrupted_screen; restore_after_call = 0; }
+            if (settings_service_get_bool(SETTINGS_KEY_HAND_WHITE)) current_screen = SCREEN_HOME;
+            ui_dirty = 1;
+        }
         /* Periodic cache refresh while sitting on a data screen (~10s) —
          * catches history written by the modem service in the background. */
-        if (tick % 300 == 0 &&
+        if (loop_ms >= cache_due &&
             (current_screen == SCREEN_CALLS || current_screen == SCREEN_MESSAGES)) {
+            cache_due = loop_ms + 10000;
             comm_service_sync();
         }
-        if (tick % 150 == 0 && modem_ipc_is_online()) {
+        if (loop_ms >= sms_due && modem_ipc_is_online()) {
+            sms_due = loop_ms + 5000;
             static char sms_buf[16384];
             if (modem_ipc_pop_pending_sms(sms_buf, sizeof(sms_buf)) == 0) {
                 cJSON *arr = cJSON_Parse(sms_buf);
@@ -643,6 +738,11 @@ int main(void) {
                     break;
             }
 
+            if (settings_service_save_failed())
+                ghost_text(screen, PHONE_SCREEN_ROWS - 3, CONTENT_COL, theme_destruct_text(), "SETTINGS NOT SAVED");
+            if (communication_write_error)
+                ghost_text(screen, PHONE_SCREEN_ROWS - 3, CONTENT_COL, theme_destruct_border(), "COMM DATA NOT SAVED");
+
             /* ── RENDER ────────────────────────────────────────────── */
             notcurses_render(nc);
         }
@@ -652,7 +752,20 @@ int main(void) {
         struct timespec timeout = { .tv_sec = 0, .tv_nsec = 33000000L };
         uint32_t key = notcurses_get(nc, &timeout, &ni);
 
+        if (key == (uint32_t)-1) {
+            if (shutdown_requested || feof(stdin)) break;
+            struct timespec backoff = {0, 33000000L};
+            nanosleep(&backoff, NULL);
+            continue;
+        }
         if (key == 0) {
+            /* Some backends return immediately instead of waiting the timeout. */
+            struct timespec after; clock_gettime(CLOCK_MONOTONIC, &after);
+            long spent = after.tv_sec * 1000L + after.tv_nsec / 1000000L - loop_ms;
+            if (spent < 33) {
+                struct timespec rest = {0, (33 - spent) * 1000000L};
+                nanosleep(&rest, NULL);
+            }
             continue;
         }
         ui_dirty = 1;   /* input → redraw on the next loop */
@@ -669,9 +782,7 @@ int main(void) {
         }
 
         key = normalize_control_key(key);
-        if (key == 0) {
-            continue;
-        }
+        if (key == 0) continue;
 
         /* Held W/S (→ NCKEY_UP/DOWN after normalize) auto-repeat for list
          * scrolling. Repeats of every other key are dropped. */
@@ -701,6 +812,7 @@ int main(void) {
         if (key == last_dispatch_key && delta_ms >= 0 && delta_ms < 45) {
             continue;
         }
+        last_activity_ms = now_ts.tv_sec * 1000L + now_ts.tv_nsec / 1000000L;
         last_dispatch_key = key;
         last_dispatch_ts = now_ts;
 
@@ -737,6 +849,23 @@ int main(void) {
             default: break;
         }
 
+        if (screen_settings_take_poweroff_request()) {
+            int notes_ok = screen_notes_flush() == 0;
+            int messages_ok = screen_messages_flush() == 0;
+            int ok = notes_ok && messages_ok;
+            VMState memo = voice_memo_service_state();
+            if (memo == VM_RECORDING || memo == VM_RECORDING_PAUSED)
+                if (voice_memo_service_record_stop(NULL) != 0) ok = 0;
+#ifdef __linux__
+            /* BlackHand PID 1 handles SIGUSR2 directly; no telinit dependency. */
+            if (ok && kill(1, SIGUSR2) == 0) shutdown_requested = 1;
+            else screen_settings_poweroff_failed();
+#else
+            (void)ok;
+            screen_settings_poweroff_failed();
+#endif
+        }
+
         if (current_screen == SCREEN_MP3 && prev_screen != SCREEN_MP3) {
             time_t now = time(NULL);
             if (last_mp3_rescan_time == 0 || now - last_mp3_rescan_time >= 10) {
@@ -745,9 +874,6 @@ int main(void) {
             }
         }
 
-        if (current_screen == SCREEN_CALLS && prev_screen != SCREEN_CALLS) {
-            mp3_service_stop();
-        }
 
         /* ── Refresh data caches on screen entry ──────────────────────────
          * History lives in blackhand-storage and is written by the MODEM
@@ -763,12 +889,16 @@ int main(void) {
         if (current_screen == SCREEN_CONTACTS && prev_screen != SCREEN_CONTACTS) {
             contact_service_init();   /* re-pull contacts.json */
         }
+
+
     }
 
     /* ── Cleanup — REVERSE order of creation ────────────────────────────── */
     /*
      * ncplane_destroy(phone) also destroys its child (screen plane).
      */
+    screen_notes_flush();
+    screen_messages_flush();
     ncplane_destroy(phone);
     notcurses_stop(nc);
     headphone_input_shutdown();

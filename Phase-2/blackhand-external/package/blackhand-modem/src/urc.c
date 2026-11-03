@@ -39,7 +39,20 @@ void *urc_thread_func(void *arg)
 		int n = read_line(fd, line, sizeof(line), 2000);
 
 		if (n < 0)
-			break;
+		{
+			// Real fd error (USB unplug / driver reset). read_line reserves
+			// n<0 strictly for fd errors — an over-length line comes back
+			// truncated, never as -1 — so this can only be a dead fd. Tear the
+			// modem down so the bring-up loop re-probes and re-opens (H3).
+			if (modem_reader_teardown())
+			{
+				// We owned the teardown; nobody will join this thread.
+				pthread_detach(pthread_self());
+			}
+			// Otherwise a concurrent modem_select_port is tearing us down and
+			// will urc_stop()→join; just exit and let it complete.
+			return NULL;
+		}
 		if (n == 0)
 			continue;
 
@@ -158,6 +171,17 @@ void handle_clip(const char *line)
 	printf("Caller ID: (unparsed) %s\n", line);
 }
 
+// Neutralize untrusted terminal-control bytes in OTA text before it is stored
+// or rendered. Replaces C0 controls (< 0x20) and DEL (0x7F) with '?'; leaves
+// UTF-8 (>= 0x80) intact so accented text/emoji survive.
+static void urc_strip_ctrl(char *s)
+{
+	for (; *s; s++) {
+		unsigned char c = (unsigned char)*s;
+		if (c < 0x20 || c == 0x7F) *s = '?';
+	}
+}
+
 void handle_cmt(const char *line)
 {
 	// +CMT: "+1234567890","",... — pull sender from the first quoted field.
@@ -179,10 +203,15 @@ void handle_cmt(const char *line)
 	char body[256];
 	int n = read_line(fn, body, sizeof(body), 2000);
 	if (n > 0) {
-		printf("SMS from %s: %s\n", sender[0] ? sender : "(unknown)", body);
+		// Untrusted OTA text — strip control bytes before it reaches the UI.
+		urc_strip_ctrl(sender);
+		urc_strip_ctrl(body);
+		printf("Incoming SMS received\n");
 		// Persist first (source of truth), then queue for the UI banner.
-		storage_record_sms(sender, "in", body);
-		modem_push_pending_sms(sender, body);
+		if (storage_record_sms(sender, "in", body) == 0)
+			modem_push_pending_sms(sender, body);
+		else
+			fprintf(stderr, "Incoming SMS could not be saved; storage intervention required\n");
 	} else {
 		printf("SMS body: <missing or timed out>\n");
 	}

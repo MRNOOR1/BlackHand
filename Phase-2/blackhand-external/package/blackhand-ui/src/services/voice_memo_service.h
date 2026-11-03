@@ -67,6 +67,11 @@ int voice_memo_service_tick(void);
 int voice_memo_service_elapsed_ms(void);
 int voice_memo_service_total_ms(void);
 
+/* 1 if a mic/capture device exists, 0 if none, -1 if unknown. */
+int voice_memo_service_capture_available(void);
+
 void voice_memo_service_shutdown(void);
+
+int voice_memo_service_record_failed(void);
 
 #endif

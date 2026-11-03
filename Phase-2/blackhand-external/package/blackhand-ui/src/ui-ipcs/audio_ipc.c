@@ -1,3 +1,4 @@
+#include "services/audio_policy.h"
 #include "audio_ipc.h"
 #include "ipc.h"
 #include "cJSON.h"
@@ -12,17 +13,20 @@
 #define AUDIO_SOCKET_PATH  "/run/bh-audio.sock"
 #define AUDIO_RESPONSE_SIZE 4096
 
-/* Client-side log → /boot/logs/ui-audio.log on the FAT32 partition.
-   Pair with daemon's /boot/logs/audio.log to see both sides of every
+/* Client-side log → /var/log/blackhand/ui-audio.log on the FAT32 partition.
+   Pair with daemon's /var/log/blackhand/audio.log to see both sides of every
    IPC round-trip. Skips status() spam (30 Hz from the tick). */
 static FILE *g_uilog = NULL;
 static pthread_mutex_t g_uilog_lock = PTHREAD_MUTEX_INITIALIZER;
 
+/* format(printf) so the compiler type-checks every uilog() call site;
+ * a varargs wrapper without it silently accepts mismatched arguments. */
+__attribute__((format(printf, 1, 2)))
 static void uilog(const char *fmt, ...) {
     pthread_mutex_lock(&g_uilog_lock);
     if (!g_uilog) {
-        mkdir("/boot/logs", 0755);
-        g_uilog = fopen("/boot/logs/ui-audio.log", "a");
+        mkdir("/var/log/blackhand", 0755);
+        g_uilog = fopen("/var/log/blackhand/ui-audio.log", "a");
     }
     if (g_uilog) {
         time_t now = time(NULL);
@@ -100,6 +104,7 @@ int audio_ipc_ping(void) {
 }
 
 int audio_ipc_play_start(const char *filepath) {
+    if (audio_policy_call_active()) return -1;
     int rc = send_with_file("play_start", filepath);
     uilog("→ play_start file=%s  rc=%d", filepath ? filepath : "(null)", rc);
     return rc;
@@ -110,6 +115,7 @@ int audio_ipc_play_pause(void) {
     return rc;
 }
 int audio_ipc_play_resume(void) {
+    if (audio_policy_call_active()) return -1;
     int rc = send_simple("play_resume");
     uilog("→ play_resume  rc=%d", rc);
     return rc;
@@ -214,4 +220,39 @@ int audio_ipc_get_volume(void) {
     int v = -1;
     if (audio_ipc_status_full(NULL, NULL, NULL, NULL, &v) != 0) return -1;
     return v;
+}
+
+int audio_ipc_capture_available(void) {
+    char response[AUDIO_RESPONSE_SIZE];
+    if (ipc_request(AUDIO_SOCKET_PATH,
+                    "{\"jsonrpc\":\"2.0\",\"method\":\"status\",\"id\":1}",
+                    response, sizeof(response)) != IPC_OK)
+        return -1;
+
+    cJSON *root = cJSON_Parse(response);
+    if (!root) return -1;
+    cJSON *result = cJSON_GetObjectItem(root, "result");
+    int cap = -1;
+    if (cJSON_IsObject(result)) {
+        cJSON *capture = cJSON_GetObjectItem(result, "capture");
+        if (cJSON_IsNumber(capture))      cap = capture->valueint ? 1 : 0;
+        else if (cJSON_IsBool(capture))   cap = cJSON_IsTrue(capture) ? 1 : 0;
+    }
+    cJSON_Delete(root);
+    return cap;
+}
+
+int audio_ipc_route(const char *mac) {
+    if (!mac) return -1;
+    cJSON *req = cJSON_CreateObject(), *params = cJSON_CreateObject();
+    cJSON_AddStringToObject(req, "jsonrpc", "2.0");
+    cJSON_AddStringToObject(req, "method", "route");
+    cJSON_AddNumberToObject(req, "id", 1);
+    cJSON_AddStringToObject(params, "mac", mac);
+    cJSON_AddItemToObject(req, "params", params);
+    char *json = cJSON_PrintUnformatted(req); cJSON_Delete(req);
+    if (!json) return -1;
+    char resp[AUDIO_RESPONSE_SIZE];
+    int rc = ipc_request(AUDIO_SOCKET_PATH, json, resp, sizeof(resp)); free(json);
+    return rc == IPC_OK ? response_is_ok(resp) : -1;
 }

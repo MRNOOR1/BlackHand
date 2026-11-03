@@ -3,3 +3,16 @@ config BR2_PACKAGE_BLACKHAND_INIT
     help
       Custom PID 1 init for Black Hand OS.
       Implement process reaping, mount setup, and service manager spawn.
+
+config BR2_PACKAGE_BLACKHAND_INIT_DEBUG_SHELL
+    bool "debug shell on tty2 (INSECURE - bring-up only)"
+    depends on BR2_PACKAGE_BLACKHAND_INIT
+    help
+      Spawn an UNAUTHENTICATED root shell on /dev/tty2, reachable with
+      Alt+F2 (the UI owns tty1). It respawns if you exit it, so it cannot
+      be lost mid-session.
+
+      This bypasses the app PIN and every other access control, and is the
+      rescue path when SSH is unavailable.
+
+      NEVER enable this in a production image.

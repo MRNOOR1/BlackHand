@@ -27,20 +27,33 @@ static int rpc(const char *method, cJSON *params /* may be NULL */,
     return rc;
 }
 
-/* Send req; expect {"result": <array>}; copy array JSON into buf. */
+/*
+ * Send req; expect {"result": <array>}; copy array JSON into buf.
+ *
+ * Returns 0 on success, -1 on transport/parse failure (daemon unreachable
+ * or sent garbage), -2 when the daemon replied with an explicit
+ * {"error":...} — for contacts.list/history.sms_list/history.calls_list
+ * that means "file present but unreadable", which callers must not treat
+ * the same as -1/empty (see storage_service.c's corrupt-file-reads note).
+ */
 static int request_array(const char *req, char *buf, int buf_size)
 {
     char resp[RESP_SIZE];
     if (ipc_request(STORAGE_SOCK, req, resp, sizeof(resp)) != IPC_OK) return -1;
     cJSON *root = cJSON_Parse(resp);
     if (!root) return -1;
+    if (cJSON_GetObjectItem(root, "error")) { cJSON_Delete(root); return -2; }
     cJSON *result = cJSON_GetObjectItem(root, "result");
     if (!cJSON_IsArray(result)) { cJSON_Delete(root); return -1; }
     char *str = cJSON_PrintUnformatted(result);
     int rc = -1;
     if (str && buf && buf_size > 0) {
-        snprintf(buf, (size_t)buf_size, "%s", str);
-        rc = 0;
+        if (strlen(str) < (size_t)buf_size) {
+            memcpy(buf, str, strlen(str) + 1);
+            rc = 0;
+        } else {
+            buf[0] = '\0';
+        }
     }
     free(str);
     cJSON_Delete(root);
@@ -95,6 +108,26 @@ int storage_ipc_contacts_delete(const char *number)
     char req[256];
     if (rpc("contacts.delete", p, req, sizeof(req)) != 0) return -1;
     return request_ok(req);
+}
+
+/* White Wipe only: unconditionally empties contacts.json, including a
+ * corrupt one the normal delete-by-id loop can never see (it enumerates via
+ * contacts.list). Returns -1 on failure, 0 on a clean wipe, 1 if the file
+ * had been corrupt (now erased) — the caller must tell the user. */
+int storage_ipc_contacts_clear(void)
+{
+    char resp[256];
+    if (ipc_request(STORAGE_SOCK,
+                    "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"contacts.clear\"}",
+                    resp, sizeof(resp)) != IPC_OK) return -1;
+    cJSON *root = cJSON_Parse(resp);
+    if (!root) return -1;
+    cJSON *result = cJSON_GetObjectItem(root, "result");
+    int rc = -1;
+    if (cJSON_IsString(result))
+        rc = (strcmp(result->valuestring, "wiped_corrupt") == 0) ? 1 : 0;
+    cJSON_Delete(root);
+    return rc;
 }
 
 int storage_ipc_sms_threads(char *buf, int buf_size)
@@ -188,5 +221,22 @@ int storage_ipc_settings_set_str(const char *key, const char *value)
     cJSON_AddStringToObject(p, "value", value);
     char req[512];
     if (rpc("settings.set", p, req, sizeof(req)) != 0) return -1;
+    return request_ok(req);
+}
+
+int storage_ipc_history_clear(void)
+{
+    return request_ok("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"history.clear\"}");
+}
+
+int storage_ipc_contacts_update(const char *original, const char *name, const char *number)
+{
+    if (!original || !name || !number) return -1;
+    cJSON *p = cJSON_CreateObject();
+    cJSON_AddStringToObject(p, "original_number", original);
+    cJSON_AddStringToObject(p, "name", name);
+    cJSON_AddStringToObject(p, "number", number);
+    char req[1024];
+    if (rpc("contacts.save", p, req, sizeof(req)) != 0) return -1;
     return request_ok(req);
 }

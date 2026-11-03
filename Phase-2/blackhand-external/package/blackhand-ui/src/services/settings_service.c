@@ -1,4 +1,6 @@
+#define _POSIX_C_SOURCE 200809L
 #include "settings_service.h"
+#include "file_store.h"
 #include "../config.h"
 
 #include <stdio.h>
@@ -42,6 +44,8 @@ static int g_light_theme = SETTINGS_DEFAULT_THEME_INDEX;
 static int g_volume = SETTINGS_DEFAULT_VOLUME;
 static int g_brightness = SETTINGS_DEFAULT_BRIGHTNESS;
 static int g_timeout_sec = SETTINGS_DEFAULT_TIMEOUT_SEC;
+static int g_save_failed;
+int settings_service_save_failed(void) { return g_save_failed; }
 
 static int find_index_by_key(const char *key) {
     for (int i = 0; i < g_item_count; i++) {
@@ -96,10 +100,9 @@ static void settings_service_save(void) {
     /* Write to a temp file first then rename — atomic on POSIX. Otherwise
        a crash mid-write leaves a truncated/half-written settings file and
        the next boot loses everything. */
-    char tmp[256];
-    snprintf(tmp, sizeof(tmp), "%s.tmp", SETTINGS_FILE);
-
-    FILE *f = fopen(tmp, "w");
+    g_save_failed = 1;
+    char tmp[256] = "";
+    FILE *f = file_store_begin(SETTINGS_FILE, tmp, sizeof(tmp));
     if (!f) {
         fprintf(stderr, "settings_service: cannot write %s: %s\n",
                 tmp, strerror(errno));
@@ -114,16 +117,9 @@ static void settings_service_save(void) {
     fprintf(f, "%s=%d\n", SETTINGS_KEY_BRIGHTNESS, g_brightness);
     fprintf(f, "%s=%d\n", SETTINGS_KEY_TIMEOUT_SEC, g_timeout_sec);
 
-    if (fflush(f) != 0 || fclose(f) != 0) {
-        fprintf(stderr, "settings_service: flush/close failed for %s\n", tmp);
-        remove(tmp);
-        return;
-    }
-    if (rename(tmp, SETTINGS_FILE) != 0) {
-        fprintf(stderr, "settings_service: rename %s -> %s: %s\n",
-                tmp, SETTINGS_FILE, strerror(errno));
-        remove(tmp);
-    }
+    if (file_store_commit(f, tmp, SETTINGS_FILE, 0) != 0)
+        fprintf(stderr, "settings_service: could not save settings durably\n");
+    else g_save_failed = 0;
 }
 
 void settings_service_init(void) {

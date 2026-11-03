@@ -7,6 +7,14 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(DBUS REQUIRED dbus-1)
 
+# MP3 playback (screens/screen_mp3.c, services/mp3_service.c) needs
+# libmpg123 + libout123. It is the only optional feature in this build:
+# default ON to keep current behaviour, but falls back to a disabled
+# build (screen shows "unavailable") instead of failing the whole UI
+# when the libraries are missing. See screen_mp3.c / mp3_service.c for
+# the BLACKHAND_MP3_ENABLED guard.
+option(BLACKHAND_UI_ENABLE_MP3 "Build the MP3 player (requires libmpg123 and libout123)" ON)
+
 add_executable(blackhand-ui
   main.c
   bh_skin.c
@@ -28,6 +36,9 @@ add_executable(blackhand-ui
   screens/screen_gps.c
   services/settings_service.c
   services/theme_service.c
+  services/audio_policy.c
+  services/draft_service.c
+  services/file_store.c
   services/notes_service.c
   services/mp3_service.c
   services/voice_memo_service.c
@@ -87,18 +98,25 @@ endif()
 
 target_include_directories(blackhand-ui PRIVATE "${NOTCURSES_INCLUDE_DIR}")
 
-find_library(MPG123_LIBRARY
-  NAMES mpg123
-  HINTS
-    "${CMAKE_SYSROOT}/usr/lib"
-    "${CMAKE_FIND_ROOT_PATH}/usr/lib"
-)
-find_library(OUT123_LIBRARY
-  NAMES out123
-  HINTS
-    "${CMAKE_SYSROOT}/usr/lib"
-    "${CMAKE_FIND_ROOT_PATH}/usr/lib"
-)
+if(BLACKHAND_UI_ENABLE_MP3)
+  find_library(MPG123_LIBRARY
+    NAMES mpg123
+    HINTS
+      "${CMAKE_SYSROOT}/usr/lib"
+      "${CMAKE_FIND_ROOT_PATH}/usr/lib"
+  )
+  find_library(OUT123_LIBRARY
+    NAMES out123
+    HINTS
+      "${CMAKE_SYSROOT}/usr/lib"
+      "${CMAKE_FIND_ROOT_PATH}/usr/lib"
+  )
+  if(NOT MPG123_LIBRARY OR NOT OUT123_LIBRARY)
+    message(WARNING "libmpg123/libout123 not found — building blackhand-ui without the MP3 player")
+    set(BLACKHAND_UI_ENABLE_MP3 OFF)
+  endif()
+endif()
+
 find_path(BLACKHAND_IPC_INCLUDE_DIR
   NAMES blackhand/ipc.h
   HINTS
@@ -121,23 +139,24 @@ endif()
 
 target_include_directories(blackhand-ui PRIVATE "${BLACKHAND_IPC_INCLUDE_DIR}/blackhand")
 
-if(NOT MPG123_LIBRARY)
-  message(FATAL_ERROR "libmpg123 not found")
-endif()
-if(NOT OUT123_LIBRARY)
-  message(FATAL_ERROR "libout123 not found")
+if(BLACKHAND_UI_ENABLE_MP3)
+  target_compile_definitions(blackhand-ui PRIVATE BLACKHAND_MP3_ENABLED)
 endif()
 
 find_package(Threads REQUIRED)
+find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 
 set(BLACKHAND_UI_LINK_LIBS
   "${BLACKHAND_IPC_LIBRARY}"
-  "${MPG123_LIBRARY}"
-  "${OUT123_LIBRARY}"
   ${DBUS_LIBRARIES}
   Threads::Threads
+  OpenSSL::Crypto
   m
 )
+
+if(BLACKHAND_UI_ENABLE_MP3)
+  list(APPEND BLACKHAND_UI_LINK_LIBS "${MPG123_LIBRARY}" "${OUT123_LIBRARY}")
+endif()
 
 if(NOTCURSES_LIBRARY)
   list(APPEND BLACKHAND_UI_LINK_LIBS "${NOTCURSES_LIBRARY}")

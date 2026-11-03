@@ -1,5 +1,11 @@
 # Black Hand OS
 
+Current Phase 2 code uses a **notcurses UI**, custom init and modem/audio/storage
+services. Communication data is stored as JSON files, not SQLite. Earlier
+LVGL and voice-assistant descriptions below are historical project goals.
+See [remediation status](Phase-2/REMEDIATION-STATUS.md) for current architecture,
+verified fixes and outstanding product/hardware work.
+
 > **A multi-phase embedded operating system project demonstrating expertise from bare-metal RTOS to embedded Linux**
 
 ![Project Status](https://img.shields.io/badge/Phase%201-Complete-success)

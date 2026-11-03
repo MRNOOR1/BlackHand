@@ -1,3 +1,5 @@
+#include <signal.h>
+#include "ipc.h"
 /*
  * Audio service entry point.
  * Expose JSON-RPC methods to set routing, volume, and playback.
@@ -16,8 +18,15 @@
 #define SOCKET_PATH "/run/bh-audio.sock"
 #define BUFFER_SIZE 8192
 
+static volatile sig_atomic_t stopping;
+static void request_stop(int sig) { (void)sig; stopping = 1; }
 int main()
 {
+    struct sigaction action = {0};
+    action.sa_handler = request_stop;
+    sigemptyset(&action.sa_mask);
+    sigaction(SIGTERM, &action, NULL);
+    sigaction(SIGINT, &action, NULL);
 	/* Initialise the ALSA audio library before opening the socket.
 	   If hardware is not available the service exits immediately rather
 	   than starting and silently failing on every play request. */
@@ -55,9 +64,9 @@ int main()
 
 	printf("Server listening on %s\n", SOCKET_PATH);
 
-	while (1)
+	while (!stopping)
 	{
-		int client_fd = accept(fd, NULL, NULL);
+		int client_fd = ipc_server_accept(fd);
 		if (client_fd == -1)
 		{
 			perror("accept");
@@ -66,7 +75,7 @@ int main()
 
 		printf("Client connected\n");
 
-		while (1)
+		while (!stopping)
 		{
 			char buffer[BUFFER_SIZE];
 			int n = recv_msg(client_fd, buffer, BUFFER_SIZE);
@@ -91,5 +100,9 @@ int main()
 		close(client_fd);
 	}
 
+    audio_record_stop();
+    audio_play_stop();
+    close(fd);
+    unlink(SOCKET_PATH);
 	return 0;
 }

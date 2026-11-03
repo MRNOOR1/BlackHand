@@ -160,14 +160,12 @@ static void append_position_variant(DBusMessageIter *iter)
  * regardless of playback state. */
 static void append_track_variant(DBusMessageIter *iter)
 {
-    const char *title  = mp3_service_current_track_name();
-    const char *artist = mp3_service_current_collection_name();
-    const char *album  = mp3_service_current_category_name();
+    char title[128], artist_buf[64], album[64];
+    mp3_service_current_track_name(title, sizeof(title));
+    mp3_service_current_collection_name(artist_buf, sizeof(artist_buf));
+    mp3_service_current_category_name(album, sizeof(album));
+    const char *artist = artist_buf; /* dbus_message_iter_append_basic(STRING) needs a const char** */
     dbus_int64_t dur_us = (dbus_int64_t)mp3_service_get_total_duration() * 1000000;
-
-    if (!title)  title  = "";
-    if (!artist) artist = "";
-    if (!album)  album  = "";
 
     DBusMessageIter var, arr;
     dbus_message_iter_open_container(iter, DBUS_TYPE_VARIANT, "a{sv}", &var);
@@ -559,8 +557,8 @@ static void *dispatch_thread(void *arg)
 
         /* Emit PropertiesChanged when playback status or track title changes. */
         const char *cur_status = player_status();
-        const char *cur_track  = mp3_service_current_track_name();
-        if (!cur_track) cur_track = "";
+        char cur_track[256];
+        mp3_service_current_track_name(cur_track, sizeof(cur_track));
 
         if (strcmp(cur_status, last_status) != 0 ||
             strcmp(cur_track,  last_track)  != 0) {

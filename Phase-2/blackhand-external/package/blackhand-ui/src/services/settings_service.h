@@ -27,4 +27,7 @@ void settings_service_set_brightness(int value);
 int settings_service_get_timeout_sec(void);
 void settings_service_set_timeout_sec(int sec);
 
+/* Last persistence attempt failed; live settings may differ from disk. */
+int settings_service_save_failed(void);
+
 #endif

@@ -6,7 +6,10 @@
  * the modem service does that on URC events.
  *
  * List-returning calls fill buf with the JSON array string from the service.
- * All return 0 on success, -1 on IPC/parse failure.
+ * All return 0 on success, -1 on IPC/parse failure. contacts_list and
+ * sms_list can also return -2: the daemon reached the file but could not
+ * parse it (present but corrupt) — this is NOT the same as "no data" and
+ * must not be shown to the user as an empty list.
  */
 #ifndef STORAGE_IPC_H
 #define STORAGE_IPC_H
@@ -17,6 +20,9 @@ int storage_ipc_ping(void);
 int storage_ipc_contacts_list(char *buf, int buf_size);
 int storage_ipc_contacts_save(const char *name, const char *number);
 int storage_ipc_contacts_delete(const char *number);
+/* White Wipe only — see storage_ipc.c. Returns -1 fail, 0 clean, 1 the
+ * wiped file had been corrupt. */
+int storage_ipc_contacts_clear(void);
 
 /* SMS history */
 int storage_ipc_sms_threads(char *buf, int buf_size);
@@ -35,3 +41,8 @@ int storage_ipc_settings_get_str(const char *key, char *buf, int buf_size);
 int storage_ipc_settings_set_str(const char *key, const char *value);
 
 #endif
+
+/* Erase persisted SMS and call history; returns failure on partial wipe. */
+int storage_ipc_history_clear(void);
+
+int storage_ipc_contacts_update(const char *original, const char *name, const char *number);
