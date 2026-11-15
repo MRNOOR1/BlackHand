@@ -1,0 +1,27 @@
+# Tier 2: SPI panel status and console setup.
+# Sourced by /etc/init.d/rcS in a subshell: say() and $LOGDIR come from rcS.
+
+# ── Display (SPI panel: Waveshare 1.83", panel-mipi-dbi) ──────────────────────
+# The init sequence lives in the kernel-linked firmware blob panel.bin, so
+# there is nothing to run here — only log the geometry the device actually
+# came up with. With no network, /boot/logs/last-boot.log (mirrored from
+# /var/log/blackhand/last-boot.log) is the only instrument.
+# Expected with the header-wired panel: fb=240,280 / grid 17 30 / stride=960 bpp=32.
+FB=/sys/class/graphics/fb0
+if [ -d "$FB" ]; then
+    echo "display: fb0 up, fb=$(cat $FB/virtual_size 2>/dev/null)"
+    echo "display: console grid (rows cols) = $(stty -F /dev/tty1 size 2>/dev/null)"
+    echo "display: stride=$(cat $FB/stride 2>/dev/null) bpp=$(cat $FB/bits_per_pixel 2>/dev/null)"
+    # Paint the whole panel to the UI's default background (theme 0, 0x0B0B09)
+    # before the UI starts. notcurses only paints the 24x16 text grid (288 of
+    # 304 px); this fills the ~16 px un-gridded strip below the grid so the
+    # bottom lip matches the UI ground instead of showing black. (§6.1)
+    [ -x /usr/bin/fbfill ] && fbfill 0B0B09 >/dev/null 2>&1 || true
+else
+    echo "display: WARNING — /sys/class/graphics/fb0 absent (panel driver did not bind)"
+fi
+# Requested DT geometry, straight from the boot config.
+echo "display: dt geometry: $(grep -hE '^dtparam=(width|height|x-offset|y-offset)' /boot/config.txt 2>/dev/null | tr '\n' ' ')"
+
+# Disable console blanking so the screen stays lit.
+printf "\033[9;0]" > /dev/tty1 2>/dev/null || true

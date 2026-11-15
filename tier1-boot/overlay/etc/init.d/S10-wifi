@@ -1,0 +1,50 @@
+# Tier 1: Wi-Fi (CYW43455), the only network path on the carrier.
+# Sourced by /etc/init.d/rcS in a subshell: say() and $LOGDIR come from rcS.
+
+# ── Wi-Fi (CYW43455) ──────────────────────────────────────────────────────────
+# On the CM4 carrier Wi-Fi is the ONLY network path: the board has no ethernet,
+# and in normal-boot mode the USB-C data lines go to the modem rather than the
+# CM4. Everything here runs in a backgrounded subshell because wlan0 appearing,
+# associating and getting a lease can take many seconds or never finish, and
+# boot must never wait on it.
+#
+# /etc/wpa_supplicant.conf is generated at BUILD time by post-build.sh from
+# BLACKHAND_WIFI_SSID / BLACKHAND_WIFI_PSK (hashed, mode 0600). No file means
+# "not configured" — post-build.sh also deletes the wpa_supplicant package's
+# own default, which contains key_mgmt=NONE and would otherwise join any open
+# network it found.
+if [ ! -f /etc/wpa_supplicant.conf ]; then
+    say "wifi: /etc/wpa_supplicant.conf absent — Wi-Fi skipped (set BLACKHAND_WIFI_SSID/PSK at build time)"
+elif [ ! -x /usr/sbin/wpa_supplicant ]; then
+    say "wifi: WARNING — wpa_supplicant not found — check BR2_PACKAGE_WPA_SUPPLICANT=y"
+else
+    (
+        # There is no udev on this image, so nothing autoloads the driver.
+        # brcmfmac pulls in cfg80211 and brcmutil.
+        modprobe brcmfmac 2>/dev/null || true
+        # modprobe returns before the SDIO probe and firmware load finish, and
+        # wpa_supplicant -i wlan0 fails outright if the interface is absent.
+        WIFI_WAIT=0
+        until [ -d /sys/class/net/wlan0 ] || [ $WIFI_WAIT -ge 60 ]; do
+            sleep 0.25
+            WIFI_WAIT=$((WIFI_WAIT + 1))
+        done
+        if [ ! -d /sys/class/net/wlan0 ]; then
+            say "wifi: WARNING — wlan0 absent after 15s (brcmfmac/firmware? see dmesg.log)"
+            exit 0
+        fi
+        if ! /usr/sbin/wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant.conf; then
+            say "wifi: WARNING — wpa_supplicant failed to start"
+            exit 0
+        fi
+        say "wifi: wpa_supplicant started on wlan0, requesting DHCP"
+        # -b: fork to background and keep retrying rather than giving up.
+        /sbin/udhcpc -i wlan0 -b
+        WLAN0_IP=$(/sbin/ifconfig wlan0 2>/dev/null | grep 'inet ' | awk '{print $2}' | sed 's/addr://')
+        if [ -n "$WLAN0_IP" ]; then
+            say "ssh: wlan0 = $WLAN0_IP  →  ssh root@$WLAN0_IP"
+        else
+            say "wifi: no lease yet — udhcpc keeps retrying in the background"
+        fi
+    ) &
+fi

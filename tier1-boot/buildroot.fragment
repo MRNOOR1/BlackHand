@@ -1,0 +1,42 @@
+# Tier 1: kernel, firmware, PID 1, Wi-Fi and SSH.
+
+# Unknown-plaintext SHA-512 hash: nobody can log in with a password. Every
+# '$' is doubled because Buildroot expands this value through make; a single
+# '$' makes Buildroot treat the remainder as plaintext and hash it again.
+BR2_TARGET_GENERIC_ROOT_PASSWD="$$6$$DkVZkEcFGgnMriVI$$oAu7pYTxbXOjUI/6fHjew7ynQFYfLdAHuV4FwjTPQf2rc1DDLM7rykIUWd3nwzBBcewRtwDTXKZf.3wryQrvN."
+BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_DEVTMPFS=y
+# BusyBox provides /bin/sh and the tools. PID 1 is blackhand-init
+# (init=/sbin/blackhand-init in cmdline.txt), so /etc/inittab is never read.
+BR2_INIT_BUSYBOX=y
+BR2_PACKAGE_BUSYBOX=y
+BR2_PACKAGE_KMOD=y
+
+BR2_LINUX_KERNEL=y
+BR2_LINUX_KERNEL_CUSTOM_TARBALL=y
+BR2_LINUX_KERNEL_CUSTOM_TARBALL_LOCATION="https://github.com/raspberrypi/linux/archive/refs/tags/stable_20241008.tar.gz"
+BR2_LINUX_KERNEL_USE_DEFCONFIG=y
+BR2_LINUX_KERNEL_DEFCONFIG="bcm2711"
+BR2_LINUX_KERNEL_IMAGE=y
+BR2_LINUX_KERNEL_DTS_SUPPORT=y
+BR2_LINUX_KERNEL_INTREE_DTS_NAME="broadcom/bcm2711-rpi-cm4"
+BR2_LINUX_KERNEL_DTB_OVERLAY_SUPPORT=y
+BR2_LINUX_KERNEL_INSTALL_TARGET=y
+BR2_LINUX_KERNEL_NEEDS_HOST_OPENSSL=y
+BR2_PACKAGE_RPI_FIRMWARE=y
+BR2_PACKAGE_RPI_FIRMWARE_VARIANT_PI4=y
+BR2_PACKAGE_HOST_DOSFSTOOLS=y
+BR2_PACKAGE_HOST_GENIMAGE=y
+BR2_PACKAGE_HOST_MTOOLS=y
+
+BR2_PACKAGE_BLACKHAND_INIT=y
+# Unauthenticated root shell on tty2. Bring-up rescue only; never ship it.
+# BR2_PACKAGE_BLACKHAND_INIT_DEBUG_SHELL is not set
+
+# Wi-Fi (CYW43455) is the only network path: the carrier has no ethernet and
+# USB-C goes to the modem. post-build.sh writes /etc/wpa_supplicant.conf.
+BR2_PACKAGE_BRCMFMAC_SDIO_FIRMWARE_RPI=y
+BR2_PACKAGE_BRCMFMAC_SDIO_FIRMWARE_RPI_WIFI=y
+BR2_PACKAGE_WIRELESS_REGDB=y
+BR2_PACKAGE_WPA_SUPPLICANT=y
+BR2_PACKAGE_WPA_SUPPLICANT_NL80211=y
+BR2_PACKAGE_DROPBEAR=y

@@ -1,6 +1,0 @@
-config BR2_PACKAGE_HYPERPIXEL4_INIT
-    bool "hyperpixel4-init"
-    help
-      Sends the SPI init sequence to the HyperPixel 4.0 LCD controller
-      via GPIO bit-bang. Required to wake the panel when using firmware
-      DPI framebuffer (not KMS).

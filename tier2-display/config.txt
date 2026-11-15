@@ -1,0 +1,8 @@
+# Tier 2: Waveshare 1.83" panel, header-wired to SPI0 (see tier2-display/README.md).
+dtparam=spi=on
+dtoverlay=mipi-dbi-spi,spi0-0,speed=8000000
+dtparam=write-only
+dtparam=width=240,height=280
+dtparam=x-offset=0,y-offset=0
+dtparam=reset-gpio=27,dc-gpio=25
+dtparam=backlight-gpio=18

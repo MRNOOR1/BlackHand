@@ -1,0 +1,7 @@
+# Tier 2: SPI panel and the tmux session that hosts the UI.
+BR2_PACKAGE_BLACKHAND_PANEL=y
+BR2_PACKAGE_NCURSES=y
+BR2_PACKAGE_NCURSES_WCHAR=y
+# TERM inside tmux; ncurses installs only a few terminfo entries by default.
+BR2_PACKAGE_NCURSES_ADDITIONAL_TERMINFO="t/tmux-256color"
+BR2_PACKAGE_TMUX=y
