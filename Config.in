@@ -1,0 +1,10 @@
+menu "Black Hand OS"
+    source "$BR2_EXTERNAL_BLACKHAND_PATH/tier1-boot/blackhand-init/Config.in"
+    source "$BR2_EXTERNAL_BLACKHAND_PATH/tier2-display/blackhand-panel/Config.in"
+    source "$BR2_EXTERNAL_BLACKHAND_PATH/tier3-plumbing/blackhand-ipc/Config.in"
+    source "$BR2_EXTERNAL_BLACKHAND_PATH/tier3-plumbing/blackhand-storage/Config.in"
+    source "$BR2_EXTERNAL_BLACKHAND_PATH/tier4-ui/notcurses/Config.in"
+    source "$BR2_EXTERNAL_BLACKHAND_PATH/tier4-ui/blackhand-ui/Config.in"
+    source "$BR2_EXTERNAL_BLACKHAND_PATH/tier5-phone/blackhand-audio/Config.in"
+    source "$BR2_EXTERNAL_BLACKHAND_PATH/tier5-phone/blackhand-modem/Config.in"
+endmenu

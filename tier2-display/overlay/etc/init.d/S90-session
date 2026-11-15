@@ -1,0 +1,16 @@
+# Tier 2: detached tmux session that hosts the UI.
+# Sourced by /etc/init.d/rcS in a subshell: say() and $LOGDIR come from rcS.
+
+# ── UI (detached tmux session) ────────────────────────────────────────────────
+# Defined in /usr/bin/bh-session (session command, size, wait for
+# /run/bh-storage.sock, which does not exist yet: rcS runs BEFORE
+# blackhand-svc-mgr). Detached because rcS has no tty; tty1 and SSH attach with
+# bh-session, tty1 via a respawning client spawned by init.c.
+# shortcut: nothing restarts the tmux server if it dies (the loop only restarts
+# the UI); the tty1 client respawn re-creates it via bh-session. Upgrade to a
+# supervised server in blackhand-svc-mgr if headless boots need it.
+if /usr/bin/bh-session --detached; then
+    say "ui: tmux session 'bh' ready (attach: bh-session)"
+else
+    say "ui: WARNING — tmux session failed to start (check BR2_PACKAGE_TMUX=y)"
+fi

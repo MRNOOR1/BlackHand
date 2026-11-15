@@ -1,0 +1,206 @@
+#!/bin/sh
+
+# ── Essential pseudo-filesystems ──────────────────────────────────────────────
+# Mounted BEFORE the log redirect so /proc and friends are usable, and so the
+# /boot vfat mount below has a kernel to talk to.
+mountpoint -q /proc || mount -t proc     proc     /proc
+mountpoint -q /sys  || mount -t sysfs   sysfs    /sys
+mountpoint -q /dev  || mount -t devtmpfs devtmpfs /dev
+mountpoint -q /run  || mount -t tmpfs   tmpfs    /run
+mountpoint -q /tmp  || mount -t tmpfs   tmpfs    /tmp
+
+mkdir -p /dev/pts /dev/shm
+mount -t devpts devpts /dev/pts -o gid=5,mode=620 2>/dev/null || true
+mount -t tmpfs  tmpfs  /dev/shm 2>/dev/null || true
+
+# ── Boot partition (FAT32) ────────────────────────────────────────────────────
+# FAT has no journal — a write in progress at power-loss can corrupt the
+# partition that makes the device bootable. Cannot be mounted read-only here:
+# blackhand-audio, blackhand-ui and service_manager (blackhand-init) each open
+# their own /boot/logs/<name>.log directly at arbitrary times during runtime
+# (see handoff — those are not this script's files). Mounted rw as before.
+#
+# What rcS itself no longer does: stream its own logging to FAT continuously.
+# The kernel ring buffer (dmesg -w) and this script's own last-boot/sysinfo/
+# errors logs move to /var/log/blackhand/ (ext4) below — that was the bulk of
+# the continuous write volume. /boot/logs/ still gets ONE deliberate write
+# from this script (a copy of the finished last-boot.log, for offline triage
+# from a Mac with no serial console) plus whatever the other daemons write to
+# their own files there; the size-cap loop further down still watches
+# /boot/logs/*.log too, so those files can't silently grow unbounded either.
+mkdir -p /boot /data
+mount -t vfat /dev/mmcblk0p1 /boot 2>/dev/null || true
+mkdir -p /boot/logs
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+# Per-boot rotation under /var/log/blackhand/ (ext4 root, not the FAT boot
+# partition — see above).
+#   last-boot.log         — rcS output + anything to stderr from this script
+#   last-boot.prev.log    — previous boot's rcS log, rotated on each start
+#   dmesg.log             — kernel ring buffer, streamed live (-w)
+#   sysinfo.log           — one-shot snapshot of hardware state at boot
+#   errors.log            — filtered tail of every log: ERROR/WARN/FATAL/fail
+#   <service-name>.log    — per-service stderr/stdout (see service_manager.c)
+LOGDIR=/var/log/blackhand
+mkdir -p "$LOGDIR"
+for _f in last-boot dmesg sysinfo errors; do
+    [ -f "$LOGDIR/${_f}.log" ] && \
+        mv -f "$LOGDIR/${_f}.log" "$LOGDIR/${_f}.prev.log" 2>/dev/null || true
+done
+# `exec` is a special builtin: a failed redirection kills a non-interactive
+# shell outright. $LOGDIR now lives on the ext4 root, which is remounted
+# read-only by the kernel after any filesystem error — so an unprobed redirect
+# here would silently abort ALL of rcS (no display, no modem, no audio, no BT)
+# with nothing written anywhere to say why. Probe first and step down to FAT
+# /boot, then to tmpfs, which is always writable. Probing with `touch` and not
+# `: >` on purpose — `:` is a special builtin too and dies exactly the same way.
+touch "$LOGDIR/last-boot.log" 2>/dev/null || LOGDIR=/boot/logs
+touch "$LOGDIR/last-boot.log" 2>/dev/null || LOGDIR=/tmp
+exec > "$LOGDIR/last-boot.log" 2>&1
+
+# Stream the kernel ring buffer to disk. -w follows new messages, so this
+# captures everything from now until shutdown: USB enumerations, audio
+# driver chatter, OOM events, GPIO complaints. Backgrounded so rcS keeps
+# going. busybox dmesg doesn't take --color; util-linux dmesg does. Either
+# is fine — we just don't pass the flag.
+if command -v dmesg >/dev/null 2>&1; then
+    dmesg > "$LOGDIR/dmesg.log" 2>/dev/null
+    dmesg -w >> "$LOGDIR/dmesg.log" 2>/dev/null &
+fi
+
+# say: write to log AND tty1 so progress is visible on-screen without SSH
+say() { echo "$@"; printf '%s\n' "$@" > /dev/tty1 2>/dev/null || true; }
+say ">>> Black Hand OS starting..."
+
+# ── Wall clock (no RTC on this hardware) ──────────────────────────────────────
+# The clock starts near the epoch every boot without a battery-backed RTC.
+# Confirmed damage: history sorts scramble and voice-memo filenames derived
+# from time() collide and silently overwrite each other.
+#
+# Contract (shared with blackhand-init, which persists this file on the
+# shutdown path — normally unreachable since the user pulls power, hence the
+# periodic save below): /data/.clock holds a single decimal integer, seconds
+# since the epoch, plus a trailing newline. Restore ONLY moves the clock
+# FORWARD, never back — a validated stored value is always at least as
+# trustworthy as "near epoch", but a clock that is already correct (e.g. a
+# device that gained a real RTC later, or NTP some day) must never be pushed
+# backwards by a stale file.
+CLOCK_FILE=/data/.clock
+if [ -f "$CLOCK_FILE" ]; then
+    CLOCK_VAL=$(cat "$CLOCK_FILE" 2>/dev/null)
+    case "$CLOCK_VAL" in
+        ''|*[!0-9]*)
+            # Guards a garbage/empty file (e.g. a truncated read on power
+            # loss mid-write, though the write itself is atomic — see below).
+            say "clock: $CLOCK_FILE unreadable or non-numeric ('$CLOCK_VAL') — ignoring"
+            ;;
+        *)
+            NOW=$(date +%s)
+            if [ "$CLOCK_VAL" -gt "$NOW" ]; then
+                date -s "@$CLOCK_VAL" >/dev/null 2>&1
+                say "clock: restored from $CLOCK_FILE ($CLOCK_VAL, was $NOW)"
+            else
+                say "clock: $CLOCK_FILE ($CLOCK_VAL) not newer than current ($NOW) — keeping current"
+            fi
+            ;;
+    esac
+else
+    say "clock: no $CLOCK_FILE yet (first boot, or pre-fix data)"
+fi
+
+# Periodic save. This replaces the old 60 s /data-wide chmod sweep removed
+# below with something far cheaper: ONE small file write, not recursive.
+# Atomic (tmp + mv) so a power cut mid-write can never leave a truncated
+# value that would later be parsed as a bogus time.
+save_clock() {
+    date +%s > "$CLOCK_FILE.tmp" 2>/dev/null && mv -f "$CLOCK_FILE.tmp" "$CLOCK_FILE" 2>/dev/null
+}
+( while sleep 300; do save_clock; done ) &
+
+# ── Tier start-up scripts ─────────────────────────────────────────────────────
+# Each tier ships its own /etc/init.d/SNN-name; they run in name order. Each
+# runs in a subshell so an error or `exit` in one cannot stop the rest of boot.
+for _s in /etc/init.d/S[0-9][0-9]-*; do
+    [ -f "$_s" ] && ( . "$_s" )
+done
+
+say ">>> Black Hand OS ready ($(grep '^tier=' /etc/blackhand/build-id 2>/dev/null))"
+
+# ── sysinfo snapshot ──────────────────────────────────────────────────────────
+# One-shot dump of hardware state for offline triage. If something is wrong
+# at boot — wrong USB card detected, no mic input on the audio card, weird
+# memory pressure — this file captures it without having to SSH in.
+{
+    echo "=== /proc/version ==="; cat /proc/version 2>/dev/null
+    echo; echo "=== /proc/cpuinfo (model) ==="; grep -i model /proc/cpuinfo 2>/dev/null
+    echo; echo "=== uptime ==="; cat /proc/uptime 2>/dev/null
+    echo; echo "=== /proc/meminfo (first 6 lines) ==="; head -6 /proc/meminfo 2>/dev/null
+    echo; echo "=== /proc/loadavg ==="; cat /proc/loadavg 2>/dev/null
+    echo; echo "=== /proc/mounts ==="; cat /proc/mounts 2>/dev/null
+    echo; echo "=== /proc/asound/cards ==="; cat /proc/asound/cards 2>/dev/null
+    echo; echo "=== /sys/bus/usb/devices ==="; ls -la /sys/bus/usb/devices 2>/dev/null
+    echo; echo "=== /proc/bus/input/devices ==="; cat /proc/bus/input/devices 2>/dev/null
+    echo; echo "=== ifconfig ==="; /sbin/ifconfig 2>/dev/null
+    echo; echo "=== ip route ==="; ip route 2>/dev/null
+    echo; echo "=== ps ==="; ps 2>/dev/null
+} > "$LOGDIR/sysinfo.log" 2>&1
+say "logs: sysinfo snapshot written to $LOGDIR/sysinfo.log"
+
+# ── errors.log filter ─────────────────────────────────────────────────────────
+# Tails every log file in $LOGDIR EXCEPT errors.log itself (would loop)
+# and writes any line that looks like a problem to $LOGDIR/errors.log.
+# Backgrounded; never blocks boot.
+(
+    sleep 3  # let services write a few lines first so tail has files to follow
+    LOG_FILES=$(ls "$LOGDIR"/*.log 2>/dev/null | grep -v errors.log | tr '\n' ' ')
+    if [ -n "$LOG_FILES" ]; then
+        tail -F -n 0 $LOG_FILES 2>/dev/null \
+            | grep --line-buffered -iE 'ERROR|WARN|FATAL|fail|unrecoverable|cannot|panic' \
+            >> "$LOGDIR/errors.log" 2>/dev/null
+    fi
+) &
+say "logs: errors.log filter started"
+
+# ── Log-size cap (brief §8.12) ────────────────────────────────────────────────
+# /boot is a 128 MB FAT partition. A crash-looping service once wrote a 105 MB
+# log and took it to 100%, after which even editing /boot/config.txt failed.
+# Covers both log directories: $LOGDIR (this script's own logs, ext4 — a
+# crash-looping service can fill the root filesystem the same way) and
+# /boot/logs (blackhand-audio, blackhand-ui, service_manager — see handoff;
+# those daemons write there directly and are not this script's files, but
+# nothing else caps their size, so it stays covered here). Cap every
+# *.log to its last LOG_CAP bytes — at boot (trims oversized .prev logs) and
+# every 60 s thereafter.
+#
+# The trim MUST keep the same inode. Almost every log here has a long-lived
+# writer holding an open O_APPEND fd: `dmesg -w`, the errors.log tail filter,
+# and every service's stdout/stderr (service_manager.c dup2s the fd before
+# execv and never reopens it). Replacing the file with `mv` unlinks the inode
+# those fds point at, so the writer keeps appending to a file nobody can see:
+# the visible log freezes at LOG_CAP forever while the partition keeps
+# filling, and the space is only reclaimed when the process exits. Measured
+# on tmpfs: after one mv-based cap the visible file stayed at 20000 bytes
+# while filesystem usage grew 2.5 MB -> 12.3 MB in 4 s.
+# `cat tmp > "$_lf"` truncates and rewrites the SAME inode, so every open fd
+# stays valid and O_APPEND writers resume at the new, small end of file.
+LOG_CAP=2097152   # 2 MB per file
+cap_logs() {
+    for _lf in "$LOGDIR"/*.log /boot/logs/*.log; do
+        [ -f "$_lf" ] || continue
+        if [ "$(wc -c < "$_lf" 2>/dev/null || echo 0)" -gt "$LOG_CAP" ]; then
+            tail -c "$LOG_CAP" "$_lf" > "$_lf.cap" 2>/dev/null \
+                && cat "$_lf.cap" > "$_lf" 2>/dev/null
+            rm -f "$_lf.cap"
+        fi
+    done
+}
+cap_logs
+( while sleep 60; do cap_logs; done ) &
+say "logs: per-file size cap active (${LOG_CAP} bytes, every 60s)"
+
+# ── Boot log snapshot to /boot ────────────────────────────────────────────────
+# One copy of this script's own completed boot log, so it can be read from a
+# Mac/Windows host with the SD card pulled and no serial console — the other
+# daemons' /boot/logs/*.log files (audio.log, ui-audio.log, per-service logs)
+# are already there directly from their own writers.
+cp -f "$LOGDIR/last-boot.log" /boot/logs/last-boot.log 2>/dev/null || true

@@ -1,0 +1,14 @@
+# Tier 1 kernel options, merged on top of bcm2711_defconfig.
+# /dev is devtmpfs only; there is no udev (nothing on the image needs hotplug).
+CONFIG_DEVTMPFS=y
+CONFIG_DEVTMPFS_MOUNT=y
+# Console on tty3 (cmdline.txt) needs VTs.
+CONFIG_VT=y
+CONFIG_VT_CONSOLE=y
+# /boot (FAT32) is mounted for logs, ssh marker and authorized_keys.
+CONFIG_VFAT_FS=y
+CONFIG_FAT_FS=y
+CONFIG_NLS_CODEPAGE_437=y
+CONFIG_NLS_ISO8859_1=y
+CONFIG_FW_LOADER=y
+CONFIG_MODULE_COMPRESS_NONE=y

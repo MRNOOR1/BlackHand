@@ -1,0 +1,7 @@
+# Tier 5: modem and audio daemons.
+BR2_PACKAGE_BLACKHAND_MODEM=y
+BR2_PACKAGE_BLACKHAND_AUDIO=y
+BR2_PACKAGE_ALSA_LIB=y
+# amixer only: rcS uses it to set card volume. aplay/arecord are not needed.
+BR2_PACKAGE_ALSA_UTILS=y
+BR2_PACKAGE_ALSA_UTILS_AMIXER=y

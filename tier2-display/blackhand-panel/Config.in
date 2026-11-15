@@ -1,0 +1,8 @@
+config BR2_PACKAGE_BLACKHAND_PANEL
+    bool "blackhand-panel"
+    depends on BR2_LINUX_KERNEL
+    help
+      Init sequence for the Waveshare 1.83" SPI panel. panel.txt is turned
+      into panel.bin and linked into the kernel (CONFIG_EXTRA_FIRMWARE),
+      because the built-in panel-mipi-dbi driver probes before the rootfs
+      is mounted.

@@ -1,0 +1,9 @@
+# Tier 1: boot. Other tiers append their own lines below (tier0-build/build.sh).
+# Base dtparam= lines must come before the first dtoverlay= line.
+arm_64bit=1
+kernel=Image
+gpu_mem=64
+disable_splash=1
+boot_delay=0
+# Serial console on UART0 (GPIO14/15), P1 header, 115200 8N1.
+enable_uart=1

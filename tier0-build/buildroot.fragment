@@ -1,0 +1,11 @@
+# Tier 0: target, toolchain, root filesystem.
+# Every tier's buildroot.fragment is appended to this one by build.sh.
+BR2_aarch64=y
+BR2_cortex_a72=y
+BR2_TOOLCHAIN_BUILDROOT_GLIBC=y
+BR2_KERNEL_HEADERS_6_6=y
+BR2_TARGET_GENERIC_HOSTNAME="blackhand"
+BR2_TARGET_GENERIC_ISSUE="Black Hand OS"
+BR2_TARGET_ROOTFS_EXT2=y
+BR2_TARGET_ROOTFS_EXT2_4=y
+BR2_TARGET_ROOTFS_EXT2_SIZE="256M"

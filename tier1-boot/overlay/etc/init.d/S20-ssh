@@ -1,0 +1,76 @@
+# Tier 1: SSH (dropbear), key auth only.
+# Sourced by /etc/init.d/rcS in a subshell: say() and $LOGDIR come from rcS.
+
+if [ -e /boot/ssh ] && [ -x /usr/sbin/dropbear ]; then
+    # /etc/dropbear MUST be a real directory. Buildroot's dropbear package can
+    # ship it as a symlink (the keys-on-tmpfs pattern) or as a plain file. When
+    # it is not a directory, "mkdir -p" silently succeeds without creating
+    # anything, dropbear has nowhere to write its host keys, exits immediately,
+    # and every connection is refused with no obvious cause. Confirmed on
+    # hardware: this was the actual reason SSH appeared "enabled but dead".
+    if [ -e /etc/dropbear ] && [ ! -d /etc/dropbear ]; then
+        say "ssh: /etc/dropbear was not a directory — recreating it"
+        rm -f /etc/dropbear
+    fi
+    mkdir -p /etc/dropbear
+
+    # The image ships no host key (tier1-boot/post-build.sh), so each device
+    # generates its own here on first boot and keeps it on the ext4 root.
+    # Doing it explicitly, not via dropbear -R, puts any failure in the log.
+    if [ ! -f /etc/dropbear/dropbear_ed25519_host_key ] \
+       && command -v dropbearkey >/dev/null 2>&1; then
+        say "ssh: no host key — generating ed25519 host key"
+        if dropbearkey -t ed25519 -f /etc/dropbear/dropbear_ed25519_host_key >/dev/null 2>&1; then
+            chmod 600 /etc/dropbear/dropbear_ed25519_host_key
+            say "ssh: host key generated"
+        else
+            say "ssh: WARNING — dropbearkey failed; falling back to dropbear -R"
+        fi
+    fi
+
+    # Provision the operator's public key if one was supplied. Key auth is the
+    # preferred path; drop your PUBLIC key at /boot/authorized_keys on the FAT
+    # partition (writable from any host). Installed with the strict perms
+    # dropbear requires — it refuses a group/other-writable key file.
+    if [ -f /boot/authorized_keys ]; then
+        mkdir -p /root/.ssh
+        chmod 700 /root/.ssh
+        cp /boot/authorized_keys /root/.ssh/authorized_keys
+        chmod 600 /root/.ssh/authorized_keys
+        chown root:root /root/.ssh /root/.ssh/authorized_keys 2>/dev/null || true
+        say "ssh: installed authorized_keys from /boot/authorized_keys"
+    fi
+
+    if [ -s /root/.ssh/authorized_keys ]; then
+        say "ssh: key auth available (/root/.ssh/authorized_keys present)"
+    else
+        say "ssh: no authorized key — provision /boot/authorized_keys to log in"
+    fi
+
+    # -s disables password authentication; SSH requires an authorized key.
+    # -R: fallback key generation if dropbearkey failed above.
+    # -P: pid file, so the readiness check below can confirm it actually bound :22.
+    /usr/sbin/dropbear -s -R -P /var/run/dropbear.pid 2>&1
+
+    # Give the daemon a moment to bind port 22 then confirm it is running.
+    sleep 0.3
+    if kill -0 "$(cat /var/run/dropbear.pid 2>/dev/null)" 2>/dev/null; then
+        say "ssh: dropbear running on port 22 (PID $(cat /var/run/dropbear.pid 2>/dev/null))"
+        # Print the host fingerprint — helps diagnose "REMOTE HOST
+        # IDENTIFICATION HAS CHANGED" on the dev machine. Run
+        # 'ssh-keygen -R <ip>' there to fix.
+        for _kf in /etc/dropbear/dropbear_ed25519_host_key \
+                   /etc/dropbear/dropbear_rsa_host_key; do
+            if [ -f "$_kf" ] && command -v dropbearkey >/dev/null 2>&1; then
+                _fp=$(dropbearkey -y -f "$_kf" 2>/dev/null | grep 'Fingerprint:')
+                say "ssh: $(basename $_kf .host_key): $_fp"
+            fi
+        done
+    else
+        say "ssh: WARNING — dropbear did not start (port 22 in use? check /var/log/blackhand/last-boot.log or /boot/logs/last-boot.log)"
+    fi
+elif [ ! -x /usr/sbin/dropbear ]; then
+    say "ssh: WARNING — /usr/sbin/dropbear not found — check BR2_PACKAGE_DROPBEAR=y"
+else
+    say "ssh: disabled (create /boot/ssh on the boot partition to enable)"
+fi

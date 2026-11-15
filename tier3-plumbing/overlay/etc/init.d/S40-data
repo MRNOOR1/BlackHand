@@ -1,0 +1,7 @@
+# Tier 3: /data permissions.
+# Sourced by /etc/init.d/rcS in a subshell: say() and $LOGDIR come from rcS.
+
+# blackhand-storage creates its own directories at 0700 and files at 0600.
+# This clears group/other bits left on /data by images that predate that, and
+# never touches owner bits (so no regular file gains an execute bit).
+chmod -R go-rwx /data 2>/dev/null || true
